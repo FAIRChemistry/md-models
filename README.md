@@ -4,7 +4,7 @@
 > [!IMPORTANT]
 > This is a work in progress and does not cover all featurs yet, but it is already usable.
 
-![Build Status](https://github.com/gdcc/sdrdm.rs/actions/workflows/test.yml/badge.svg)
+![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)
 
 This is a markdown parser and converter for Rust that can be used to parse markdown data model files and convert them to different JSON schema and the sdRDM format used for code generation.
 
