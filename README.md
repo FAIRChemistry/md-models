@@ -1,5 +1,4 @@
-# Software-driven Research Data Management (sdRDM)
-## Markdown Data Model parser and converter for Rust
+# sdRDM: Markdown Data Model parser and converter for Rust
 
 > [!IMPORTANT]
 > This is a work in progress and does not cover all featurs yet, but it is already usable.
@@ -8,12 +7,12 @@
 
 This is a markdown parser and converter for Rust that can be used to parse markdown data model files and convert them to different JSON schema and the sdRDM format used for code generation.
 
-### Data model
+## Data model
 
 Contains a list of objects that represent the data model
 written in the markdown format
 
-#### Examples
+### Examples
 
 ```rust
 let model = DataModel::parse("data_model.md");
@@ -29,11 +28,11 @@ model.json_schema_all("path/to/dir");
 let sdrdm_schema = model.sdrdm_schema();
 ```
 
-#### Fields
+### Fields
 
 * `objects` - A list of objects
 
-#### Methods
+### Methods
 
 * `new` - Create a new data model
 * `parse` - Parse a markdown file and create a data model
