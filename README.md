@@ -1,7 +1,7 @@
-# sdRDM: Markdown Data Model parser and converter for Rust
-
 > [!IMPORTANT]
 > This is a work in progress and does not cover all featurs yet, but it is already usable.
+
+# sdRDM: Markdown Data Model parser and converter for Rust
 
 ![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)
 
