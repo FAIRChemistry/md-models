@@ -1,0 +1,4 @@
+/target
+
+# Ignore files that are generated while testing
+tests/intermediates

@@ -1,0 +1,71 @@
+[
+  {
+    "name": "Test",
+    "attributes": [
+      {
+        "name": "name",
+        "is_array": false,
+        "dtypes": [
+          "string"
+        ],
+        "docstring": "",
+        "options": {
+          "term": "schema:hello"
+        }
+      },
+      {
+        "name": "number",
+        "is_array": false,
+        "dtypes": [
+          "float"
+        ],
+        "docstring": "",
+        "options": {
+          "term": "schema:one"
+        }
+      },
+      {
+        "name": "test2",
+        "is_array": false,
+        "dtypes": [
+          "Test2"
+        ],
+        "docstring": "",
+        "options": {
+          "term": "schema:something"
+        }
+      }
+    ],
+    "docstring": "",
+    "object_type": "Object"
+  },
+  {
+    "name": "Test2",
+    "attributes": [
+      {
+        "name": "names",
+        "is_array": true,
+        "dtypes": [
+          "string"
+        ],
+        "docstring": "",
+        "options": {
+          "term": "schema:hello"
+        }
+      },
+      {
+        "name": "number",
+        "is_array": false,
+        "dtypes": [
+          "float"
+        ],
+        "docstring": "",
+        "options": {
+          "term": "schema:one"
+        }
+      }
+    ],
+    "docstring": "",
+    "object_type": "Object"
+  }
+]

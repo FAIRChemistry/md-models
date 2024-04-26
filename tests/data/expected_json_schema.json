@@ -1,0 +1,46 @@
+{
+  "title": "Test",
+  "type": "object",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string",
+      "term": "schema:hello"
+    },
+    "number": {
+      "title": "Number",
+      "type": "number",
+      "term": "schema:one"
+    },
+    "test2": {
+      "title": "Test2",
+      "$ref": "#/$defs/Test2",
+      "term": "schema:something"
+    }
+  },
+  "$defs": {
+    "Test2": {
+      "title": "Test2",
+      "type": "object",
+      "properties": {
+        "title": "Test2",
+        "type": "object",
+        "properties": {
+          "names": {
+            "title": "Names",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "term": "schema:hello"
+          },
+          "number": {
+            "title": "Number",
+            "type": "number",
+            "term": "schema:one"
+          }
+        }
+      }
+    }
+  }
+}
