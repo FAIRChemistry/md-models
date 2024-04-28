@@ -37,6 +37,10 @@ fn process_class(object: &object::Object) -> (serde_json::Value, HashSet<String>
         "properties": {},
     });
 
+    if object.term.is_some() {
+        schema["term"] = json!(object.term.as_ref().unwrap());
+    }
+
     for attribute in &object.attributes {
         let (primitives, references) = extract_primitives_and_refs(&attribute.dtypes);
 
