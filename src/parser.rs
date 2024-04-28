@@ -1,4 +1,5 @@
 use pulldown_cmark::{Event, Parser, Tag};
+use regex::Regex;
 
 use crate::attribute;
 use crate::object;
@@ -6,8 +7,7 @@ use crate::object;
 pub fn process_event(iterator: &mut Parser, objects: &mut Vec<object::Object>, event: Event) {
     match event {
         Event::Start(Tag::Heading(level)) if level == 3 => {
-            let name = extract_name(iterator);
-            let object = object::Object::new(name, object::ObjectType::Object);
+            let object = process_object_heading(iterator);
             objects.push(object);
         }
         Event::Start(Tag::List(None)) => {
@@ -21,8 +21,18 @@ pub fn process_event(iterator: &mut Parser, objects: &mut Vec<object::Object>, e
             let attribute = attribute::Attribute::new(attr_string);
             objects.last_mut().unwrap().add_attribute(attribute);
         }
-        _ => {}
+        _ => {
+            println!("Event not handled: {:?}", event)
+        }
     }
+}
+
+fn process_object_heading(iterator: &mut Parser) -> object::Object {
+    let heading = extract_name(iterator);
+    let term = extract_object_term(&heading);
+    let name = heading.split_whitespace().next().unwrap().to_string();
+
+    return object::Object::new(name, object::ObjectType::Object, term);
 }
 
 fn extract_name(iterator: &mut Parser) -> String {
@@ -31,6 +41,22 @@ fn extract_name(iterator: &mut Parser) -> String {
     } else {
         return String::new();
     }
+}
+
+fn extract_object_term(heading: &String) -> Option<String> {
+    // Example: Test (schema:test)
+    // Extract the term "schema:test" using regex
+
+    let re = Regex::new(r"\(([^)]+)\)").unwrap();
+    let matches = re.captures(heading);
+
+    if matches.is_none() {
+        return None;
+    }
+
+    let term = matches.unwrap().get(1).unwrap().as_str();
+
+    Some(term.to_string())
 }
 
 fn extract_attribute(iterator: &mut Parser) -> Vec<String> {
