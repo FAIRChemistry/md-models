@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use crate::attribute::Attribute;
 
@@ -8,21 +9,24 @@ pub enum ObjectType {
     Enum,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize)]
 pub struct Object {
     pub name: String,
     pub attributes: Vec<Attribute>,
     pub docstring: String,
     pub object_type: ObjectType,
+    pub term: Option<String>,
 }
 
 impl Object {
-    pub fn new(name: String, object_type: ObjectType) -> Self {
+    pub fn new(name: String, object_type: ObjectType, term: Option<String>) -> Self {
         Object {
             name,
             attributes: Vec::new(),
             docstring: String::new(),
             object_type,
+            term,
         }
     }
 
