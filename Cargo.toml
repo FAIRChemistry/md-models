@@ -7,3 +7,5 @@ edition = "2021"
 serde = { version = "1.0.198", features = ["derive"] }
 pulldown-cmark = "0.8.0"
 serde_json = { "version" = "1.0.116", features = ["preserve_order"] }
+regex = "1.10.4"
+serde_with = "3.8.0"
