@@ -1,13 +1,13 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use serde_json::json;
 
-use crate::attribute;
-use crate::object;
+use crate::markdown::attribute;
+use crate::markdown::attribute::AttrOption;
+use crate::markdown::object;
 use crate::primitives::PrimitiveTypes;
 
-static DEFINITIONS_KEY: &str = "$defs";
+static DEFINITIONS_KEY: &str = "definitions";
 
 pub fn to_json_schema(name: &String, objects: &Vec<object::Object>) -> String {
     let obj = objects.iter().find(|o| o.name == *name).unwrap();
@@ -105,9 +105,9 @@ fn set_primitive_dtype(
     properties[name]["type"] = json!(json_dtype);
 }
 
-fn set_options(property: &mut serde_json::Value, options: &HashMap<String, String>) {
-    for (key, value) in options {
-        property[key] = json!(value);
+fn set_options(property: &mut serde_json::Value, options: &Vec<AttrOption>) {
+    for option in options {
+        property[option.key()] = json!(option.value());
     }
 }
 

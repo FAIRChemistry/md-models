@@ -4,36 +4,24 @@
     "attributes": [
       {
         "name": "name",
-        "is_array": false,
-        "dtypes": [
-          "string"
-        ],
+        "multiple": false,
+        "dtypes": ["string"],
         "docstring": "",
-        "options": {
-          "term": "schema:hello"
-        }
+        "options": [{ "key": "term", "value": "schema:hello" }]
       },
       {
         "name": "number",
-        "is_array": false,
-        "dtypes": [
-          "float"
-        ],
+        "multiple": false,
+        "dtypes": ["float"],
         "docstring": "",
-        "options": {
-          "term": "schema:one"
-        }
+        "options": [{ "key": "term", "value": "schema:one" }]
       },
       {
         "name": "test2",
-        "is_array": false,
-        "dtypes": [
-          "Test2"
-        ],
+        "multiple": false,
+        "dtypes": ["Test2"],
         "docstring": "",
-        "options": {
-          "term": "schema:something"
-        }
+        "options": [{ "key": "term", "value": "schema:something" }]
       }
     ],
     "docstring": "",
@@ -44,10 +32,8 @@
     "attributes": [
       {
         "name": "names",
-        "is_array": true,
-        "dtypes": [
-          "string"
-        ],
+        "multiple": true,
+        "dtypes": ["string"],
         "docstring": "",
         "options": {
           "term": "schema:hello"
@@ -55,10 +41,8 @@
       },
       {
         "name": "number",
-        "is_array": false,
-        "dtypes": [
-          "float"
-        ],
+        "multiple": false,
+        "dtypes": ["float"],
         "docstring": "",
         "options": {
           "term": "schema:one"

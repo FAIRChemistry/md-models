@@ -14,11 +14,11 @@
     },
     "test2": {
       "title": "Test2",
-      "$ref": "#/$defs/Test2",
+      "$ref": "#/definitions/Test2",
       "term": "schema:something"
     }
   },
-  "$defs": {
+  "definitions": {
     "Test2": {
       "title": "Test2",
       "type": "object",

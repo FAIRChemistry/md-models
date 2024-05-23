@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use crate::attribute::Attribute;
+use crate::markdown::attribute::Attribute;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ObjectType {
     Object,
     Enum,
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Object {
     pub name: String,
     pub attributes: Vec<Attribute>,

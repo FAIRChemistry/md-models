@@ -1,8 +1,33 @@
+use std::error::Error;
+use std::fs;
+use std::path::Path;
+
 use pulldown_cmark::{Event, Parser, Tag};
 use regex::Regex;
 
-use crate::attribute;
-use crate::object;
+use crate::datamodel::DataModel;
+use crate::markdown::attribute;
+use crate::markdown::object;
+
+pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
+    if !path.exists() {
+        return Err("File does not exist".into());
+    }
+
+    let mut model = DataModel::new();
+    let content = fs::read_to_string(path).expect("Could not read file");
+    let parser = Parser::new(&content);
+    let mut iterator = parser.into_iter();
+    let mut objects = Vec::new();
+
+    while let Some(event) = iterator.next() {
+        process_event(&mut iterator, &mut objects, event);
+    }
+
+    model.objects = objects;
+
+    return Ok(model);
+}
 
 pub fn process_event(iterator: &mut Parser, objects: &mut Vec<object::Object>, event: Event) {
     match event {
@@ -21,9 +46,7 @@ pub fn process_event(iterator: &mut Parser, objects: &mut Vec<object::Object>, e
             let attribute = attribute::Attribute::new(attr_string);
             objects.last_mut().unwrap().add_attribute(attribute);
         }
-        _ => {
-            println!("Event not handled: {:?}", event)
-        }
+        _ => {}
     }
 }
 
@@ -83,7 +106,8 @@ fn extract_attribute(iterator: &mut Parser) -> Vec<String> {
 
 fn add_option_to_last_attribute(objects: &mut Vec<object::Object>, key: String, value: String) {
     let last_attr = objects.last_mut().unwrap().get_last_attribute();
-    last_attr.add_option(key, value);
+    let option = attribute::AttrOption::new(key, value);
+    last_attr.add_option(option);
 }
 
 fn distribute_attribute_options(
