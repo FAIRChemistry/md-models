@@ -2,21 +2,26 @@ use clap::{Parser, ValueEnum};
 use lazy_static::lazy_static;
 use mdmodels::{datamodel::DataModel, markdown::parser::parse_markdown};
 use minijinja::{context, Environment};
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::{io::Write, path::PathBuf, str::FromStr};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long)]
-    input: PathBuf,
+    #[arg(short, long, help = "Path or URL to the markdown file")]
+    input: InputType,
 
-    #[arg(short, long)]
+    #[arg(short, long, help = "Path to the output file")]
     output: Option<PathBuf>,
 
-    #[arg(short, long)]
+    #[arg(short, long, help = "Template to use for rendering")]
     template: Templates,
 
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long,
+        help = "Root object to start rendering from (required for JSON Schema)"
+    )]
     root: Option<String>,
 }
 
@@ -27,6 +32,24 @@ enum Templates {
     Markdown,
     Shacl,
     JsonSchema,
+    Shex,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+enum InputType {
+    Remote(String),
+    Local(String),
+}
+
+impl FromStr for InputType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.starts_with("http") {
+            true => Ok(InputType::Remote(s.to_string())),
+            false => Ok(InputType::Local(s.to_string())),
+        }
+    }
 }
 
 lazy_static! {
@@ -49,7 +72,8 @@ fn main() -> Result<(), minijinja::Error> {
     let args = Args::parse();
 
     // Parse the markdown model
-    let (mut model, object_names) = parse_markdown_model(&args.input);
+    let path = resolve_input_path(&args.input);
+    let (mut model, object_names) = parse_markdown_model(&path);
 
     // Render the template
     let rendered = match args.template {
@@ -69,6 +93,24 @@ fn main() -> Result<(), minijinja::Error> {
     }
 
     Ok(())
+}
+
+fn resolve_input_path(input: &InputType) -> PathBuf {
+    match input {
+        InputType::Remote(url) => {
+            let mut path = std::env::temp_dir();
+            path.push("markdown.md");
+            let mut file = std::fs::File::create(&path).expect("Failed to create file");
+            let content = reqwest::blocking::get(url)
+                .expect("Failed to fetch URL")
+                .text()
+                .expect("Failed to read response");
+            file.write_all(content.as_bytes())
+                .expect("Failed to write to file");
+            path
+        }
+        InputType::Local(path) => PathBuf::from(path),
+    }
 }
 
 fn parse_markdown_model(path: &PathBuf) -> (DataModel, Vec<String>) {
@@ -96,6 +138,7 @@ fn render_jinja_template(
         Templates::Markdown => env.get_template("markdown.jinja").unwrap(),
         Templates::Shacl => env.get_template("shacl.jinja").unwrap(),
         Templates::JsonSchema => env.get_template("json-schema.jinja").unwrap(),
+        Templates::Shex => env.get_template("shex.jinja").unwrap(),
     };
 
     // Type conversions and filtering
