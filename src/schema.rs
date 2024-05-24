@@ -2,9 +2,9 @@ use std::collections::HashSet;
 
 use serde_json::json;
 
-use crate::markdown::attribute;
-use crate::markdown::attribute::AttrOption;
-use crate::markdown::object;
+use crate::attribute;
+use crate::attribute::AttrOption;
+use crate::object;
 use crate::primitives::PrimitiveTypes;
 
 static DEFINITIONS_KEY: &str = "definitions";
@@ -79,6 +79,11 @@ fn process_primitive(
     let name = &attribute.name;
     properties[name] = create_property(&name);
 
+    match attribute.term {
+        Some(ref term) => properties[name]["term"] = json!(term),
+        None => (),
+    }
+
     set_primitive_dtype(properties, attribute, primitive);
     set_options(&mut properties[name], &attribute.options);
 }
@@ -118,6 +123,13 @@ fn process_reference(
 ) {
     let name = &attribute.name;
     properties[name] = create_property(&name);
+
+    match attribute.term {
+        Some(ref term) => {
+            properties[name]["term"] = json!(term);
+        }
+        None => {}
+    }
 
     set_ref_dtype(properties, attribute, reference);
     set_options(&mut properties[name], &attribute.options);
