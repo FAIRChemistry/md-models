@@ -1,10 +1,10 @@
-extern crate sdrdm;
+extern crate mdmodels;
 
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
-    use sdrdm::{self, markdown::parser::parse_markdown};
+    use mdmodels::{self, markdown::parser::parse_markdown};
 
     #[test]
     fn test_parse() {
@@ -78,19 +78,22 @@ mod tests {
 
         // Act
         let schema = model.json_schema("Test".to_string());
+        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
 
         // Assert
         let expected_schema =
             std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
+        // Parse with serde_json
+        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
 
-        assert_eq!(schema.trim(), expected_schema.trim());
+        assert_eq!(schema, expected_schema);
     }
 
     #[test]
     #[should_panic]
     fn test_json_schema_no_objects() {
         // Arrange
-        let model = sdrdm::datamodel::DataModel::new();
+        let model = mdmodels::datamodel::DataModel::new(None, None);
 
         // Act
         model.json_schema("Test".to_string());
@@ -107,27 +110,29 @@ mod tests {
         model.json_schema("Test3".to_string());
     }
 
-    // #[test]
-    // fn test_sdrdm_schema() {
-    //     // Arrange
-    //     let path = Path::new("tests/data/model.md");
-    //     let model = parse_markdown(path).expect("Could not parse markdown");
+    #[test]
+    fn test_sdrdm_schema() {
+        // Arrange
+        let path = Path::new("tests/data/model.md");
+        let model = parse_markdown(path).expect("Could not parse markdown");
 
-    //     // Act
-    //     let schema = model.sdrdm_schema();
+        // Act
+        let schema = model.sdrdm_schema();
+        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
 
-    //     // Assert
-    //     let expected_schema =
-    //         std::fs::read_to_string("tests/data/expected_sdrdm_schema.json").unwrap();
+        // Assert
+        let expected_schema =
+            std::fs::read_to_string("tests/data/expected_sdrdm_schema.json").unwrap();
+        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
 
-    //     assert_eq!(schema.trim(), expected_schema.trim());
-    // }
+        assert_eq!(schema, expected_schema);
+    }
 
     #[test]
     #[should_panic]
     fn test_sdrdm_schema_no_objects() {
         // Arrange
-        let model = sdrdm::datamodel::DataModel::new();
+        let model = mdmodels::datamodel::DataModel::new(None, None);
 
         // Act
         model.sdrdm_schema();

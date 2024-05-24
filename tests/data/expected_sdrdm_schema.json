@@ -1,55 +1,73 @@
-[
-  {
-    "name": "Test",
-    "attributes": [
-      {
-        "name": "name",
-        "multiple": false,
-        "dtypes": ["string"],
-        "docstring": "",
-        "options": [{ "key": "term", "value": "schema:hello" }]
-      },
-      {
-        "name": "number",
-        "multiple": false,
-        "dtypes": ["float"],
-        "docstring": "",
-        "options": [{ "key": "term", "value": "schema:one" }]
-      },
-      {
-        "name": "test2",
-        "multiple": false,
-        "dtypes": ["Test2"],
-        "docstring": "",
-        "options": [{ "key": "term", "value": "schema:something" }]
-      }
-    ],
-    "docstring": "",
-    "object_type": "Object"
+{
+  "name": "Test",
+  "config": {
+    "id-field": true,
+    "prefixes": {
+      "schema": "http://schema.org/"
+    },
+    "nsmap": {
+      "tst": "http://example.com/test/"
+    }
   },
-  {
-    "name": "Test2",
-    "attributes": [
-      {
-        "name": "names",
-        "multiple": true,
-        "dtypes": ["string"],
-        "docstring": "",
-        "options": {
-          "term": "schema:hello"
+  "objects": [
+    {
+      "name": "Test",
+      "attributes": [
+        {
+          "name": "name",
+          "multiple": false,
+          "dtypes": ["string"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:hello",
+          "required": true
+        },
+        {
+          "name": "number",
+          "multiple": false,
+          "dtypes": ["float"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:one",
+          "required": false
+        },
+        {
+          "name": "test2",
+          "multiple": false,
+          "dtypes": ["Test2"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:something",
+          "required": false
         }
-      },
-      {
-        "name": "number",
-        "multiple": false,
-        "dtypes": ["float"],
-        "docstring": "",
-        "options": {
-          "term": "schema:one"
+      ],
+      "docstring": "",
+      "object_type": "Object"
+    },
+    {
+      "name": "Test2",
+      "attributes": [
+        {
+          "name": "names",
+          "multiple": true,
+          "dtypes": ["string"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:hello",
+          "required": false
+        },
+        {
+          "name": "number",
+          "multiple": false,
+          "dtypes": ["float"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:one",
+          "required": false
         }
-      }
-    ],
-    "docstring": "",
-    "object_type": "Object"
-  }
-]
+      ],
+      "docstring": "",
+      "object_type": "Object"
+    }
+  ]
+}
