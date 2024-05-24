@@ -1,0 +1,20 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX md: <http://mdmodel.net/>
+{%- for prefix, address in prefixes %}
+PREFIX {{prefix}}: <{{address}}>
+{%- endfor %}
+{% for object in objects%}
+md:{{object.name}} {
+    {%- for attr in object.attributes %}
+    {%- if attr.term %}
+
+    {%- if attr.dtypes[0] in object_names %}
+    md:{{attr.term}} @md:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
+    {%- else %}
+    {{attr.term}} xsd:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
+    {%- endif %}
+
+    {%- endif %}
+    {%- endfor %}
+}
+{%- endfor %}
