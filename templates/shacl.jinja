@@ -1,16 +1,20 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix ex: <http://example.org/> .
+@prefix md: <http://mdmodel.net/> .
+{%- for prefix, value in prefixes %}
+@prefix {{ prefix }}: <{{ value }}> .
+{%- endfor %}
+
 {% for object in objects %}
-ex:{{ object.name }}Shape
+md:{{ object.name }}Shape
     a sh:NodeShape ;
-    sh:targetClass ex:{{ object.name }} ;
+    sh:targetClass md:{{ object.name }} ;
     {% for attribute in object.attributes %}
     {%- if attribute.term %}
     sh:property [
         sh:path {{ attribute.term }} ;
         {%- if attribute.dtypes[0] in object_names %}
-        sh:node ex:{{ attribute.dtypes[0] }}Shape ;
+        sh:node md:{{ attribute.dtypes[0] }}Shape ;
         {%- else %}
         sh:datatype xsd:{{ attribute.dtypes[0] }} ;
         {%- endif %}

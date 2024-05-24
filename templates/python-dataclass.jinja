@@ -3,11 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses_json import config, dataclass_json
 from typing import List, Optional
+from uuid import uuid4
 
 {% for object in objects %}
 @dataclass_json
 @dataclass
 class {{ object.name }}:
+
     {%- for attribute in object.attributes %}
     {%- if attribute.multiple is true %}
     {{ attribute.name }}: List[{{ attribute.dtypes[0] }}]
@@ -16,16 +18,25 @@ class {{ object.name }}:
     {%- endif %}
     {%- endfor %}
 
+    # JSON-LD fields
+    id: str = field(
+        metadata=config(field_name="@id"),
+        default_factory=lambda: "md:{{ object.name }}/" + str(uuid4())
+    )
     __type__: list[str] = field(
         metadata=config(field_name="@type"),
         default_factory = lambda: [
-            "ex:{{ object.name }}",
+            "md:{{ object.name }}",
             {%- if object.term -%}"{{ object.term }}"{%- endif %}
         ],
     )
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
+            "md": "http://mdmodel.net/",
+            {%- for prefix, address in prefixes %}
+            "{{ prefix }}": "{{ address }}",
+            {%- endfor %}
             {%- for attribute in object.attributes %}
             {%- if attribute.term %}
             "{{ attribute.name }}": "{{ attribute.term }}",

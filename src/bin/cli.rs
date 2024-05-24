@@ -106,10 +106,12 @@ fn render_jinja_template(
     }
 
     // Render the template
+    let prefixes = get_prefixes(model);
     template.render(context! {
         objects => model.objects,
         object_names => object_names,
         title => model.name,
+        prefixes => prefixes,
     })
 }
 
@@ -126,5 +128,12 @@ fn convert_model_types(
                 .map(|t| t.to_string())
                 .collect();
         }
+    }
+}
+
+fn get_prefixes(model: &mut DataModel) -> Vec<(String, String)> {
+    match &model.config {
+        Some(config) => config.prefixes().unwrap_or(vec![]),
+        None => vec![],
     }
 }
