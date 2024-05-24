@@ -16,6 +16,7 @@ minijinja-embed = "2.0.1"
 clap = { version = "4.5.4", features = ["cargo", "derive"] }
 lazy_static = "1.4.0"
 gray_matter = "0.2.7"
+reqwest = { version = "0.12.4", features = ["blocking"] }
 
 [build-dependencies]
 minijinja-embed = "2.0.1"
