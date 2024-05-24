@@ -5,10 +5,6 @@
 
 ![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)
 
-<p align="center">
-  <img width="500" src="https://github.com/JR-1991/sdrdm.rs/blob/minijinja/assets/schema.png?raw=true">
-</p>
-
 This is a markdown parser and converter for Rust that can be used to parse markdown data model files and convert them to various formats, schemes and programming languages.
 
 ## Installation
