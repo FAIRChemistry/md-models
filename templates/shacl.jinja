@@ -18,10 +18,15 @@ md:{{ object.name }}Shape
         {%- else %}
         sh:datatype xsd:{{ attribute.dtypes[0] }} ;
         {%- endif %}
-        {%- if attribute.multiple is false %}
+        {%- if attribute.required %}
+        sh:minCount 1 ;
+        {%- else %}
         sh:minCount 0 ;
+        {%- endif %}
+        {%- if attribute.multiple is false%}
         sh:maxCount 1 ;
         {%- endif %}
+
     ] {%- if not loop.last -%};{%- else -%}.{% endif %}
     {%- endif %}
     {%- endfor %}
