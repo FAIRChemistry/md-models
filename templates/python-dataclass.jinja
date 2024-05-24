@@ -1,0 +1,36 @@
+## This is a generated file. Do not modify it manually!
+from __future__ import annotations
+from dataclasses import dataclass, field
+from dataclasses_json import config, dataclass_json
+from typing import List, Optional
+
+{% for object in objects %}
+@dataclass_json
+@dataclass
+class {{ object.name }}:
+    {%- for attribute in object.attributes %}
+    {%- if attribute.multiple is true %}
+    {{ attribute.name }}: List[{{ attribute.dtypes[0] }}]
+    {%- else %}
+    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = None
+    {%- endif %}
+    {%- endfor %}
+
+    __type__: list[str] = field(
+        metadata=config(field_name="@type"),
+        default_factory = lambda: [
+            "ex:{{ object.name }}",
+            {%- if object.term -%}"{{ object.term }}"{%- endif %}
+        ],
+    )
+    __context__: dict[str, str | dict] = field(
+        metadata=config(field_name="@context"),
+        default_factory = lambda: {
+            {%- for attribute in object.attributes %}
+            {%- if attribute.term %}
+            "{{ attribute.name }}": "{{ attribute.term }}",
+            {%- endif %}
+            {%- endfor %}
+        }
+    )
+{% endfor %}

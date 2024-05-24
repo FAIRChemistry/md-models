@@ -1,0 +1,15 @@
+# {{ title }}
+{% for object in objects %}
+### {{ object.name }}
+{{ object.docstring }}
+{%- for attribute in object.attributes %}
+- {{attribute.name}}
+  - Type: {% for dtype in attribute.dtypes -%} {{dtype}}{% if not loop.last %}, {% endif %}{% endfor -%}
+  {%- if attribute.term %}
+  - Term: {{ attribute.term }}
+  {%- endif %}
+  {%- for option in attribute.options %}
+  - {{ option.key }}: {{ option.value }}
+  {%- endfor -%}
+{%- endfor %}
+{% endfor %}
