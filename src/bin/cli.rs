@@ -98,9 +98,16 @@ fn render_jinja_template(
         Templates::JsonSchema => env.get_template("json-schema.jinja").unwrap(),
     };
 
-    // Type conversions
+    // Type conversions and filtering
     match args.template {
-        Templates::Shacl => convert_model_types(model, &SHACL_TYPE_MAPS),
+        Templates::Shacl => {
+            convert_model_types(model, &SHACL_TYPE_MAPS);
+            filter_objects_wo_terms(model);
+        }
+        Templates::Shex => {
+            convert_model_types(model, &SHACL_TYPE_MAPS);
+            filter_objects_wo_terms(model);
+        }
         Templates::PythonDataclass => convert_model_types(model, &PYTHON_TYPE_MAPS),
         _ => {}
     }
@@ -135,5 +142,13 @@ fn get_prefixes(model: &mut DataModel) -> Vec<(String, String)> {
     match &model.config {
         Some(config) => config.prefixes().unwrap_or(vec![]),
         None => vec![],
+    }
+}
+
+fn filter_objects_wo_terms(model: &mut DataModel) {
+    model.objects.retain(|o| o.has_any_terms());
+
+    if model.objects.is_empty() {
+        panic!("No objects with terms found in the model. Unable to build SHACL or ShEx.");
     }
 }

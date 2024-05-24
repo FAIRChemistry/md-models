@@ -54,6 +54,10 @@ impl Attribute {
     pub fn to_json_schema(&self) -> String {
         serde_json::to_string_pretty(&self).unwrap()
     }
+
+    pub fn has_term(&self) -> bool {
+        self.term.is_some()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

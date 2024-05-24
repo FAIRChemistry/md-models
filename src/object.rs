@@ -54,6 +54,10 @@ impl Object {
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
+
+    pub fn has_any_terms(&self) -> bool {
+        self.attributes.iter().any(|attr| attr.has_term())
+    }
 }
 
 #[cfg(test)]
