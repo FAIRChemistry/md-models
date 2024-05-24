@@ -5,23 +5,27 @@ use std::path::Path;
 use pulldown_cmark::{Event, Parser, Tag};
 use regex::Regex;
 
+use crate::attribute;
 use crate::datamodel::DataModel;
-use crate::markdown::attribute;
-use crate::markdown::object;
+use crate::object;
+
+use super::frontmatter::parse_frontmatter;
 
 pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     if !path.exists() {
         return Err("File does not exist".into());
     }
 
-    let mut model = DataModel::new();
     let content = fs::read_to_string(path).expect("Could not read file");
+    let config = parse_frontmatter(content.as_str());
     let parser = Parser::new(&content);
     let mut iterator = parser.into_iter();
     let mut objects = Vec::new();
 
+    let mut model = DataModel::new(None, Some(config));
+
     while let Some(event) = iterator.next() {
-        process_event(&mut iterator, &mut objects, event);
+        process_event(&mut iterator, &mut objects, event, &mut model);
     }
 
     model.objects = objects;
@@ -29,21 +33,42 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     return Ok(model);
 }
 
-pub fn process_event(iterator: &mut Parser, objects: &mut Vec<object::Object>, event: Event) {
+pub fn process_event(
+    iterator: &mut Parser,
+    objects: &mut Vec<object::Object>,
+    event: Event,
+    model: &mut DataModel,
+) {
     match event {
+        Event::Start(Tag::Heading(level)) if level == 1 => {
+            // Get the title of the data model
+            model.name = Some(extract_name(iterator));
+        }
         Event::Start(Tag::Heading(level)) if level == 3 => {
             let object = process_object_heading(iterator);
             objects.push(object);
         }
         Event::Start(Tag::List(None)) => {
-            let attr_strings = extract_attribute(iterator);
+            // When the last object has no attributes, we need to parse
+            // the initial attribute in the list here
+            let last_object = objects.last_mut().unwrap();
+            if !last_object.has_attributes() {
+                iterator.next();
+                let (required, attr_name) = extract_attr_name_required(iterator);
+                let attribute = attribute::Attribute::new(attr_name, required);
+                objects.last_mut().unwrap().add_attribute(attribute);
+                return;
+            }
+
+            // Every other match within this list will be an option for the last attribute
+            let attr_strings = extract_attribute_options(iterator);
             for attr_string in attr_strings {
                 distribute_attribute_options(objects, attr_string);
             }
         }
         Event::Start(Tag::Item) => {
-            let attr_string = extract_name(iterator);
-            let attribute = attribute::Attribute::new(attr_string);
+            let (required, attr_string) = extract_attr_name_required(iterator);
+            let attribute = attribute::Attribute::new(attr_string, required);
             objects.last_mut().unwrap().add_attribute(attribute);
         }
         _ => {}
@@ -61,9 +86,24 @@ fn process_object_heading(iterator: &mut Parser) -> object::Object {
 fn extract_name(iterator: &mut Parser) -> String {
     if let Some(Event::Text(text)) = iterator.next() {
         return text.to_string();
-    } else {
-        return String::new();
     }
+
+    panic!("Could not extract name: Got {:?}", iterator.next().unwrap());
+}
+
+fn extract_attr_name_required(iterator: &mut Parser) -> (bool, String) {
+    // If it is a non required field, the name will be in the next event
+    if let Some(Event::Text(text)) = iterator.next() {
+        return (false, text.to_string());
+    }
+
+    // If it is a required field, the name will be in the next event
+    let text = iterator.next().unwrap();
+    if let Event::Text(text) = text {
+        return (true, text.to_string());
+    }
+
+    panic!("Could not extract name: Got {:?}", text);
 }
 
 fn extract_object_term(heading: &String) -> Option<String> {
@@ -82,7 +122,7 @@ fn extract_object_term(heading: &String) -> Option<String> {
     Some(term.to_string())
 }
 
-fn extract_attribute(iterator: &mut Parser) -> Vec<String> {
+fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
     let mut options = Vec::new();
     while let Some(next) = iterator.next() {
         match next {
@@ -115,6 +155,7 @@ fn distribute_attribute_options(
     attr_string: String,
 ) -> Option<()> {
     if attr_string.contains(":") {
+        // This is an option
         let (key, value) = process_option(&attr_string);
         add_option_to_last_attribute(objects, key, value);
         return None;
@@ -123,7 +164,7 @@ fn distribute_attribute_options(
     objects
         .last_mut()
         .unwrap()
-        .create_new_attribute(attr_string);
+        .create_new_attribute(attr_string, false);
 
     return None;
 }

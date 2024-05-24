@@ -1,7 +1,10 @@
 use std::{error::Error, fs, path::Path};
 
-use crate::markdown::object;
-use crate::schema;
+use serde::{Deserialize, Serialize};
+
+use crate::markdown::frontmatter::FrontMatter;
+use crate::object::Object;
+use crate::{markdown, schema};
 
 // Data model
 //
@@ -25,15 +28,21 @@ use crate::schema;
 // * `json_schema` - Generate a JSON schema from the data model
 // * `json_schema_all` - Generate JSON schemas for all objects in the data model
 // * `sdrdm_schema` - Generate a SDRDM schema from the data model
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DataModel {
-    pub objects: Vec<object::Object>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub objects: Vec<Object>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<markdown::frontmatter::FrontMatter>,
 }
 
 impl DataModel {
-    pub fn new() -> Self {
+    pub fn new(name: Option<String>, config: Option<FrontMatter>) -> Self {
         DataModel {
+            name,
             objects: Vec::new(),
+            config,
         }
     }
 
@@ -124,7 +133,7 @@ impl DataModel {
             panic!("No objects found in the markdown file");
         }
 
-        return serde_json::to_string_pretty(&self.objects).unwrap();
+        return serde_json::to_string_pretty(&self).unwrap();
     }
 
     // Parse a markdown file and create a data model
@@ -148,8 +157,8 @@ impl DataModel {
         }
 
         let contents = fs::read_to_string(path)?;
-        let objects: Vec<object::Object> = serde_json::from_str(&contents)?;
+        let model: DataModel = serde_json::from_str(&contents)?;
 
-        Ok(DataModel { objects })
+        Ok(model)
     }
 }
