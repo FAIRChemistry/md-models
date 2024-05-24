@@ -25,7 +25,7 @@ The command line tool can be used to convert markdown files to various formats. 
 md-models -i model.md -o lib.py -l python-dataclass
 ```
 
-This will read the input file `model.md` and write the output to `lib.py` using the Python dataclass template. For an overview of all available templates, you can use the following command:
+This will read the input file `model.md` and write the output to `lib.py` using the Python dataclass template. Alternatively, you can also pass a URL as input to fetch the model remotely. For an overview of all available templates, you can use the following command:
 
 ```bash
 md-models --help
@@ -39,12 +39,14 @@ The following templates are available:
 - `xml-schema`: XML schema definition
 - `json-schema`: JSON schema definition
 - `shacl`: SHACL shapes definition
+- `shex`: ShEx shapes definition
 
 
 ## ToDo's
 
 - [ ] Python PyDantic template
 - [ ] SQL template
+- [x] Shex template
 - [ ] Python SQLModel template
 - [ ] File validation (XML, JSON, SHACL etc.)
 - [ ] Python bindings using PyO3
