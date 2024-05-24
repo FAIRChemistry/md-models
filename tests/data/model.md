@@ -1,6 +1,9 @@
 ---
+id-field: true
 prefixes:
   schema: http://schema.org/
+nsmap:
+  tst: http://example.com/test/
 ---
 
 # Test
@@ -9,7 +12,7 @@ prefixes:
 
 ### Test
 
-- name
+- __name__
   - Type: string
   - Term: schema:hello
 - number

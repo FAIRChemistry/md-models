@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Roots -->
+    {%- for object in object_names %}
+    <xs:element name="{{ object }}" type="{{ object }}Type"/>
+    {%- endfor %}
+    {% for object in objects%}
+    <!-- {{ object.name }} Definition -->
+    <xs:complexType name="{{ object.name }}Type">
+        <xs:sequence>
+            {%- for attribute in object.attributes %}
+            {%- if attribute.dtypes | length == 1 %}
+            {%- if attribute.dtypes[0] in object_names %}
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
+            {%- else %}
+            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
+            {%- endif %}
+            {%- else %}
+            <xs:element name="{{attribute.name}}">
+                <xs:complexType>
+                    <xs:sequence>
+                        {%- for dtype in attribute.dtypes %}
+                        {%- if dtype in object_names %}
+                        <xs:element name="{{dtype}}" type="{{dtype}}"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
+                        {%- else %}
+                        <xs:element name="{{dtype}}" type="xs:{{dtype}}"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
+                        {%- endif %}
+                        {%- endfor %}
+                    </xs:sequence>
+                </xs:complexType>
+            {%- endif %}
+            {%- endfor %}
+        </xs:sequence>
+    </xs:complexType>
+    {% endfor %}
+</xs:schema>

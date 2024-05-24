@@ -1,5 +1,7 @@
 [package]
-name = "sdrdm"
+name = "mdmodels"
+authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
+description = "A tool to generate models, code and schemas from markdown files"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,3 +11,15 @@ pulldown-cmark = "0.8.0"
 serde_json = { "version" = "1.0.116", features = ["preserve_order"] }
 regex = "1.10.4"
 serde_with = "3.8.0"
+minijinja = "2.0.1"
+minijinja-embed = "2.0.1"
+clap = { version = "4.5.4", features = ["cargo", "derive"] }
+lazy_static = "1.4.0"
+gray_matter = "0.2.7"
+
+[build-dependencies]
+minijinja-embed = "2.0.1"
+
+[[bin]]
+name = "md-models"
+path = "src/bin/cli.rs"
