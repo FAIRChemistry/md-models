@@ -1,41 +1,52 @@
 > [!IMPORTANT]
 > This is a work in progress and does not cover all featurs yet, but it is already usable.
 
-# sdRDM: Markdown Data Model parser for Rust
+# Markdown Models
 
 ![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)
 
-This is a markdown parser and converter for Rust that can be used to parse markdown data model files and convert them to different JSON schema and the sdRDM format used for code generation.
+![schema-illustration](assets/schema.png)
 
-## Data model
+This is a markdown parser and converter for Rust that can be used to parse markdown data model files and convert them to various formats, schemes and programming languages.
 
-Contains a list of objects that represent the data model
-written in the markdown format
+## Installation
 
-### Examples
+In order to install the command line tool, you can use the following command:
 
-```rust
-let model = DataModel::parse("data_model.md");
-
-// Generate a JSON schema for the object named "ObjectName"
-let json_schema = model.json_schema("ObjectName");
-
-// Generate a JSON schema for all objects in the data model
-// and save them to a file
-model.json_schema_all("path/to/dir");
-
-// Generate a SDRDM schema for the object named "ObjectName"
-let sdrdm_schema = model.sdrdm_schema();
+```bash
+git clone https://github.com/JR-1991/md-models
+cd md-models
+cargo install --path .
 ```
 
-### Fields
+## Command line usage
 
-* `objects` - A list of objects
+The command line tool can be used to convert markdown files to various formats. The following command will convert a markdown file to Python code:
 
-### Methods
+```bash
+md-models -i model.md -o lib.py -l python-dataclass
+```
 
-* `new` - Create a new data model
-* `parse` - Parse a markdown file and create a data model
-* `json_schema` - Generate a JSON schema from the data model
-* `json_schema_all` - Generate JSON schemas for all objects in the data model
-* `sdrdm_schema` - Generate a SDRDM schema from the data model
+This will read the input file `model.md` and write the output to `lib.py` using the Python dataclass template. For an overview of all available templates, you can use the following command:
+
+```bash
+md-models --help
+```
+
+## Available templates
+
+The following templates are available:
+
+- `python-dataclass`: Python dataclass implementation with JSON-LD support
+- `xml-schema`: XML schema definition
+- `json-schema`: JSON schema definition
+- `shacl`: SHACL shapes definition
+
+
+## ToDo's
+
+- [ ] Python PyDantic template
+- [ ] SQL template
+- [ ] Python SQLModel template
+- [ ] File validation (XML, JSON, SHACL etc.)
+- [ ] Python bindings using PyO3
