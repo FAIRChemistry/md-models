@@ -22,7 +22,7 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     let mut iterator = parser.into_iter();
     let mut objects = Vec::new();
 
-    let mut model = DataModel::new(None, Some(config));
+    let mut model = DataModel::new(None, config);
 
     while let Some(event) = iterator.next() {
         process_event(&mut iterator, &mut objects, event, &mut model);

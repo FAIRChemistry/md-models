@@ -47,14 +47,19 @@ fn default_id_field() -> bool {
     true
 }
 
-pub fn parse_frontmatter(content: &str) -> FrontMatter {
+pub fn parse_frontmatter(content: &str) -> Option<FrontMatter> {
     let matter = Matter::<YAML>::new();
     let result = matter.parse(content);
-    result
-        .data
-        .expect("Could not extract frontmatter pod")
-        .deserialize()
-        .expect("Could not deserialize frontmatter")
+
+    match result.data {
+        None => None,
+        Some(data) => {
+            let matter = data
+                .deserialize()
+                .expect("Could not deserialize frontmatter");
+            Some(matter)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -71,7 +76,8 @@ mod tests {
         let content = std::fs::read_to_string(path).expect("Could not read file");
 
         // Act
-        let frontmatter = parse_frontmatter(&content);
+        let frontmatter = parse_frontmatter(&content)
+            .expect("Could not parse frontmatter from file. Please check the file content.");
 
         // Assert
         assert_eq!(frontmatter.id_field, true);
