@@ -1,0 +1,108 @@
+{#
+    This macro is used to create an attribute in a data model class.
+    The attribute is created with the following parameters:
+#}
+{% macro create_attribute(attr) %}
+    {{ attr.name }}: {{ get_type(attr) }} = {{ xml_type(attr.xml) }}(
+            {% if attr.required is false and attr.multiple is false -%}
+            default=None,
+            {% endif -%}
+            {% if attr.multiple is true -%}
+            default_factory=ListPlus,
+            {% endif -%}
+            tag="{{ xml_tag(attr.xml) }}",
+            json_schema_extra={{ create_options(attr.options, attr.term) }}
+        )
+{% endmacro %}
+
+{#
+    This macro is used to create the options for an attribute in a data model class.
+    The options are created with the following parameters:
+#}
+{%- macro create_options(options, term) -%}
+dict(
+    {%- if term -%}
+    term = "{{ term }}",
+    {%- endif -%}
+    {%- for option in options -%}
+    {{ option.key }} = "{{ option.value }}",
+    {%- endfor -%}
+)
+{%- endmacro -%}
+
+{#
+    This macro is used to determine the XML tag
+#}
+{%- macro xml_tag(xml_option) -%}
+{{ xml_option.name }}
+{%- endmacro -%}
+
+{#
+    This macro is used to determine the XML type
+    The XML type is determined by the following parameters:
+    - is_attr: True if the attribute is an XML attribute, False if the attribute is an XML element
+#}
+{%- macro xml_type(xml_option) %}
+{%- if xml_option.is_attr is false -%} element {%- else -%} attr {%- endif -%}
+{% endmacro %}
+
+{#
+    This macro is used to to determine the type of the attribute
+#}
+{%- macro type(attr, in_list) -%}
+{%- if attr.dtypes | length == 1 -%}
+    {%- if attr.required or in_list -%}
+    {{ attr.dtypes[0] }}
+    {%- else -%}
+    Optional[{{ attr.dtypes[0] }}]
+    {%- endif -%}
+{%- else -%}
+Union[
+    {%- if attr.required is false -%}None, {%- endif -%}
+    {%- for dtype in attr.dtypes -%}
+    {{ dtype }}{%- if not loop.last -%}, {%- endif -%}
+    {%- endfor -%}
+]
+{%- endif -%}
+{%- endmacro -%}
+
+{#
+    This macro checks if the attribute is a list and returns the type of the attribute
+#}
+{%- macro get_type(attr) -%}
+{%- if attr.multiple is true -%}
+List[{{ type(attr, true) }}]
+{%- else -%}
+{{ type(attr) }}
+{%- endif -%}
+{%- endmacro -%}
+
+{#
+    This macro is used to generate a signature for a method
+    of a class. Mostly for adding entries to list objects.
+#}
+{%- macro signature(objects, name) -%}
+{%- for object in objects -%}
+{%- if object.name == name -%}
+        self,
+        {%- for attr in object.attributes %}
+        {{ attr.name }}: {{ get_type(attr) }},
+        {%- endfor %}
+        **kwargs,
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro -%}
+
+{#
+    This macro is used to generate parameters for the body
+    of a method. Mostly for adding entries to list objects.
+#}
+{%- macro params(objects, name) -%}
+{%- for object in objects -%}
+{%- if object.name == name -%}
+        {%- for attr in object.attributes %}
+            "{{ attr.name }}": {{ attr.name }}{% if not loop.last %}, {% endif %}
+        {%- endfor %}
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro -%}
