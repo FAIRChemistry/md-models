@@ -58,6 +58,10 @@ impl Object {
     pub fn has_any_terms(&self) -> bool {
         self.attributes.iter().any(|attr| attr.has_term())
     }
+
+    pub fn sort_attrs_by_required(&mut self) {
+        self.attributes.sort_by(|a, b| b.required.cmp(&a.required))
+    }
 }
 
 #[cfg(test)]

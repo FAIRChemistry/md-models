@@ -161,4 +161,10 @@ impl DataModel {
 
         Ok(model)
     }
+
+    pub fn sort_attrs(&mut self) {
+        for obj in &mut self.objects {
+            obj.sort_attrs_by_required();
+        }
+    }
 }
