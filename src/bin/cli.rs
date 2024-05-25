@@ -33,6 +33,7 @@ enum Templates {
     Shacl,
     JsonSchema,
     Shex,
+    PythonSdrdm,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -74,6 +75,7 @@ fn main() -> Result<(), minijinja::Error> {
     // Parse the markdown model
     let path = resolve_input_path(&args.input);
     let (mut model, object_names) = parse_markdown_model(&path);
+    model.sort_attrs();
 
     // Render the template
     let rendered = match args.template {
@@ -85,10 +87,10 @@ fn main() -> Result<(), minijinja::Error> {
 
     match args.output {
         Some(ref output) => {
-            std::fs::write(output, rendered).expect("Failed to write output");
+            std::fs::write(output, rendered.trim()).expect("Failed to write output");
         }
         None => {
-            println!("{}", rendered);
+            println!("{}", rendered.trim());
         }
     }
 
@@ -132,6 +134,8 @@ fn render_jinja_template(
     // Load the template
     let mut env = Environment::new();
     minijinja_embed::load_templates!(&mut env);
+
+    // Get the template
     let template = match args.template {
         Templates::PythonDataclass => env.get_template("python-dataclass.jinja").unwrap(),
         Templates::XmlSchema => env.get_template("xml-schema.jinja").unwrap(),
@@ -139,6 +143,7 @@ fn render_jinja_template(
         Templates::Shacl => env.get_template("shacl.jinja").unwrap(),
         Templates::JsonSchema => env.get_template("json-schema.jinja").unwrap(),
         Templates::Shex => env.get_template("shex.jinja").unwrap(),
+        Templates::PythonSdrdm => env.get_template("python-sdrdm.jinja").unwrap(),
     };
 
     // Type conversions and filtering
@@ -152,6 +157,10 @@ fn render_jinja_template(
             filter_objects_wo_terms(model);
         }
         Templates::PythonDataclass => convert_model_types(model, &PYTHON_TYPE_MAPS),
+        Templates::PythonSdrdm => {
+            convert_model_types(model, &PYTHON_TYPE_MAPS);
+            sort_attributes_by_required(model);
+        }
         _ => {}
     }
 
@@ -162,6 +171,7 @@ fn render_jinja_template(
         object_names => object_names,
         title => model.name,
         prefixes => prefixes,
+        repo => model.config.as_ref().and_then(|c| c.repo.clone()),
     })
 }
 
@@ -193,5 +203,24 @@ fn filter_objects_wo_terms(model: &mut DataModel) {
 
     if model.objects.is_empty() {
         panic!("No objects with terms found in the model. Unable to build SHACL or ShEx.");
+    }
+}
+
+fn sort_attributes_by_required(model: &mut DataModel) {
+    for object in &mut model.objects {
+        object
+            .attributes
+            .sort_by(|a, b| b.required.cmp(&a.required));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resolve_input_path() {
+        let path = resolve_input_path(&InputType::Local("tests/data/markdown.md".to_string()));
+        assert_eq!(path.to_str().unwrap(), "tests/data/markdown.md");
     }
 }
