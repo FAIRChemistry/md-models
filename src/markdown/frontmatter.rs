@@ -9,6 +9,7 @@ pub struct FrontMatter {
     pub id_field: bool,
     pub prefixes: Option<HashMap<String, String>>,
     pub nsmap: Option<HashMap<String, String>>,
+    pub repo: Option<String>,
 }
 
 impl FrontMatter {
@@ -38,6 +39,7 @@ impl Default for FrontMatter {
         FrontMatter {
             id_field: default_id_field(),
             prefixes: None,
+            repo: None,
             nsmap: None,
         }
     }
