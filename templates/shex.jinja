@@ -9,7 +9,7 @@ md:{{object.name}} {
     {%- if attr.term %}
 
     {%- if attr.dtypes[0] in object_names %}
-    md:{{attr.term}} @md:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
+    {{attr.term}} @md:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
     {%- else %}
     {{attr.term}} xsd:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
     {%- endif %}

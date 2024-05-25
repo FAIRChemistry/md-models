@@ -12,7 +12,9 @@ class {{ object.name }}:
 
     {%- for attribute in object.attributes %}
     {%- if attribute.multiple is true %}
-    {{ attribute.name }}: List[{{ attribute.dtypes[0] }}]
+    {{ attribute.name }}: List[{{ attribute.dtypes[0] }}] = field(default_factory=list)
+    {%- elif attribute.required is true%}
+    {{ attribute.name }}: {{ attribute.dtypes[0] }}
     {%- else %}
     {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = None
     {%- endif %}
