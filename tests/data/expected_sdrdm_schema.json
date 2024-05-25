@@ -1,14 +1,5 @@
 {
   "name": "Test",
-  "config": {
-    "id-field": true,
-    "prefixes": {
-      "schema": "http://schema.org/"
-    },
-    "nsmap": {
-      "tst": "http://example.com/test/"
-    }
-  },
   "objects": [
     {
       "name": "Test",
@@ -20,7 +11,11 @@
           "docstring": "",
           "options": [],
           "term": "schema:hello",
-          "required": true
+          "required": true,
+          "xml": {
+            "is_attr": true,
+            "name": "name"
+          }
         },
         {
           "name": "number",
@@ -29,16 +24,24 @@
           "docstring": "",
           "options": [],
           "term": "schema:one",
-          "required": false
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "number"
+          }
         },
         {
           "name": "test2",
-          "multiple": false,
+          "multiple": true,
           "dtypes": ["Test2"],
           "docstring": "",
           "options": [],
           "term": "schema:something",
-          "required": false
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "SomeTest2"
+          }
         }
       ],
       "docstring": "",
@@ -54,7 +57,11 @@
           "docstring": "",
           "options": [],
           "term": "schema:hello",
-          "required": false
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "name"
+          }
         },
         {
           "name": "number",
@@ -63,11 +70,25 @@
           "docstring": "",
           "options": [],
           "term": "schema:one",
-          "required": false
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "number"
+          }
         }
       ],
       "docstring": "",
       "object_type": "Object"
     }
-  ]
+  ],
+  "config": {
+    "id-field": true,
+    "prefixes": {
+      "schema": "http://schema.org/"
+    },
+    "nsmap": {
+      "tst": "http://example.com/test/"
+    },
+    "repo": "https://www.github.com/my/repo"
+  }
 }
