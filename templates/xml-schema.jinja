@@ -12,9 +12,15 @@
             {%- for attribute in object.attributes %}
             {%- if attribute.dtypes | length == 1 %}
             {%- if attribute.dtypes[0] in object_names %}
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"
+                {%- if attribute.multiple is true %} maxOccurs="unbounded"{% endif -%}
+                {%- if attribute.required is true %} minOccurs="1"{%- endif -%}
+            />
             {%- else %}
-            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
+            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"
+                {%- if attribute.multiple is true %} maxOccurs="unbounded"{%- endif -%}
+                {%- if attribute.required is true %} minOccurs="1"{%- endif -%}
+            />
             {%- endif %}
             {%- else %}
             <xs:element name="{{attribute.name}}">
