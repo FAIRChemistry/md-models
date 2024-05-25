@@ -1,4 +1,8 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
+
+use crate::xmltype::XMLType;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Attribute {
@@ -10,18 +14,21 @@ pub struct Attribute {
     pub options: Vec<AttrOption>,
     pub term: Option<String>,
     pub required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xml: Option<XMLType>,
 }
 
 impl Attribute {
     pub fn new(name: String, required: bool) -> Self {
         Attribute {
-            name,
+            name: name.clone(),
             dtypes: Vec::new(),
             docstring: String::new(),
             options: Vec::new(),
             is_array: false,
             term: None,
             required,
+            xml: Some(XMLType::from_str(name.as_str()).unwrap()),
         }
     }
 
@@ -30,15 +37,12 @@ impl Attribute {
     }
 
     pub fn add_option(&mut self, option: AttrOption) {
-        if option.key.to_lowercase() == "type" {
-            self.set_dtype(option.value);
-            return;
-        } else if option.key.to_lowercase() == "term" {
-            self.term = Some(option.value);
-            return;
+        match option.key.to_lowercase().as_str() {
+            "type" => self.set_dtype(option.value),
+            "term" => self.term = Some(option.value),
+            "xml" => self.set_xml(XMLType::from_str(&option.value).expect("Invalid XML type")),
+            _ => self.options.push(option),
         }
-
-        self.options.push(option);
     }
 
     fn set_dtype(&mut self, dtype: String) {
@@ -57,6 +61,10 @@ impl Attribute {
 
     pub fn has_term(&self) -> bool {
         self.term.is_some()
+    }
+
+    pub fn set_xml(&mut self, xml: XMLType) {
+        self.xml = Some(xml);
     }
 }
 
@@ -85,6 +93,8 @@ impl AttrOption {
 
 #[cfg(test)]
 mod tests {
+    use crate::xmltype::XMLType;
+
     use super::*;
 
     #[test]
@@ -150,5 +160,47 @@ mod tests {
         assert_eq!(attr.dtypes.len(), 1);
         assert_eq!(attr.dtypes[0], "string");
         assert_eq!(attr.is_array, true);
+    }
+
+    #[test]
+    fn test_attribute_set_xml_attr() {
+        let mut attr = Attribute::new("name".to_string(), false);
+        let xml = XMLType::from_str("@name").expect("Could not parse XMLType");
+        attr.set_xml(xml);
+        assert_eq!(
+            attr.xml.expect("Could not find XML option"),
+            XMLType::Attribute {
+                is_attr: true,
+                name: "name".to_string()
+            },
+            "XMLType is not correct. Expected an attribute type."
+        );
+    }
+
+    #[test]
+    fn test_attribute_set_xml_element() {
+        let mut attr = Attribute::new("name".to_string(), false);
+        let xml = XMLType::from_str("name").expect("Could not parse XMLType");
+        attr.set_xml(xml);
+        assert_eq!(
+            attr.xml.expect("Could not find XML option"),
+            XMLType::Element {
+                is_attr: false,
+                name: "name".to_string()
+            },
+            "XMLType is not correct. Expected an element type."
+        );
+    }
+
+    #[test]
+    fn test_default_xml_type() {
+        let attr = Attribute::new("name".to_string(), false);
+        assert_eq!(
+            attr.xml.unwrap(),
+            XMLType::Element {
+                is_attr: false,
+                name: "name".to_string()
+            }
+        );
     }
 }
