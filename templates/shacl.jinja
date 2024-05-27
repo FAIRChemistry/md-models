@@ -1,12 +1,12 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix md: <http://mdmodel.net/> .
+@prefix {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}> .
 {%- for prefix, value in prefixes %}
 @prefix {{ prefix }}: <{{ value }}> .
 {%- endfor %}
 
 {% for object in objects %}
-md:{{ object.name }}Shape
+{{ prefix }}:{{ object.name }}Shape
     a sh:NodeShape ;
     sh:targetClass md:{{ object.name }} ;
     {% for attribute in object.attributes %}

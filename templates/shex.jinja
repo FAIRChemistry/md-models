@@ -1,17 +1,31 @@
+{#
+    This macro determines, whether an attribute is required,
+    multiple or optional.
+#}
+{%- macro is_required(attr) -%}
+    {%- if attr.required is false and attr.multiple is false -%}
+        ?
+    {%- elif attr.required is false and attr.multiple is true -%}
+        *
+    {%- elif attr.required is true and attr.multiple is true -%}
+        +
+    {%- endif %}
+{%- endmacro -%}
+
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX md: <http://mdmodel.net/>
-{%- for prefix, address in prefixes %}
-PREFIX {{prefix}}: <{{address}}>
+PREFIX {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}>
+{%- for pre, address in prefixes %}
+PREFIX {{pre}}: <{{address}}>
 {%- endfor %}
 {% for object in objects%}
-md:{{object.name}} {
+{{ prefix }}:{{object.name}} {
     {%- for attr in object.attributes %}
     {%- if attr.term %}
 
     {%- if attr.dtypes[0] in object_names %}
-    {{attr.term}} @md:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
+    {{attr.term}} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }};
     {%- else %}
-    {{attr.term}} xsd:{{attr.dtypes[0]}}{% if attr.required is false %}?{% endif %};
+    {{attr.term}} xsd:{{attr.dtypes[0]}}{{ is_required(attr) }};
     {%- endif %}
 
     {%- endif %}
