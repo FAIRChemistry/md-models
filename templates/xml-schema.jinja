@@ -1,3 +1,53 @@
+{#
+    This macro determines whether an attribute/element is required
+#}
+{% macro is_required(attribute) -%}
+    {%- if attribute.required is true -%}
+        use="required"
+    {%- endif -%}
+{%- endmacro %}
+
+{#
+    This macro determines whether an attribute/element is required
+#}
+{% macro is_multiple(attribute) -%}
+    {%- if attribute.multiple is true %} maxOccurs="unbounded"{% endif -%}
+    {%- if attribute.required is true %} minOccurs="1"{%- endif -%}
+{%- endmacro %}
+
+{#
+    This macro creates an entry in the XML schema for a given attribute.
+#}
+{%- macro create_attribute(attribute) -%}
+        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}" {{ is_required(attribute) }} />
+{%- endmacro %}
+
+{#
+    This macro creates an entry in the XML schema for a given element.
+#}
+{%- macro create_element(attribute) -%}
+{%- if attribute.dtypes | length == 1 %}
+            {%- if attribute.dtypes[0] in object_names -%}
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type" {{ is_multiple(attribute) }} />
+            {%- else -%}
+            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}" {{ is_multiple(attribute) }} />
+            {%- endif -%}
+{%- else -%}
+            <xs:element name="{{attribute.name}}" {{ is_multiple(attribute) }} />
+                <xs:complexType>
+                    <xs:sequence>
+                        {%- for dtype in attribute.dtypes %}
+                        {%- if dtype in object_names %}
+                        <xs:element name="{{dtype}}" type="{{dtype}}" {{ is_multiple(attribute) }} />
+                        {%- else %}
+                        <xs:element name="{{dtype}}" type="xs:{{dtype}}" {{ is_multiple(attribute) }} />
+                        {%- endif %}
+                        {%- endfor %}
+                    </xs:sequence>
+                </xs:complexType>
+{%- endif %}
+{%- endmacro %}
+
 <?xml version="1.0" encoding="UTF-8" ?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
@@ -10,34 +60,16 @@
     <xs:complexType name="{{ object.name }}Type">
         <xs:sequence>
             {%- for attribute in object.attributes %}
-            {%- if attribute.dtypes | length == 1 %}
-            {%- if attribute.dtypes[0] in object_names %}
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"
-                {%- if attribute.multiple is true %} maxOccurs="unbounded"{% endif -%}
-                {%- if attribute.required is true %} minOccurs="1"{%- endif -%}
-            />
-            {%- else %}
-            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"
-                {%- if attribute.multiple is true %} maxOccurs="unbounded"{%- endif -%}
-                {%- if attribute.required is true %} minOccurs="1"{%- endif -%}
-            />
-            {%- endif %}
-            {%- else %}
-            <xs:element name="{{attribute.name}}">
-                <xs:complexType>
-                    <xs:sequence>
-                        {%- for dtype in attribute.dtypes %}
-                        {%- if dtype in object_names %}
-                        <xs:element name="{{dtype}}" type="{{dtype}}"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
-                        {%- else %}
-                        <xs:element name="{{dtype}}" type="xs:{{dtype}}"{% if attribute.multiple %} maxOccurs="unbounded"{% endif %}/>
-                        {%- endif %}
-                        {%- endfor %}
-                    </xs:sequence>
-                </xs:complexType>
+            {%- if attribute.xml.is_attr is false %}
+            {{ create_element(attribute) }}
             {%- endif %}
             {%- endfor %}
         </xs:sequence>
+        {%- for attribute in object.attributes %}
+        {%- if attribute.xml.is_attr is true %}
+        {{ create_attribute(attribute) }}
+        {%- endif %}
+        {%- endfor %}
     </xs:complexType>
     {% endfor %}
 </xs:schema>
