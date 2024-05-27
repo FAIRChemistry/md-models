@@ -9,7 +9,10 @@ pub struct FrontMatter {
     pub id_field: bool,
     pub prefixes: Option<HashMap<String, String>>,
     pub nsmap: Option<HashMap<String, String>>,
-    pub repo: Option<String>,
+    #[serde(default = "default_repo")]
+    pub repo: String,
+    #[serde(default = "default_prefix")]
+    pub prefix: String,
 }
 
 impl FrontMatter {
@@ -39,14 +42,24 @@ impl Default for FrontMatter {
         FrontMatter {
             id_field: default_id_field(),
             prefixes: None,
-            repo: None,
+            repo: default_repo(),
             nsmap: None,
+            prefix: default_prefix(),
         }
     }
 }
 
+// Defaults for the frontmatter
 fn default_id_field() -> bool {
     true
+}
+
+fn default_prefix() -> String {
+    "md".to_string()
+}
+
+fn default_repo() -> String {
+    "http://mdmodel.net/".to_string()
 }
 
 pub fn parse_frontmatter(content: &str) -> Option<FrontMatter> {
