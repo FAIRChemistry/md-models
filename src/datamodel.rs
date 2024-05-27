@@ -2,6 +2,7 @@ use std::{error::Error, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
+use crate::exporters::{render_jinja_template, Templates};
 use crate::markdown::frontmatter::FrontMatter;
 use crate::object::Object;
 use crate::{markdown, schema};
@@ -166,5 +167,22 @@ impl DataModel {
         for obj in &mut self.objects {
             obj.sort_attrs_by_required();
         }
+    }
+
+    // Convert the data model to a template using Jinja
+    //
+    // * `template` - The Jinja template
+    //
+    // # Returns
+    //
+    // A string containing the Jinja template
+    //
+    // # Errors
+    //
+    // If the Jinja template is invalid
+    //
+    pub fn convert_to(&mut self, template: &Templates) -> Result<String, minijinja::Error> {
+        self.sort_attrs();
+        render_jinja_template(template, self)
     }
 }

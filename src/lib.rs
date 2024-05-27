@@ -1,5 +1,6 @@
 pub mod attribute;
 pub mod datamodel;
+pub mod exporters;
 pub mod object;
 pub mod primitives;
 pub mod schema;
