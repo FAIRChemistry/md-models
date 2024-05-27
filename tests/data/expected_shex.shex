@@ -1,0 +1,13 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX tst: <https://www.github.com/my/repo/>
+PREFIX schema: <http://schema.org/>
+
+tst:Test {
+    schema:hello xsd:string;
+    schema:one xsd:double?;
+    schema:something @tst:Test2*;
+}
+tst:Test2 {
+    schema:hello xsd:string*;
+    schema:one xsd:double?;
+}

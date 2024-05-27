@@ -1,5 +1,4 @@
 {
-  "name": "Test",
   "objects": [
     {
       "name": "Test",
@@ -89,6 +88,7 @@
     "nsmap": {
       "tst": "http://example.com/test/"
     },
-    "repo": "https://www.github.com/my/repo"
+    "repo": "https://www.github.com/my/repo/",
+    "prefix": "tst"
   }
 }

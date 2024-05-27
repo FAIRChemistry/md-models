@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Roots -->
+    <xs:element name="Test" type="TestType"/>
+    <xs:element name="Test2" type="Test2Type"/>
+    
+    <!-- Test Definition -->
+    <xs:complexType name="TestType">
+        <xs:sequence>
+            <xs:element name="test2" type="Test2Type"  maxOccurs="unbounded" />
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required" />
+        <xs:attribute name="number" type="xs:float"  />
+    </xs:complexType>
+    
+    <!-- Test2 Definition -->
+    <xs:complexType name="Test2Type">
+        <xs:sequence>
+            <xs:element name="names" type="xs:string"  maxOccurs="unbounded" />
+        </xs:sequence>
+        <xs:attribute name="number" type="xs:float"  />
+    </xs:complexType>
+    
+</xs:schema>

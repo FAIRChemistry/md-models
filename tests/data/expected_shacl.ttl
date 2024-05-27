@@ -1,0 +1,48 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix tst: <https://www.github.com/my/repo/> .
+@prefix schema: <http://schema.org/> .
+
+
+tst:TestShape
+    a sh:NodeShape ;
+    sh:targetClass md:Test ;
+    
+    sh:property [
+        sh:path schema:hello ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+
+    ];
+    sh:property [
+        sh:path schema:one ;
+        sh:datatype xsd:double ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+
+    ];
+    sh:property [
+        sh:path schema:something ;
+        sh:node md:Test2Shape ;
+        sh:minCount 0 ;
+
+    ].
+
+tst:Test2Shape
+    a sh:NodeShape ;
+    sh:targetClass md:Test2 ;
+    
+    sh:property [
+        sh:path schema:hello ;
+        sh:datatype xsd:string ;
+        sh:minCount 0 ;
+
+    ];
+    sh:property [
+        sh:path schema:one ;
+        sh:datatype xsd:double ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+
+    ].
