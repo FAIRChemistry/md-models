@@ -1,8 +1,11 @@
+{% import "python-sdrdm-macros.jinja" as utils %}
+
 ## This is a generated file. Do not modify it manually!
 from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses_json import config, dataclass_json
 from typing import List, Optional
+from enum import Enum
 from uuid import uuid4
 
 {% for object in objects %}
@@ -46,4 +49,30 @@ class {{ object.name }}:
             {%- endfor %}
         }
     )
+    {% for attr in object.attributes %}
+    {%- for dtype in attr.dtypes %}
+    {%- if dtype in object_names and attr.multiple is true %}
+    def add_to_{{ attr.name }}(
+        {{ utils.signature(objects, dtype) }}
+    ):
+        params = {
+            {{ utils.params(objects, dtype) }}
+        }
+
+        self.{{ attr.name }}.append(
+            {{ dtype }}(**params)
+        )
+
+        return self.{{ attr.name }}[-1]
+
+    {%- endif %}
+    {%- endfor %}
+    {% endfor %}
+{%- endfor %}
+
+{%- for enum in enums %}
+class {{ enum.name }}(Enum):
+    {%- for key, value in enum.mappings | dictsort %}
+    {{ key }} = "{{ value }}"
+    {%- endfor %}
 {% endfor %}

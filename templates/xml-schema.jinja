@@ -1,25 +1,25 @@
 {#
     This macro determines whether an attribute/element is required
 #}
-{% macro is_required(attribute) -%}
+{%- macro is_required(attribute) -%}
     {%- if attribute.required is true -%}
         use="required"
     {%- endif -%}
-{%- endmacro %}
+{%- endmacro -%}
 
 {#
     This macro determines whether an attribute/element is required
 #}
-{% macro is_multiple(attribute) -%}
+{%- macro is_multiple(attribute) -%}
     {%- if attribute.multiple is true %} maxOccurs="unbounded"{% endif -%}
-    {%- if attribute.required is true %} minOccurs="1"{%- endif -%}
-{%- endmacro %}
+    {%- if attribute.required is true and attribute.multiple is true %} minOccurs="1"{%- endif -%}
+{%- endmacro -%}
 
 {#
     This macro creates an entry in the XML schema for a given attribute.
 #}
 {%- macro create_attribute(attribute) -%}
-        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}" {{ is_required(attribute) }} />
+        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}" {{ is_required(attribute) }}/>
 {%- endmacro %}
 
 {#
@@ -27,22 +27,23 @@
 #}
 {%- macro create_element(attribute) -%}
 {%- if attribute.dtypes | length == 1 %}
-            {%- if attribute.dtypes[0] in object_names -%}
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type" {{ is_multiple(attribute) }} />
+            {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type" {{ is_multiple(attribute) }}/>
             {%- else -%}
-            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}" {{ is_multiple(attribute) }} />
+            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}" {{ is_multiple(attribute) }}/>
             {%- endif -%}
 {%- else -%}
-            <xs:element name="{{attribute.name}}" {{ is_multiple(attribute) }} />
+            <xs:element name="{{attribute.name}}" {{ is_multiple(attribute) }}/>
                 <xs:complexType>
                     <xs:sequence>
                         {%- for dtype in attribute.dtypes %}
-                        {%- if dtype in object_names %}
-                        <xs:element name="{{dtype}}" type="{{dtype}}" {{ is_multiple(attribute) }} />
+                        {%- if dtype in object_names or dtype in enum_names %}
+                        <xs:element name="{{dtype}}" type="{{dtype}}" {{ is_multiple(attribute) }}/>
                         {%- else %}
-                        <xs:element name="{{dtype}}" type="xs:{{dtype}}" {{ is_multiple(attribute) }} />
+                        <xs:element name="{{dtype}}" type="xs:{{dtype}}" {{ is_multiple(attribute) }}/>
                         {%- endif %}
                         {%- endfor %}
+                        {{ enum_names }}
                     </xs:sequence>
                 </xs:complexType>
 {%- endif %}
@@ -72,4 +73,16 @@
         {%- endfor %}
     </xs:complexType>
     {% endfor %}
+
+    {%- for enum in enums %}
+    <!-- Enum {{ enum.name }} Definition -->
+    <xs:simpleType name="{{ enum.name }}Type">
+        <xs:restriction base="xs:string">
+            {%- for key, value in enum.mappings | dictsort %}
+            <xs:enumeration value="{{ value }}"/>
+            {%- endfor %}
+        </xs:restriction>
+    </xs:simpleType>
+    {%- endfor %}
+
 </xs:schema>
