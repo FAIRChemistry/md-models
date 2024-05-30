@@ -24,3 +24,6 @@ minijinja-embed = "2.0.1"
 [[bin]]
 name = "md-models"
 path = "src/bin/cli.rs"
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"

@@ -127,6 +127,7 @@ fn sort_attributes_by_required(model: &mut DataModel) {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use std::{fs, path::Path};
 
     use crate::markdown::parser::parse_markdown;

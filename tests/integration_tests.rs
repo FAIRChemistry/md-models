@@ -5,6 +5,7 @@ mod tests {
     use std::path::Path;
 
     use mdmodels::{self, markdown::parser::parse_markdown};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_parse() {

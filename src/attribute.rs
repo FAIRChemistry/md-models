@@ -94,6 +94,7 @@ impl AttrOption {
 #[cfg(test)]
 mod tests {
     use crate::xmltype::XMLType;
+    use pretty_assertions::assert_eq;
 
     use super::*;
 
