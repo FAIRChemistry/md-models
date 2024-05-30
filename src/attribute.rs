@@ -4,21 +4,36 @@ use serde::{Deserialize, Serialize};
 
 use crate::xmltype::XMLType;
 
+/// Represents an attribute with various properties and options.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attribute {
+    /// The name of the attribute.
     pub name: String,
+    /// Indicates if the attribute is an array.
     #[serde(rename = "multiple")]
     pub is_array: bool,
+    /// Data types associated with the attribute.
     pub dtypes: Vec<String>,
+    /// Documentation string for the attribute.
     pub docstring: String,
+    /// List of additional options for the attribute.
     pub options: Vec<AttrOption>,
+    /// Term associated with the attribute, if any.
     pub term: Option<String>,
+    /// Indicates if the attribute is required.
     pub required: bool,
+    /// XML type information for the attribute.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub xml: Option<XMLType>,
 }
 
 impl Attribute {
+    /// Creates a new `Attribute` with the given name and required status.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the attribute.
+    /// * `required` - Indicates if the attribute is required.
     pub fn new(name: String, required: bool) -> Self {
         Attribute {
             name: name.clone(),
@@ -32,10 +47,20 @@ impl Attribute {
         }
     }
 
+    /// Sets the documentation string for the attribute.
+    ///
+    /// # Arguments
+    ///
+    /// * `docstring` - The documentation string to set.
     pub fn set_docstring(&mut self, docstring: String) {
         self.docstring = docstring;
     }
 
+    /// Adds an option to the attribute.
+    ///
+    /// # Arguments
+    ///
+    /// * `option` - The option to add.
     pub fn add_option(&mut self, option: AttrOption) {
         match option.key.to_lowercase().as_str() {
             "type" => self.set_dtype(option.value),
@@ -45,6 +70,11 @@ impl Attribute {
         }
     }
 
+    /// Sets the data type for the attribute.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype` - The data type to set.
     fn set_dtype(&mut self, dtype: String) {
         if dtype.ends_with("[]") {
             self.is_array = true;
@@ -55,26 +85,50 @@ impl Attribute {
         self.dtypes.push(dtype);
     }
 
+    /// Converts the attribute to a JSON schema.
+    ///
+    /// # Returns
+    ///
+    /// A JSON string representing the attribute schema.
     pub fn to_json_schema(&self) -> String {
         serde_json::to_string_pretty(&self).unwrap()
     }
 
+    /// Checks if the attribute has an associated term.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the attribute has a term, `false` otherwise.
     pub fn has_term(&self) -> bool {
         self.term.is_some()
     }
 
+    /// Sets the XML type for the attribute.
+    ///
+    /// # Arguments
+    ///
+    /// * `xml` - The XML type to set.
     pub fn set_xml(&mut self, xml: XMLType) {
         self.xml = Some(xml);
     }
 }
 
+/// Represents an option for an attribute.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AttrOption {
+    /// The key of the option.
     pub key: String,
+    /// The value of the option.
     pub value: String,
 }
 
 impl AttrOption {
+    /// Creates a new `AttrOption` with the given key and value.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key of the option.
+    /// * `value` - The value of the option.
     pub fn new(key: String, value: String) -> Self {
         Self {
             key: key.to_lowercase(),
@@ -82,10 +136,20 @@ impl AttrOption {
         }
     }
 
+    /// Gets the key of the option.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the key.
     pub fn key(&self) -> &str {
         &self.key
     }
 
+    /// Gets the value of the option.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the value.
     pub fn value(&self) -> &str {
         &self.value
     }

@@ -12,6 +12,15 @@ use crate::object::{self, Enumeration};
 
 use super::frontmatter::parse_frontmatter;
 
+/// Parses a Markdown file at the given path and returns a `DataModel`.
+///
+/// # Arguments
+///
+/// * `path` - A reference to the path of the Markdown file.
+///
+/// # Returns
+///
+/// A `Result` containing a `DataModel` on success or an error on failure.
 pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     if !path.exists() {
         return Err("File does not exist".into());
@@ -37,7 +46,7 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     let mut iterator = parser.into_iter();
 
     while let Some(event) = iterator.next() {
-        process_enum_event(&mut iterator, &mut enums, event)
+        process_enum_event(&mut iterator, &mut enums, event);
     }
 
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
@@ -46,8 +55,14 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     Ok(model)
 }
 
-// Object processing //
-// ----------------- //
+/// Processes a single Markdown event for object extraction.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the parser iterator.
+/// * `objects` - A mutable reference to the vector of objects.
+/// * `event` - The current Markdown event.
+/// * `model` - A mutable reference to the data model.
 fn process_object_event(
     iterator: &mut Parser,
     objects: &mut Vec<object::Object>,
@@ -55,7 +70,6 @@ fn process_object_event(
     model: &mut DataModel,
 ) {
     match event {
-        // Heading processing
         Event::Start(Tag::Heading(1)) => {
             model.name = Some(extract_name(iterator));
         }
@@ -63,10 +77,7 @@ fn process_object_event(
             let object = process_object_heading(iterator);
             objects.push(object);
         }
-        // Parsing the attributes of an object
         Event::Start(Tag::List(None)) => {
-            // When the last object has no attributes, we need to parse
-            // the initial attribute in the list here
             let last_object = objects.last_mut().unwrap();
             if !last_object.has_attributes() {
                 iterator.next();
@@ -74,7 +85,6 @@ fn process_object_event(
                 let attribute = attribute::Attribute::new(attr_name, required);
                 objects.last_mut().unwrap().add_attribute(attribute);
             } else {
-                // Every other match within this list will be an option for the last attribute
                 let attr_strings = extract_attribute_options(iterator);
                 for attr_string in attr_strings {
                     distribute_attribute_options(objects, attr_string);
@@ -90,6 +100,15 @@ fn process_object_event(
     }
 }
 
+/// Processes the heading of an object.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the parser iterator.
+///
+/// # Returns
+///
+/// An `Object` created from the heading.
 fn process_object_heading(iterator: &mut Parser) -> object::Object {
     let heading = extract_name(iterator);
     let term = extract_object_term(&heading);
@@ -98,6 +117,15 @@ fn process_object_heading(iterator: &mut Parser) -> object::Object {
     object::Object::new(name, term)
 }
 
+/// Extracts the name from the next text event in the iterator.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the parser iterator.
+///
+/// # Returns
+///
+/// A string containing the extracted name.
 fn extract_name(iterator: &mut Parser) -> String {
     if let Some(Event::Text(text)) = iterator.next() {
         return text.to_string();
@@ -106,13 +134,20 @@ fn extract_name(iterator: &mut Parser) -> String {
     panic!("Could not extract name: Got {:?}", iterator.next().unwrap());
 }
 
+/// Extracts the attribute name and its required status from the iterator.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the parser iterator.
+///
+/// # Returns
+///
+/// A tuple containing a boolean indicating if the attribute is required and the attribute name.
 fn extract_attr_name_required(iterator: &mut Parser) -> (bool, String) {
-    // If it is a non required field, the name will be in the next event
     if let Some(Event::Text(text)) = iterator.next() {
         return (false, text.to_string());
     }
 
-    // If it is a required field, the name will be in the next event
     let text = iterator.next().unwrap();
     if let Event::Text(text) = text {
         return (true, text.to_string());
@@ -121,16 +156,31 @@ fn extract_attr_name_required(iterator: &mut Parser) -> (bool, String) {
     panic!("Could not extract name: Got {:?}", text);
 }
 
+/// Extracts the term from an object heading.
+///
+/// # Arguments
+///
+/// * `heading` - A string slice containing the heading.
+///
+/// # Returns
+///
+/// An optional string containing the extracted term.
 fn extract_object_term(heading: &str) -> Option<String> {
-    // Example: Test (schema:test)
-    // Extract the term "schema:test" using regex
-
     let re = Regex::new(r"\(([^)]+)\)").unwrap();
 
     re.captures(heading)
         .map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string())
 }
 
+/// Extracts attribute options from the iterator.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the parser iterator.
+///
+/// # Returns
+///
+/// A vector of strings containing the extracted attribute options.
 fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
     let mut options = Vec::new();
     while let Some(next) = iterator.next() {
@@ -153,21 +203,36 @@ fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
     options
 }
 
+/// Adds an option to the last attribute of the last object in the list.
+///
+/// # Arguments
+///
+/// * `objects` - A mutable reference to the list of objects.
+/// * `key` - The key of the attribute option.
+/// * `value` - The value of the attribute option.
 fn add_option_to_last_attribute(objects: &mut [object::Object], key: String, value: String) {
     let last_attr = objects.last_mut().unwrap().get_last_attribute();
     let option = attribute::AttrOption::new(key, value);
     last_attr.add_option(option);
 }
 
+/// Distributes attribute options among the objects.
+///
+/// # Arguments
+///
+/// * `objects` - A mutable reference to the list of objects.
+/// * `attr_string` - A string containing the attribute or option.
+///
+/// # Returns
+///
+/// An optional unit type.
 fn distribute_attribute_options(objects: &mut [object::Object], attr_string: String) -> Option<()> {
-    // If the attribute string contains a colon, it is an option
     if attr_string.contains(':') {
         let (key, value) = process_option(&attr_string);
         add_option_to_last_attribute(objects, key, value);
         return None;
     }
 
-    // If the attribute string does not contain a colon, it is a new attribute
     objects
         .last_mut()
         .unwrap()
@@ -176,8 +241,16 @@ fn distribute_attribute_options(objects: &mut [object::Object], attr_string: Str
     None
 }
 
+/// Processes an attribute option string.
+///
+/// # Arguments
+///
+/// * `option` - A string containing the attribute option.
+///
+/// # Returns
+///
+/// A tuple containing the key and value of the attribute option.
 fn process_option(option: &String) -> (String, String) {
-    // Split by colon, strip both results and return a tuple
     let parts: Vec<&str> = option.split(':').collect();
 
     assert!(
@@ -192,8 +265,13 @@ fn process_option(option: &String) -> (String, String) {
     (key.to_string(), value.trim().to_string())
 }
 
-// Enumeration processing //
-// ---------------------- //
+/// Processes a single Markdown event for enumeration extraction.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the parser iterator.
+/// * `enums` - A mutable reference to the vector of enumerations.
+/// * `event` - The current Markdown event.
 pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, event: Event) {
     match event {
         Event::Start(Tag::Heading(3)) => {
@@ -205,7 +283,6 @@ pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, e
             enums.push(enum_obj);
         }
         Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(_))) => {
-            // If there is a code block, we need to extract the mappings
             let event = iterator.next().unwrap();
             if let Event::Text(text) = event {
                 let mappings = text.to_string();
@@ -217,6 +294,12 @@ pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, e
     }
 }
 
+/// Processes enumeration mappings from a code block.
+///
+/// # Arguments
+///
+/// * `enum_obj` - A mutable reference to the enumeration object.
+/// * `mappings` - A string containing the mappings.
 fn process_enum_mappings(enum_obj: &mut Enumeration, mappings: String) {
     let lines = mappings.split('\n');
     for line in lines {

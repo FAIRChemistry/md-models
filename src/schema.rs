@@ -213,11 +213,8 @@ fn set_options(property: &mut serde_json::Value, options: &Vec<AttrOption>) {
 ///
 /// # Arguments
 /// * `value` - The value to check.
-fn is_numeric(value: &String) -> bool {
-    match value.parse::<f64>() {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+fn is_numeric(value: &str) -> bool {
+    value.parse::<f64>().is_ok()
 }
 
 /// Processes a reference attribute and adds it to the properties.

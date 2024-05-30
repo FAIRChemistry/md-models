@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+/// A struct to manage primitive types and their corresponding JSON mappings.
 pub struct PrimitiveTypes {
     types: Vec<String>,
     json_mappings: HashMap<String, String>,
@@ -12,6 +13,8 @@ impl Default for PrimitiveTypes {
 }
 
 impl PrimitiveTypes {
+    /// Creates a new instance of `PrimitiveTypes` with predefined primitive types
+    /// and their corresponding JSON mappings.
     pub fn new() -> Self {
         let mut json_mappings = HashMap::new();
 
@@ -35,6 +38,15 @@ impl PrimitiveTypes {
         }
     }
 
+    /// Filters and returns the list of non-primitive types from the given list of data types.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtypes` - A reference to a vector of data types to be filtered.
+    ///
+    /// # Returns
+    ///
+    /// A vector containing only the non-primitive types from the input vector.
     pub fn filter_non_primitives(&self, dtypes: &Vec<String>) -> Vec<String> {
         let mut non_primitive_types: Vec<String> = Vec::new();
         for dtype in dtypes {
@@ -46,6 +58,15 @@ impl PrimitiveTypes {
         non_primitive_types
     }
 
+    /// Filters and returns the list of primitive types from the given list of data types.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtypes` - A reference to a vector of data types to be filtered.
+    ///
+    /// # Returns
+    ///
+    /// A vector containing only the primitive types from the input vector.
     pub fn filter_primitive(&self, dtypes: &Vec<String>) -> Vec<String> {
         let mut primitive_types: Vec<String> = Vec::new();
         for dtype in dtypes {
@@ -57,10 +78,32 @@ impl PrimitiveTypes {
         primitive_types
     }
 
+    /// Checks if the given data type is a primitive type.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype` - A string slice representing the data type to be checked.
+    ///
+    /// # Returns
+    ///
+    /// A boolean value indicating whether the data type is a primitive type.
     fn is_primitive(&self, dtype: &str) -> bool {
         self.types.contains(&dtype.to_string())
     }
 
+    /// Converts a data type to its corresponding JSON representation.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype` - A reference to a string representing the data type to be converted.
+    ///
+    /// # Returns
+    ///
+    /// A string representing the JSON mapping of the data type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the data type is not a primitive type.
     pub fn dtype_to_json(&self, dtype: &String) -> String {
         if !self.json_mappings.contains_key(dtype) {
             panic!("The data type {} is not a primitive type", dtype)

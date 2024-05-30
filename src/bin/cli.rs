@@ -6,18 +6,23 @@ use mdmodels::{
 use serde::{Deserialize, Serialize};
 use std::{io::Write, path::PathBuf, str::FromStr};
 
+/// Command-line arguments parser.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Path or URL to the markdown file.
     #[arg(short, long, help = "Path or URL to the markdown file")]
     input: InputType,
 
+    /// Path to the output file.
     #[arg(short, long, help = "Path to the output file")]
     output: Option<PathBuf>,
 
+    /// Template to use for rendering.
     #[arg(short, long, help = "Template to use for rendering")]
     template: Templates,
 
+    /// Root object to start rendering from (required for JSON Schema).
     #[arg(
         short,
         long,
@@ -26,6 +31,7 @@ struct Args {
     root: Option<String>,
 }
 
+/// Represents the input type, either remote URL or local file path.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 enum InputType {
     Remote(String),
@@ -35,24 +41,26 @@ enum InputType {
 impl FromStr for InputType {
     type Err = String;
 
+    /// Converts a string to an InputType (Remote or Local).
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.starts_with("http") {
-            true => Ok(InputType::Remote(s.to_string())),
-            false => Ok(InputType::Local(s.to_string())),
+        if s.starts_with("http") {
+            Ok(InputType::Remote(s.to_string()))
+        } else {
+            Ok(InputType::Local(s.to_string()))
         }
     }
 }
 
 fn main() -> Result<(), minijinja::Error> {
-    // Parse the command line arguments
+    // Parse the command line arguments.
     let args = Args::parse();
 
-    // Parse the markdown model
+    // Parse the markdown model.
     let path = resolve_input_path(&args.input);
     let mut model = parse_markdown(&path).expect("Failed to parse markdown");
     model.sort_attrs();
 
-    // Render the template
+    // Render the template.
     let rendered = match args.template {
         Templates::JsonSchema => model.json_schema(args.root.expect(
             "Root object name is required. Please add --root <object_name> or -r <object_name>",
@@ -60,6 +68,7 @@ fn main() -> Result<(), minijinja::Error> {
         _ => render_jinja_template(&args.template, &mut model)?,
     };
 
+    // Output the rendered content.
     match args.output {
         Some(ref output) => {
             std::fs::write(output, rendered.trim()).expect("Failed to write output");
@@ -72,6 +81,10 @@ fn main() -> Result<(), minijinja::Error> {
     Ok(())
 }
 
+/// Resolves the input path based on the InputType.
+///
+/// If the input is a remote URL, it fetches the content and saves it to a temporary file.
+/// If the input is a local path, it returns the corresponding PathBuf.
 fn resolve_input_path(input: &InputType) -> PathBuf {
     match input {
         InputType::Remote(url) => {
@@ -95,6 +108,7 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    /// Test for resolving local input paths.
     #[test]
     fn test_resolve_input_path() {
         let path = resolve_input_path(&InputType::Local("tests/data/markdown.md".to_string()));
