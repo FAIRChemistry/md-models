@@ -36,6 +36,7 @@ md-models --help
 The following templates are available:
 
 - `python-dataclass`: Python dataclass implementation with JSON-LD support
+- `python-sdrdm`: Python PyDantic implementation with multiple output formats
 - `xml-schema`: XML schema definition
 - `json-schema`: JSON schema definition
 - `shacl`: SHACL shapes definition
@@ -44,7 +45,7 @@ The following templates are available:
 
 ## ToDo's
 
-- [ ] Python PyDantic template
+- [x] Python PyDantic template
 - [ ] SQL template
 - [x] Shex template
 - [ ] Python SQLModel template
