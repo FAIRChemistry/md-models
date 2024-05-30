@@ -36,7 +36,7 @@ mod tests {
             .find(|o| o.name == "Test2".to_string())
             .unwrap();
 
-        assert_eq!(test1.attributes.len(), 3);
+        assert_eq!(test1.attributes.len(), 4);
         assert_eq!(test2.attributes.len(), 2);
 
         // Check if the attributes are correct
@@ -46,6 +46,7 @@ mod tests {
             "name".to_string(),
             "number".to_string(),
             "test2".to_string(),
+            "ontology".to_string(),
         ];
 
         assert_eq!(test1_attr_names, expected);

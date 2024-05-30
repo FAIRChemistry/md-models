@@ -27,7 +27,7 @@ tst:TestShape
         sh:node md:Test2Shape ;
         sh:minCount 0 ;
 
-    ].
+    ];
 
 tst:Test2Shape
     a sh:NodeShape ;

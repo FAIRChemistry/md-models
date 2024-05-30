@@ -34,6 +34,12 @@ class Test(
             json_schema_extra=dict(term = "schema:something",)
         )
 
+    ontology: Optional[Ontology] = element(
+            default=None,
+            tag="ontology",
+            json_schema_extra=dict()
+        )
+
     _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")
 
     
@@ -72,3 +78,10 @@ class Test2(
         )
 
     _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")
+
+    
+
+class Ontology(Enum):
+    ECO = "https://www.evidenceontology.org/term/"
+    GO = "https://amigo.geneontology.org/amigo/term/"
+    SIO = "http://semanticscience.org/resource/"

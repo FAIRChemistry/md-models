@@ -22,6 +22,8 @@ nsmap:
   - Type: Test2[]
   - Term: schema:something
   - XML: SomeTest2
+- ontology
+  - Type: Ontology
 
 ### Test2
 
@@ -33,3 +35,16 @@ nsmap:
   - Type: float
   - Term: schema:one
   - XML: @number
+
+
+## Enumerations
+
+### Ontology
+
+Ontology endpoints for different types of sequences.
+
+```
+GO = "https://amigo.geneontology.org/amigo/term/"
+SIO = "http://semanticscience.org/resource/"
+ECO = "https://www.evidenceontology.org/term/"
+```

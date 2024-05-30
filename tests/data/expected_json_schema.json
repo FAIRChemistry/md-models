@@ -1,24 +1,33 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema",
   "title": "Test",
   "type": "object",
   "properties": {
     "name": {
-      "title": "Name",
-      "type": "string",
-      "term": "schema:hello"
+      "title": "name",
+      "term": "schema:hello",
+      "type": "string"
     },
     "number": {
-      "title": "Number",
-      "type": "number",
-      "term": "schema:one"
+      "title": "number",
+      "term": "schema:one",
+      "type": "number"
     },
     "test2": {
-      "title": "Test2",
+      "term": "schema:something",
       "type": "array",
       "items": {
         "$ref": "#/definitions/Test2"
-      },
-      "term": "schema:something"
+      }
+    },
+    "ontology": {
+      "title": "ontology",
+      "type": "string",
+      "enum": [
+        "https://www.evidenceontology.org/term/",
+        "https://amigo.geneontology.org/amigo/term/",
+        "http://semanticscience.org/resource/"
+      ]
     }
   },
   "definitions": {
@@ -26,22 +35,18 @@
       "title": "Test2",
       "type": "object",
       "properties": {
-        "title": "Test2",
-        "type": "object",
-        "properties": {
-          "names": {
-            "title": "Names",
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "term": "schema:hello"
-          },
-          "number": {
-            "title": "Number",
-            "type": "number",
-            "term": "schema:one"
+        "names": {
+          "title": "names",
+          "term": "schema:hello",
+          "type": "array",
+          "items": {
+            "type": "string"
           }
+        },
+        "number": {
+          "title": "number",
+          "term": "schema:one",
+          "type": "number"
         }
       }
     }

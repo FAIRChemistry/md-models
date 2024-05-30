@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses_json import config, dataclass_json
 from typing import List, Optional
+from enum import Enum
 from uuid import uuid4
 
 
@@ -12,6 +13,7 @@ class Test:
     name: str
     number: Optional[float] = None
     test2: List[Test2] = field(default_factory=list)
+    ontology: Optional[Ontology] = None
 
     # JSON-LD fields
     id: str = field(
@@ -34,7 +36,28 @@ class Test:
             "test2": "schema:something",
         }
     )
+    
+    
+    
+    def add_to_test2(
+        self,
+        names: List[str],
+        number: Optional[float],
+        **kwargs,
+    ):
+        params = {
+            
+            "names": names, 
+            "number": number
+        }
 
+        self.test2.append(
+            Test2(**params)
+        )
+
+        return self.test2[-1]
+    
+    
 @dataclass_json
 @dataclass
 class Test2:
@@ -61,3 +84,10 @@ class Test2:
             "number": "schema:one",
         }
     )
+    
+    
+    
+class Ontology(Enum):
+    ECO = "https://www.evidenceontology.org/term/"
+    GO = "https://amigo.geneontology.org/amigo/term/"
+    SIO = "http://semanticscience.org/resource/"

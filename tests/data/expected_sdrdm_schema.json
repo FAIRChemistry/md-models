@@ -41,10 +41,22 @@
             "is_attr": false,
             "name": "SomeTest2"
           }
+        },
+        {
+          "name": "ontology",
+          "multiple": false,
+          "dtypes": ["Ontology"],
+          "docstring": "",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "ontology"
+          }
         }
       ],
-      "docstring": "",
-      "object_type": "Object"
+      "docstring": ""
     },
     {
       "name": "Test2",
@@ -76,8 +88,17 @@
           }
         }
       ],
-      "docstring": "",
-      "object_type": "Object"
+      "docstring": ""
+    }
+  ],
+  "enums": [
+    {
+      "name": "Ontology",
+      "mappings": {
+        "ECO": "https://www.evidenceontology.org/term/",
+        "GO": "https://amigo.geneontology.org/amigo/term/",
+        "SIO": "http://semanticscience.org/resource/"
+      }
     }
   ],
   "config": {
