@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -7,7 +8,7 @@ use regex::Regex;
 
 use crate::attribute;
 use crate::datamodel::DataModel;
-use crate::object;
+use crate::object::{self, Enumeration};
 
 use super::frontmatter::parse_frontmatter;
 
@@ -20,34 +21,49 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     let config = parse_frontmatter(content.as_str());
     let parser = Parser::new(&content);
     let mut iterator = parser.into_iter();
+
     let mut objects = Vec::new();
+    let mut enums = Vec::new();
 
     let mut model = DataModel::new(None, config);
 
+    // Extract objects from the markdown file
     while let Some(event) = iterator.next() {
-        process_event(&mut iterator, &mut objects, event, &mut model);
+        process_object_event(&mut iterator, &mut objects, event, &mut model);
     }
 
-    model.objects = objects;
+    // Reset the iterator
+    let parser = Parser::new(&content);
+    let mut iterator = parser.into_iter();
+
+    while let Some(event) = iterator.next() {
+        process_enum_event(&mut iterator, &mut enums, event)
+    }
+
+    model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
+    model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
 
     return Ok(model);
 }
 
-pub fn process_event(
+// Object processing //
+// ----------------- //
+fn process_object_event(
     iterator: &mut Parser,
     objects: &mut Vec<object::Object>,
     event: Event,
     model: &mut DataModel,
 ) {
     match event {
+        // Heading processing
         Event::Start(Tag::Heading(level)) if level == 1 => {
-            // Get the title of the data model
             model.name = Some(extract_name(iterator));
         }
         Event::Start(Tag::Heading(level)) if level == 3 => {
             let object = process_object_heading(iterator);
             objects.push(object);
         }
+        // Parsing the attributes of an object
         Event::Start(Tag::List(None)) => {
             // When the last object has no attributes, we need to parse
             // the initial attribute in the list here
@@ -57,13 +73,12 @@ pub fn process_event(
                 let (required, attr_name) = extract_attr_name_required(iterator);
                 let attribute = attribute::Attribute::new(attr_name, required);
                 objects.last_mut().unwrap().add_attribute(attribute);
-                return;
-            }
-
-            // Every other match within this list will be an option for the last attribute
-            let attr_strings = extract_attribute_options(iterator);
-            for attr_string in attr_strings {
-                distribute_attribute_options(objects, attr_string);
+            } else {
+                // Every other match within this list will be an option for the last attribute
+                let attr_strings = extract_attribute_options(iterator);
+                for attr_string in attr_strings {
+                    distribute_attribute_options(objects, attr_string);
+                }
             }
         }
         Event::Start(Tag::Item) => {
@@ -80,7 +95,7 @@ fn process_object_heading(iterator: &mut Parser) -> object::Object {
     let term = extract_object_term(&heading);
     let name = heading.split_whitespace().next().unwrap().to_string();
 
-    return object::Object::new(name, object::ObjectType::Object, term);
+    return object::Object::new(name, term);
 }
 
 fn extract_name(iterator: &mut Parser) -> String {
@@ -113,13 +128,13 @@ fn extract_object_term(heading: &String) -> Option<String> {
     let re = Regex::new(r"\(([^)]+)\)").unwrap();
     let matches = re.captures(heading);
 
-    if matches.is_none() {
-        return None;
+    match matches {
+        None => return None,
+        Some(_) => {
+            // We have a match
+            Some(matches.unwrap().get(1).unwrap().as_str().to_string())
+        }
     }
-
-    let term = matches.unwrap().get(1).unwrap().as_str();
-
-    Some(term.to_string())
 }
 
 fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
@@ -154,13 +169,14 @@ fn distribute_attribute_options(
     objects: &mut Vec<object::Object>,
     attr_string: String,
 ) -> Option<()> {
+    // If the attribute string contains a colon, it is an option
     if attr_string.contains(":") {
-        // This is an option
         let (key, value) = process_option(&attr_string);
         add_option_to_last_attribute(objects, key, value);
         return None;
     }
 
+    // If the attribute string does not contain a colon, it is a new attribute
     objects
         .last_mut()
         .unwrap()
@@ -183,4 +199,45 @@ fn process_option(option: &String) -> (String, String) {
     let value = parts[1..].join(":");
 
     (key.to_string(), value.trim().to_string())
+}
+
+// Enumeration processing //
+// ---------------------- //
+pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, event: Event) {
+    match event {
+        Event::Start(Tag::Heading(level)) if level == 3 => {
+            let enum_name = extract_name(iterator);
+            let enum_obj = Enumeration {
+                name: enum_name,
+                mappings: BTreeMap::new(),
+            };
+            enums.push(enum_obj);
+        }
+        Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(_))) => {
+            // If there is a code block, we need to extract the mappings
+            let event = iterator.next().unwrap();
+            if let Event::Text(text) = event {
+                let mappings = text.to_string();
+                let enum_obj = enums.last_mut().unwrap();
+                process_enum_mappings(enum_obj, mappings);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn process_enum_mappings(enum_obj: &mut Enumeration, mappings: String) {
+    let lines = mappings.split("\n");
+    for line in lines {
+        let parts: Vec<&str> = line.split("=").collect();
+        if parts.len() != 2 {
+            // Skip empty lines or lines that do not contain a mapping
+            continue;
+        }
+
+        // Extract key and value, insert into enum object
+        let key = parts[0].trim().replace('"', "");
+        let value = parts[1].trim().replace('"', "");
+        enum_obj.mappings.insert(key.to_string(), value.to_string());
+    }
 }

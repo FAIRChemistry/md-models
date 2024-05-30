@@ -16,6 +16,11 @@ lazy_static! {
         m.insert("float".to_string(), "double".to_string());
         m
     };
+    static ref XSD_TYPE_MAPS: std::collections::HashMap<String, String> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("str".to_string(), "string".to_string());
+        m
+    };
 }
 
 #[derive(Debug, ValueEnum, Clone)]
@@ -47,6 +52,7 @@ pub fn render_jinja_template(
             convert_model_types(model, &SHACL_TYPE_MAPS);
             filter_objects_wo_terms(model);
         }
+        Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
         Templates::PythonDataclass => convert_model_types(model, &PYTHON_TYPE_MAPS),
         Templates::PythonSdrdm => {
             convert_model_types(model, &PYTHON_TYPE_MAPS);
@@ -71,6 +77,8 @@ pub fn render_jinja_template(
     template.render(context! {
         objects => model.objects,
         object_names => model.objects.iter().map(|o| o.name.clone()).collect::<Vec<String>>(),
+        enums => model.enums,
+        enum_names => model.enums.iter().map(|e| e.name.clone()).collect::<Vec<String>>(),
         title => model.name,
         prefixes => prefixes,
         repo => model.config.as_ref().unwrap().repo.clone(),

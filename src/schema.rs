@@ -1,41 +1,86 @@
-use std::collections::HashSet;
-
-use serde_json::json;
-
 use crate::attribute;
 use crate::attribute::AttrOption;
-use crate::object;
+use crate::datamodel::DataModel;
+use crate::object::{self, Enumeration};
 use crate::primitives::PrimitiveTypes;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::collections::HashSet;
 
 static DEFINITIONS_KEY: &str = "definitions";
+static SCHEMA_VERSION: &str = "http://json-schema.org/draft-07/schema";
 
-pub fn to_json_schema(name: &String, objects: &Vec<object::Object>) -> String {
+#[derive(Serialize, Deserialize)]
+struct JSONSchema {
+    #[serde(rename = "$schema")]
+    schema: String,
+    #[serde(flatten)]
+    definitions: serde_json::Value,
+}
+
+/// Converts a data model to a JSON schema.
+///
+/// # Arguments
+/// * `name` - The name of the object to convert.
+/// * `model` - The data model containing the objects and enums.
+///
+/// # Returns
+/// A JSON string representing the schema.
+pub fn to_json_schema(name: &String, model: &DataModel) -> String {
+    let objects = &model.objects;
     let obj = objects.iter().find(|o| o.name == *name).unwrap();
-    let (mut schema, used_refs) = process_class(obj);
+    let (mut schema, used_refs) = process_class(obj, &model);
 
     for reference in used_refs {
         let sub_obj = objects.iter().find(|o| o.name == reference).unwrap();
-        let (sub_properties, _) = process_class(sub_obj);
+        let (properties, _) = process_class(sub_obj, &model);
 
-        let definitions = json!({
-            "title": reference,
-            "type": "object",
-            "properties": sub_properties,
-        });
-
-        schema[DEFINITIONS_KEY][reference] = definitions;
+        schema[DEFINITIONS_KEY][reference] = properties;
     }
+
+    let schema = JSONSchema {
+        schema: SCHEMA_VERSION.to_string(),
+        definitions: schema,
+    };
 
     serde_json::to_string_pretty(&schema).unwrap()
 }
 
-fn process_class(object: &object::Object) -> (serde_json::Value, HashSet<String>) {
+/// Processes a class object to generate its JSON schema and collect references.
+///
+/// # Arguments
+/// * `object` - The object to process.
+/// * `model` - The data model containing the objects and enums.
+///
+/// # Returns
+/// A tuple containing the JSON schema and a set of references.
+fn process_class(
+    object: &object::Object,
+    model: &DataModel,
+) -> (serde_json::Value, HashSet<String>) {
+    // Retrieve all object and enum names
+    let object_names = model
+        .objects
+        .iter()
+        .map(|o| o.name.clone())
+        .collect::<HashSet<String>>();
+    let enum_names = model
+        .enums
+        .iter()
+        .map(|e| e.name.clone())
+        .collect::<HashSet<String>>();
+
+    // Initialize the schema and references
     let mut all_refs = HashSet::new();
     let mut schema = json!({
         "title": object.name,
         "type": "object",
         "properties": {},
     });
+
+    if object.docstring != "" {
+        schema["description"] = json!(object.docstring);
+    }
 
     if object.term.is_some() {
         schema["term"] = json!(object.term.as_ref().unwrap());
@@ -49,14 +94,28 @@ fn process_class(object: &object::Object) -> (serde_json::Value, HashSet<String>
         }
 
         for reference in references {
-            all_refs.insert(reference.clone());
-            process_reference(&mut schema["properties"], attribute, &reference);
+            if enum_names.contains(&reference) {
+                let enumeration = model.enums.iter().find(|e| e.name == reference).unwrap();
+                process_enum_reference(&attribute.name, &mut schema["properties"], &enumeration);
+            } else if object_names.contains(&reference) {
+                all_refs.insert(reference.clone());
+                process_reference(&mut schema["properties"], attribute, &reference);
+            } else {
+                panic!("Reference {} not found in the markdown file", reference);
+            }
         }
     }
 
     (schema, all_refs)
 }
 
+/// Extracts primitive types and references from a list of data types.
+///
+/// # Arguments
+/// * `dtypes` - The list of data types to process.
+///
+/// # Returns
+/// A tuple containing lists of primitive types and references.
 fn extract_primitives_and_refs(dtypes: &Vec<String>) -> (Vec<String>, Vec<String>) {
     let primitives = PrimitiveTypes::new();
     let references = primitives.filter_non_primitives(&dtypes);
@@ -65,12 +124,25 @@ fn extract_primitives_and_refs(dtypes: &Vec<String>) -> (Vec<String>, Vec<String
     (primitives, references)
 }
 
+/// Creates a JSON property with a capitalized title.
+///
+/// # Arguments
+/// * `name` - The name of the property.
+///
+/// # Returns
+/// A JSON value representing the property.
 fn create_property(name: &String) -> serde_json::Value {
-    return json!({
-        "title": capitalize(&name),
-    });
+    json!({
+        "title": name,
+    })
 }
 
+/// Processes a primitive attribute and adds it to the properties.
+///
+/// # Arguments
+/// * `properties` - The properties JSON object.
+/// * `attribute` - The attribute to process.
+/// * `primitive` - The primitive type of the attribute.
 fn process_primitive(
     properties: &mut serde_json::Value,
     attribute: &attribute::Attribute,
@@ -79,15 +151,24 @@ fn process_primitive(
     let name = &attribute.name;
     properties[name] = create_property(&name);
 
-    match attribute.term {
-        Some(ref term) => properties[name]["term"] = json!(term),
-        None => (),
+    if attribute.docstring != "" {
+        properties[name]["description"] = json!(attribute.docstring);
+    }
+
+    if let Some(ref term) = attribute.term {
+        properties[name]["term"] = json!(term);
     }
 
     set_primitive_dtype(properties, attribute, primitive);
     set_options(&mut properties[name], &attribute.options);
 }
 
+/// Sets the data type of a primitive attribute.
+///
+/// # Arguments
+/// * `properties` - The properties JSON object.
+/// * `attribute` - The attribute to process.
+/// * `primitive` - The primitive type of the attribute.
 fn set_primitive_dtype(
     properties: &mut serde_json::Value,
     attribute: &attribute::Attribute,
@@ -110,31 +191,63 @@ fn set_primitive_dtype(
     properties[name]["type"] = json!(json_dtype);
 }
 
+/// Sets additional options for a JSON property.
+///
+/// # Arguments
+/// * `property` - The property JSON object.
+/// * `options` - The list of attribute options.
 fn set_options(property: &mut serde_json::Value, options: &Vec<AttrOption>) {
     for option in options {
         property[option.key()] = json!(option.value());
     }
 }
 
+/// Processes a reference attribute and adds it to the properties.
+///
+/// # Arguments
+/// * `properties` - The properties JSON object.
+/// * `attribute` - The attribute to process.
+/// * `reference` - The reference type of the attribute.
 fn process_reference(
     properties: &mut serde_json::Value,
     attribute: &attribute::Attribute,
     reference: &String,
 ) {
     let name = &attribute.name;
-    properties[name] = create_property(&name);
-
-    match attribute.term {
-        Some(ref term) => {
-            properties[name]["term"] = json!(term);
-        }
-        None => {}
+    if let Some(ref term) = attribute.term {
+        properties[name]["term"] = json!(term);
     }
 
     set_ref_dtype(properties, attribute, reference);
-    set_options(&mut properties[name], &attribute.options);
+    set_options(properties, &attribute.options);
 }
 
+/// Processes an enum reference attribute and adds it to the properties.
+///
+/// # Arguments
+/// * `name` - The name of the attribute.
+/// * `properties` - The properties JSON object.
+/// * `enumeration` - The enumeration object.
+fn process_enum_reference(
+    name: &String,
+    properties: &mut serde_json::Value,
+    enumeration: &Enumeration,
+) {
+    properties[name] = create_property(&name);
+    properties[name]["type"] = json!("string");
+    properties[name]["enum"] = json!(enumeration
+        .mappings
+        .iter()
+        .map(|(_, value)| value.clone())
+        .collect::<Vec<String>>());
+}
+
+/// Sets the data type of a reference attribute.
+///
+/// # Arguments
+/// * `properties` - The properties JSON object.
+/// * `attribute` - The attribute to process.
+/// * `reference` - The reference type of the attribute.
 fn set_ref_dtype(
     properties: &mut serde_json::Value,
     attribute: &attribute::Attribute,
@@ -152,11 +265,4 @@ fn set_ref_dtype(
     }
 
     properties[name]["$ref"] = json!(def_path);
-}
-
-fn capitalize(s: &str) -> String {
-    s.chars()
-        .enumerate()
-        .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
-        .collect()
 }

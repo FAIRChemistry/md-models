@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::exporters::{render_jinja_template, Templates};
 use crate::markdown::frontmatter::FrontMatter;
-use crate::object::Object;
+use crate::object::{Enumeration, Object};
 use crate::{markdown, schema};
 
 // Data model
@@ -34,6 +34,7 @@ pub struct DataModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub objects: Vec<Object>,
+    pub enums: Vec<Enumeration>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub config: Option<markdown::frontmatter::FrontMatter>,
 }
@@ -43,6 +44,7 @@ impl DataModel {
         DataModel {
             name,
             objects: Vec::new(),
+            enums: Vec::new(),
             config,
         }
     }
@@ -76,7 +78,7 @@ impl DataModel {
             panic!("Object not found in the markdown file");
         }
 
-        return schema::to_json_schema(&obj_name, &self.objects);
+        return schema::to_json_schema(&obj_name, &self);
     }
 
     // Get the JSON schema for all objects in the markdown file
@@ -106,7 +108,7 @@ impl DataModel {
         }
 
         for object in &self.objects {
-            let schema = schema::to_json_schema(&object.name, &self.objects);
+            let schema = schema::to_json_schema(&object.name, &self);
             let file_name = format!("{}/{}.json", path, object.name);
             fs::write(file_name, schema).expect("Could not write file");
         }
