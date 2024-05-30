@@ -54,9 +54,9 @@ fn main() -> Result<(), minijinja::Error> {
 
     // Render the template
     let rendered = match args.template {
-        Templates::JsonSchema => {
-            model.json_schema(args.root.expect("Root object name is required"))
-        }
+        Templates::JsonSchema => model.json_schema(args.root.expect(
+            "Root object name is required. Please add --root <object_name> or -r <object_name>",
+        )),
         _ => render_jinja_template(&args.template, &mut model)?,
     };
 
