@@ -12,6 +12,18 @@
     {%- endif %}
 {%- endmacro -%}
 
+{#
+    This macro generates an annotation for an attribute.
+#}
+{%- macro annotation(attr) -%}
+{
+        shex:annotation [
+            shex:label "{{ attr.name }}"
+            {%- if attr.description -%}shex:description "{{ attr.description }}"{%- endif %}
+        ]
+    }
+{%- endmacro %}
+
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}>
 {%- for pre, address in prefixes %}
@@ -23,9 +35,9 @@ PREFIX {{pre}}: <{{address}}>
     {%- if attr.term %}
 
     {%- if attr.dtypes[0] in object_names %}
-    {{attr.term}} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }};
+    {{attr.term}} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
     {%- else %}
-    {{attr.term}} xsd:{{attr.dtypes[0]}}{{ is_required(attr) }};
+    {{attr.term}} xsd:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
     {%- endif %}
 
     {%- endif %}
