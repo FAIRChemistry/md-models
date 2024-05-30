@@ -5,6 +5,12 @@ pub struct PrimitiveTypes {
     json_mappings: HashMap<String, String>,
 }
 
+impl Default for PrimitiveTypes {
+    fn default() -> Self {
+        PrimitiveTypes::new()
+    }
+}
+
 impl PrimitiveTypes {
     pub fn new() -> Self {
         let mut json_mappings = HashMap::new();

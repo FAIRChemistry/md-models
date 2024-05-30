@@ -15,10 +15,10 @@ impl FromStr for XMLType {
     // otherwise it's an element. This is mainly used for parsing the XML
     // option in the attribute definition.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with('@') {
+        if let Some(name) = s.strip_prefix('@') {
             Ok(XMLType::Attribute {
                 is_attr: true,
-                name: s[1..].to_string(),
+                name: name.to_string(),
             })
         } else {
             Ok(XMLType::Element {

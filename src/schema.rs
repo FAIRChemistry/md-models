@@ -29,11 +29,11 @@ struct JSONSchema {
 pub fn to_json_schema(name: &String, model: &DataModel) -> String {
     let objects = &model.objects;
     let obj = objects.iter().find(|o| o.name == *name).unwrap();
-    let (mut schema, used_refs) = process_class(obj, &model);
+    let (mut schema, used_refs) = process_class(obj, model);
 
     for reference in used_refs {
         let sub_obj = objects.iter().find(|o| o.name == reference).unwrap();
-        let (properties, _) = process_class(sub_obj, &model);
+        let (properties, _) = process_class(sub_obj, model);
 
         schema[DEFINITIONS_KEY][reference] = properties;
     }
@@ -78,7 +78,7 @@ fn process_class(
         "properties": {},
     });
 
-    if object.docstring != "" {
+    if !object.docstring.is_empty() {
         schema["description"] = json!(object.docstring);
     }
 
@@ -96,7 +96,7 @@ fn process_class(
         for reference in references {
             if enum_names.contains(&reference) {
                 let enumeration = model.enums.iter().find(|e| e.name == reference).unwrap();
-                process_enum_reference(&attribute.name, &mut schema["properties"], &enumeration);
+                process_enum_reference(&attribute.name, &mut schema["properties"], enumeration);
             } else if object_names.contains(&reference) {
                 all_refs.insert(reference.clone());
                 process_reference(&mut schema["properties"], attribute, &reference);
@@ -118,8 +118,8 @@ fn process_class(
 /// A tuple containing lists of primitive types and references.
 fn extract_primitives_and_refs(dtypes: &Vec<String>) -> (Vec<String>, Vec<String>) {
     let primitives = PrimitiveTypes::new();
-    let references = primitives.filter_non_primitives(&dtypes);
-    let primitives = primitives.filter_primitive(&dtypes);
+    let references = primitives.filter_non_primitives(dtypes);
+    let primitives = primitives.filter_primitive(dtypes);
 
     (primitives, references)
 }
@@ -149,9 +149,9 @@ fn process_primitive(
     primitive: &String,
 ) {
     let name = &attribute.name;
-    properties[name] = create_property(&name);
+    properties[name] = create_property(name);
 
-    if attribute.docstring != "" {
+    if !attribute.docstring.is_empty() {
         properties[name]["description"] = json!(attribute.docstring);
     }
 
@@ -233,12 +233,12 @@ fn process_enum_reference(
     properties: &mut serde_json::Value,
     enumeration: &Enumeration,
 ) {
-    properties[name] = create_property(&name);
+    properties[name] = create_property(name);
     properties[name]["type"] = json!("string");
     properties[name]["enum"] = json!(enumeration
         .mappings
-        .iter()
-        .map(|(_, value)| value.clone())
+        .values()
+        .map(|v| v.to_string())
         .collect::<Vec<String>>());
 }
 

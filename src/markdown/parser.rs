@@ -43,7 +43,7 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
     model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
 
-    return Ok(model);
+    Ok(model)
 }
 
 // Object processing //
@@ -56,10 +56,10 @@ fn process_object_event(
 ) {
     match event {
         // Heading processing
-        Event::Start(Tag::Heading(level)) if level == 1 => {
+        Event::Start(Tag::Heading(1)) => {
             model.name = Some(extract_name(iterator));
         }
-        Event::Start(Tag::Heading(level)) if level == 3 => {
+        Event::Start(Tag::Heading(3)) => {
             let object = process_object_heading(iterator);
             objects.push(object);
         }
@@ -95,7 +95,7 @@ fn process_object_heading(iterator: &mut Parser) -> object::Object {
     let term = extract_object_term(&heading);
     let name = heading.split_whitespace().next().unwrap().to_string();
 
-    return object::Object::new(name, term);
+    object::Object::new(name, term)
 }
 
 fn extract_name(iterator: &mut Parser) -> String {
@@ -121,20 +121,14 @@ fn extract_attr_name_required(iterator: &mut Parser) -> (bool, String) {
     panic!("Could not extract name: Got {:?}", text);
 }
 
-fn extract_object_term(heading: &String) -> Option<String> {
+fn extract_object_term(heading: &str) -> Option<String> {
     // Example: Test (schema:test)
     // Extract the term "schema:test" using regex
 
     let re = Regex::new(r"\(([^)]+)\)").unwrap();
-    let matches = re.captures(heading);
 
-    match matches {
-        None => return None,
-        Some(_) => {
-            // We have a match
-            Some(matches.unwrap().get(1).unwrap().as_str().to_string())
-        }
-    }
+    re.captures(heading)
+        .map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string())
 }
 
 fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
@@ -159,18 +153,15 @@ fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
     options
 }
 
-fn add_option_to_last_attribute(objects: &mut Vec<object::Object>, key: String, value: String) {
+fn add_option_to_last_attribute(objects: &mut [object::Object], key: String, value: String) {
     let last_attr = objects.last_mut().unwrap().get_last_attribute();
     let option = attribute::AttrOption::new(key, value);
     last_attr.add_option(option);
 }
 
-fn distribute_attribute_options(
-    objects: &mut Vec<object::Object>,
-    attr_string: String,
-) -> Option<()> {
+fn distribute_attribute_options(objects: &mut [object::Object], attr_string: String) -> Option<()> {
     // If the attribute string contains a colon, it is an option
-    if attr_string.contains(":") {
+    if attr_string.contains(':') {
         let (key, value) = process_option(&attr_string);
         add_option_to_last_attribute(objects, key, value);
         return None;
@@ -182,12 +173,12 @@ fn distribute_attribute_options(
         .unwrap()
         .create_new_attribute(attr_string, false);
 
-    return None;
+    None
 }
 
 fn process_option(option: &String) -> (String, String) {
     // Split by colon, strip both results and return a tuple
-    let parts: Vec<&str> = option.split(":").collect();
+    let parts: Vec<&str> = option.split(':').collect();
 
     assert!(
         parts.len() > 1,
@@ -205,7 +196,7 @@ fn process_option(option: &String) -> (String, String) {
 // ---------------------- //
 pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, event: Event) {
     match event {
-        Event::Start(Tag::Heading(level)) if level == 3 => {
+        Event::Start(Tag::Heading(3)) => {
             let enum_name = extract_name(iterator);
             let enum_obj = Enumeration {
                 name: enum_name,
@@ -227,9 +218,9 @@ pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, e
 }
 
 fn process_enum_mappings(enum_obj: &mut Enumeration, mappings: String) {
-    let lines = mappings.split("\n");
+    let lines = mappings.split('\n');
     for line in lines {
-        let parts: Vec<&str> = line.split("=").collect();
+        let parts: Vec<&str> = line.split('=').collect();
         if parts.len() != 2 {
             // Skip empty lines or lines that do not contain a mapping
             continue;

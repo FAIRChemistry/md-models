@@ -42,7 +42,7 @@ impl Object {
     }
 
     pub fn has_attributes(&self) -> bool {
-        self.attributes.len() > 0
+        !self.attributes.is_empty()
     }
 
     pub fn set_name(&mut self, name: String) {
@@ -66,7 +66,7 @@ pub struct Enumeration {
 
 impl Enumeration {
     pub fn has_values(&self) -> bool {
-        self.mappings.len() > 0
+        !self.mappings.is_empty()
     }
 }
 

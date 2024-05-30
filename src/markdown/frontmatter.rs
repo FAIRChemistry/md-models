@@ -21,15 +21,12 @@ impl FrontMatter {
     }
 
     pub fn prefixes(&self) -> Option<Vec<(String, String)>> {
-        match &self.prefixes {
-            Some(prefixes) => Some(
-                prefixes
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect(),
-            ),
-            None => None,
-        }
+        self.prefixes.as_ref().map(|prefixes| {
+            prefixes
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect()
+        })
     }
 
     pub fn nsmap(&self) -> &Option<HashMap<String, String>> {

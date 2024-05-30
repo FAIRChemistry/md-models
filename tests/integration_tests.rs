@@ -2,10 +2,9 @@ extern crate mdmodels;
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use mdmodels::{self, markdown::parser::parse_markdown};
     use pretty_assertions::assert_eq;
+    use std::path::Path;
 
     #[test]
     fn test_parse() {
@@ -25,17 +24,9 @@ mod tests {
         assert!(obj_names.contains(&"Test2".to_string()));
 
         // Check if the attributes are present
-        let test1 = model
-            .objects
-            .iter()
-            .find(|o| o.name == *"Test")
-            .unwrap();
+        let test1 = model.objects.iter().find(|o| o.name == *"Test").unwrap();
 
-        let test2 = model
-            .objects
-            .iter()
-            .find(|o| o.name == *"Test2")
-            .unwrap();
+        let test2 = model.objects.iter().find(|o| o.name == *"Test2").unwrap();
 
         assert_eq!(test1.attributes.len(), 4);
         assert_eq!(test2.attributes.len(), 2);
@@ -53,11 +44,7 @@ mod tests {
         assert_eq!(test1_attr_names, expected);
 
         // Check if the datatypes are correct
-        let test1_name_attribute = test1
-            .attributes
-            .iter()
-            .find(|a| a.name == *"name")
-            .unwrap();
+        let test1_name_attribute = test1.attributes.iter().find(|a| a.name == *"name").unwrap();
 
         assert!(test1_name_attribute.dtypes.contains(&"string".to_string()));
 

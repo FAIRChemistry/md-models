@@ -70,7 +70,7 @@ impl DataModel {
     //
     // A JSON schema string
     pub fn json_schema(&self, obj_name: String) -> String {
-        if self.objects.len() == 0 {
+        if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
 
@@ -78,7 +78,7 @@ impl DataModel {
             panic!("Object not found in the markdown file");
         }
 
-        return schema::to_json_schema(&obj_name, &self);
+        schema::to_json_schema(&obj_name, self)
     }
 
     // Get the JSON schema for all objects in the markdown file
@@ -98,7 +98,7 @@ impl DataModel {
     // model.json_schema_all("path/to/directory".to_string());
     // ```
     pub fn json_schema_all(&self, path: String) {
-        if self.objects.len() == 0 {
+        if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
 
@@ -108,7 +108,7 @@ impl DataModel {
         }
 
         for object in &self.objects {
-            let schema = schema::to_json_schema(&object.name, &self);
+            let schema = schema::to_json_schema(&object.name, self);
             let file_name = format!("{}/{}.json", path, object.name);
             fs::write(file_name, schema).expect("Could not write file");
         }
@@ -132,11 +132,11 @@ impl DataModel {
     //
     // A SDRDM schema string
     pub fn sdrdm_schema(&self) -> String {
-        if self.objects.len() == 0 {
+        if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
 
-        return serde_json::to_string_pretty(&self).unwrap();
+        serde_json::to_string_pretty(&self).expect("Could not serialize to sdRDM schema")
     }
 
     // Parse a markdown file and create a data model
