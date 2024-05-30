@@ -6,7 +6,7 @@ use serde_with::skip_serializing_none;
 use crate::attribute::Attribute;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Object {
     pub name: String,
     pub attributes: Vec<Attribute>,
@@ -58,7 +58,7 @@ impl Object {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Enumeration {
     pub name: String,
     pub mappings: BTreeMap<String, String>,

@@ -187,4 +187,91 @@ impl DataModel {
         self.sort_attrs();
         render_jinja_template(template, self)
     }
+
+    // Merge two data models
+    //
+    // * `other` - The other data model to merge
+    pub fn merge(&mut self, other: &Self) {
+        // Check if there are any duplicate objects or enums
+        for obj in &other.objects {
+            if self.objects.iter().any(|o| o.name == obj.name) {
+                panic!("Duplicate object '{}' found in the data model", obj.name);
+            }
+        }
+
+        for enm in &other.enums {
+            if self.enums.iter().any(|e| e.name == enm.name) {
+                panic!("Duplicate enum '{}' found in the data model", enm.name);
+            }
+        }
+
+        // Merge the objects and enums
+        self.objects.extend(other.objects.clone());
+        self.enums.extend(other.enums.clone());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_merge() {
+        // Arrange
+        let mut model1 = DataModel::new(None, None);
+        let mut model2 = DataModel::new(None, None);
+
+        let mut obj1 = Object::new("Object1".to_string(), None);
+        obj1.add_attribute(crate::attribute::Attribute {
+            name: "test1".to_string(),
+            is_array: false,
+            dtypes: vec!["string".to_string()],
+            docstring: "".to_string(),
+            options: vec![],
+            term: None,
+            required: false,
+            xml: None,
+        });
+
+        let mut obj2 = Object::new("Object2".to_string(), None);
+        obj2.add_attribute(crate::attribute::Attribute {
+            name: "test2".to_string(),
+            is_array: false,
+            dtypes: vec!["string".to_string()],
+            docstring: "".to_string(),
+            options: vec![],
+            term: None,
+            required: false,
+            xml: None,
+        });
+
+        let enm1 = Enumeration {
+            name: "Enum1".to_string(),
+            mappings: BTreeMap::from([("key1".to_string(), "value1".to_string())]),
+        };
+
+        let enm2 = Enumeration {
+            name: "Enum2".to_string(),
+            mappings: BTreeMap::from([("key2".to_string(), "value2".to_string())]),
+        };
+
+        model1.objects.push(obj1);
+        model1.enums.push(enm1);
+        model2.objects.push(obj2);
+        model2.enums.push(enm2);
+
+        // Act
+        model1.merge(&model2);
+
+        // Assert
+        assert_eq!(model1.objects.len(), 2);
+        assert_eq!(model1.enums.len(), 2);
+        assert_eq!(model1.objects[0].name, "Object1");
+        assert_eq!(model1.objects[1].name, "Object2");
+        assert_eq!(model1.enums[0].name, "Enum1");
+        assert_eq!(model1.enums[1].name, "Enum2");
+    }
 }

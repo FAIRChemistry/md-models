@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum XMLType {
     Attribute { is_attr: bool, name: String },
     Element { is_attr: bool, name: String },

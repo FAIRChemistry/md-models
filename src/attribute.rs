@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::xmltype::XMLType;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attribute {
     pub name: String,
     #[serde(rename = "multiple")]
@@ -68,7 +68,7 @@ impl Attribute {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AttrOption {
     pub key: String,
     pub value: String,
