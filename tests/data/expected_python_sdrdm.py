@@ -74,7 +74,7 @@ class Test2(
     number: Optional[float] = attr(
             default=None,
             tag="number",
-            json_schema_extra=dict(term = "schema:one",)
+            json_schema_extra=dict(term = "schema:one",minimum = "0",)
         )
 
     _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")

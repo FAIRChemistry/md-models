@@ -198,7 +198,25 @@ fn set_primitive_dtype(
 /// * `options` - The list of attribute options.
 fn set_options(property: &mut serde_json::Value, options: &Vec<AttrOption>) {
     for option in options {
-        property[option.key()] = json!(option.value());
+        match is_numeric(&option.value) {
+            true => {
+                property[option.key()] = json!(option.value().parse::<f64>().unwrap());
+            }
+            false => {
+                property[option.key()] = json!(option.value());
+            }
+        }
+    }
+}
+
+/// Checks if a value is numeric or a string.
+///
+/// # Arguments
+/// * `value` - The value to check.
+fn is_numeric(value: &String) -> bool {
+    match value.parse::<f64>() {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 

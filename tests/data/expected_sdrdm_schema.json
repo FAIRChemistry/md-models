@@ -79,7 +79,12 @@
           "multiple": false,
           "dtypes": ["float"],
           "docstring": "",
-          "options": [],
+          "options": [
+            {
+              "key": "minimum",
+              "value": "0"
+            }
+          ],
           "term": "schema:one",
           "required": false,
           "xml": {

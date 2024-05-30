@@ -70,8 +70,8 @@ impl Attribute {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AttrOption {
-    key: String,
-    value: String,
+    pub key: String,
+    pub value: String,
 }
 
 impl AttrOption {

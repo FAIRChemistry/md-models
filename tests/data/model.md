@@ -35,6 +35,7 @@ nsmap:
   - Type: float
   - Term: schema:one
   - XML: @number
+  - Minimum: 0
 
 
 ## Enumerations
