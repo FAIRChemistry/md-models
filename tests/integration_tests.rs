@@ -27,13 +27,13 @@ mod tests {
         let test1 = model
             .objects
             .iter()
-            .find(|o| o.name == "Test".to_string())
+            .find(|o| o.name == *"Test")
             .unwrap();
 
         let test2 = model
             .objects
             .iter()
-            .find(|o| o.name == "Test2".to_string())
+            .find(|o| o.name == *"Test2")
             .unwrap();
 
         assert_eq!(test1.attributes.len(), 4);
@@ -55,7 +55,7 @@ mod tests {
         let test1_name_attribute = test1
             .attributes
             .iter()
-            .find(|a| a.name == "name".to_string())
+            .find(|a| a.name == *"name")
             .unwrap();
 
         assert!(test1_name_attribute.dtypes.contains(&"string".to_string()));
@@ -64,11 +64,11 @@ mod tests {
         let test2_names_attribute = test2
             .attributes
             .iter()
-            .find(|a| a.name == "names".to_string())
+            .find(|a| a.name == *"names")
             .unwrap();
 
         assert!(test2_names_attribute.dtypes.contains(&"string".to_string()));
-        assert!(test2_names_attribute.is_array == true);
+        assert!(test2_names_attribute.is_array);
     }
 
     #[test]
