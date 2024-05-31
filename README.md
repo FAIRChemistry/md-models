@@ -49,5 +49,6 @@ The following templates are available:
 - [ ] SQL template
 - [x] Shex template
 - [ ] Python SQLModel template
+- [x] Model validation
 - [ ] File validation (XML, JSON, SHACL etc.)
 - [ ] Python bindings using PyO3
