@@ -10,6 +10,7 @@ lazy_static! {
         m.insert("string".to_string(), "str".to_string());
         m.insert("integer".to_string(), "int".to_string());
         m.insert("boolean".to_string(), "bool".to_string());
+        m.insert("number".to_string(), "float".to_string());
         m
     };
 
