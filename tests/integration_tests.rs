@@ -176,4 +176,30 @@ mod tests {
             assert_eq!(schema.trim(), expected_schema.trim());
         }
     }
+
+    #[test]
+    fn test_model_merge() {
+        // Arrange
+        let path = Path::new("tests/data/model.md");
+        let mut model = parse_markdown(path).expect("Could not parse markdown");
+        let path2 = Path::new("tests/data/model_merge.md");
+        let model2 = parse_markdown(path2).expect("Could not parse markdown");
+
+        // Act
+        model.merge(&model2);
+
+        // Assert
+        let obj_names: Vec<String> = model.objects.iter().map(|o| o.name.clone()).collect();
+
+        assert_eq!(model.objects.len(), 3);
+        assert!(obj_names.contains(&"Test".to_string()));
+        assert!(obj_names.contains(&"Test2".to_string()));
+        assert!(obj_names.contains(&"Added".to_string()));
+
+        let enum_names: Vec<String> = model.enums.iter().map(|e| e.name.clone()).collect();
+
+        assert_eq!(model.enums.len(), 2);
+        assert!(enum_names.contains(&"Ontology".to_string()));
+        assert!(enum_names.contains(&"AddedEnum".to_string()));
+    }
 }
