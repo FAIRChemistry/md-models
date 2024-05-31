@@ -150,6 +150,7 @@ fn check_duplicate_enums(collection: &[Enumeration]) -> Result<(), ()> {
     valid
 }
 
+/// Returns a list of unique elements from a slice.
 fn unique_elements<T: std::cmp::Eq + std::hash::Hash + Clone>(input: &[T]) -> Vec<T> {
     let mut set = HashSet::new();
     input
