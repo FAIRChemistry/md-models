@@ -80,6 +80,12 @@ impl Validator {
     }
 }
 
+impl Default for Validator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Checks for duplicate object names within the model.
 ///
 /// # Arguments
@@ -130,8 +136,9 @@ fn check_duplicate_enums(collection: &[Enumeration]) -> Result<(), ()> {
     // Find duplicates
     let duplicates = unique
         .iter()
-        .filter(|&name| unique.iter().filter(|&n| n == name).count() > 1)
-        .collect::<Vec<&&str>>();
+        .cloned()
+        .filter(|&name| unique.iter().filter(|&n| n == &name).count() > 1)
+        .collect::<Vec<&str>>();
 
     let duplicates = unique_elements(&duplicates);
 
@@ -153,11 +160,12 @@ fn check_duplicate_enums(collection: &[Enumeration]) -> Result<(), ()> {
 /// Returns a list of unique elements from a slice.
 fn unique_elements<T: std::cmp::Eq + std::hash::Hash + Clone>(input: &[T]) -> Vec<T> {
     let mut set = HashSet::new();
-    input
-        .iter()
-        .cloned()
-        .filter(|item| set.insert(item.clone()))
-        .collect()
+
+    for item in input {
+        set.insert(item.clone());
+    }
+
+    set.into_iter().collect()
 }
 
 /// Validates a single object within the data model.
