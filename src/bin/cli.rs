@@ -5,7 +5,7 @@ use mdmodels::{
     markdown::parser::parse_markdown,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, io::Write, path::PathBuf, str::FromStr};
+use std::{error::Error, fmt::Display, io::Write, path::PathBuf, str::FromStr};
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
@@ -80,12 +80,12 @@ impl FromStr for InputType {
     }
 }
 
-impl ToString for InputType {
-    /// Converts an InputType to a string.
-    fn to_string(&self) -> String {
+impl Display for InputType {
+    /// Display the input type.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InputType::Remote(url) => url.to_string(),
-            InputType::Local(path) => path.to_string(),
+            InputType::Remote(url) => write!(f, "{}", url),
+            InputType::Local(path) => write!(f, "{}", path),
         }
     }
 }
@@ -209,5 +209,14 @@ mod tests {
     fn test_resolve_input_path() {
         let path = resolve_input_path(&InputType::Local("tests/data/markdown.md".to_string()));
         assert_eq!(path.to_str().unwrap(), "tests/data/markdown.md");
+    }
+
+    /// Test Display for InputType
+    #[test]
+    fn test_display_input_type() {
+        let remote = InputType::Remote("https://example.com".to_string());
+        let local = InputType::Local("tests/data/markdown.md".to_string());
+        assert_eq!(remote.to_string(), "https://example.com");
+        assert_eq!(local.to_string(), "tests/data/markdown.md");
     }
 }
