@@ -9,6 +9,7 @@ use regex::Regex;
 use crate::attribute;
 use crate::datamodel::DataModel;
 use crate::object::{self, Enumeration};
+use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
 
@@ -51,6 +52,10 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
 
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
     model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
+
+    // Validate the model
+    let mut validator = Validator::new();
+    validator.validate(&model)?;
 
     Ok(model)
 }

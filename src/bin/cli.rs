@@ -1,15 +1,42 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use colored::Colorize;
 use mdmodels::{
     exporters::{render_jinja_template, Templates},
     markdown::parser::parse_markdown,
 };
 use serde::{Deserialize, Serialize};
-use std::{io::Write, path::PathBuf, str::FromStr};
+use std::{error::Error, io::Write, path::PathBuf, str::FromStr};
 
-/// Command-line arguments parser.
+/// Command-line interface for MD-Models CLI.
+#[derive(Parser)]
+#[command(name = "MD-Models CLI", version = "1.0")]
+#[command(about = "Validate and convert Markdown Data Models", long_about = None)]
+struct Cli {
+    /// Subcommands for the CLI.
+    #[command(subcommand)]
+    cmd: Commands,
+}
+
+/// Enum representing the subcommands.
+#[derive(Subcommand)]
+enum Commands {
+    /// Convert a markdown model to another format.
+    Convert(ConvertArgs),
+    /// Validate a markdown model.
+    Validate(ValidateArgs),
+}
+
+/// Arguments for the validate subcommand.
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
+struct ValidateArgs {
+    /// Path or URL to the markdown file.
+    #[arg(short, long, help = "Path or URL to the markdown file")]
+    input: InputType,
+}
+
+/// Arguments for the convert subcommand.
+#[derive(Parser, Debug)]
+struct ConvertArgs {
     /// Path or URL to the markdown file.
     #[arg(short, long, help = "Path or URL to the markdown file")]
     input: InputType,
@@ -34,7 +61,9 @@ struct Args {
 /// Represents the input type, either remote URL or local file path.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 enum InputType {
+    /// Input from a remote URL.
     Remote(String),
+    /// Input from a local file path.
     Local(String),
 }
 
@@ -51,13 +80,72 @@ impl FromStr for InputType {
     }
 }
 
-fn main() -> Result<(), minijinja::Error> {
-    // Parse the command line arguments.
-    let args = Args::parse();
+impl ToString for InputType {
+    /// Converts an InputType to a string.
+    fn to_string(&self) -> String {
+        match self {
+            InputType::Remote(url) => url.to_string(),
+            InputType::Local(path) => path.to_string(),
+        }
+    }
+}
 
+/// Main entry point of the application.
+fn main() -> Result<(), Box<dyn Error>> {
+    // Initialize the logger.
+    pretty_env_logger::init();
+
+    // Parse the command line arguments.
+    let args = Cli::parse();
+
+    match args.cmd {
+        Commands::Validate(args) => validate(args),
+        Commands::Convert(args) => convert(args),
+    }
+}
+
+/// Validates the markdown model specified in the arguments.
+///
+/// # Arguments
+///
+/// * `args` - Arguments for the validate subcommand.
+fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
+    println!("\n Validating model {} ...", args.input.to_string().bold());
+
+    let path = resolve_input_path(&args.input);
+    let model = parse_markdown(&path);
+
+    match model {
+        Ok(_) => print_validation_result(true),
+        Err(_) => print_validation_result(false),
+    }
+
+    Ok(())
+}
+
+/// Prints the result of the validation.
+///
+/// # Arguments
+/// * `result` - The result of the validation.
+fn print_validation_result(result: bool) {
+    let message = if result {
+        "Model is valid".green().bold().to_string()
+    } else {
+        "Model is invalid".red().bold().to_string()
+    };
+
+    println!(" └── {}\n", message);
+}
+
+/// Converts the markdown model specified in the arguments to another format.
+///
+/// # Arguments
+///
+/// * `args` - Arguments for the convert subcommand.
+fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
-    let mut model = parse_markdown(&path).expect("Failed to parse markdown");
+    let mut model = parse_markdown(&path)?;
     model.sort_attrs();
 
     // Render the template.
@@ -85,6 +173,14 @@ fn main() -> Result<(), minijinja::Error> {
 ///
 /// If the input is a remote URL, it fetches the content and saves it to a temporary file.
 /// If the input is a local path, it returns the corresponding PathBuf.
+///
+/// # Arguments
+///
+/// * `input` - The input type (Remote or Local).
+///
+/// # Returns
+///
+/// PathBuf representing the local path to the input file.
 fn resolve_input_path(input: &InputType) -> PathBuf {
     match input {
         InputType::Remote(url) => {

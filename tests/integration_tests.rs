@@ -60,6 +60,36 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_parse_no_objects() {
+        // Arrange
+        let path = Path::new("tests/data/model_no_objects.md");
+
+        // Act
+        parse_markdown(path).expect("Could not parse markdown");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_parse_invalid() {
+        // Arrange
+        let path = Path::new("tests/data/model_missing_types.md");
+
+        // Act
+        parse_markdown(path).expect("Could not parse markdown");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_duplicate_objects() {
+        // Arrange
+        let path = Path::new("tests/data/model_duplicates.md");
+
+        // Act
+        parse_markdown(path).expect("Could not parse markdown");
+    }
+
+    #[test]
     fn test_json_schema() {
         // Arrange
         let path = Path::new("tests/data/model.md");
