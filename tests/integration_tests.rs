@@ -2,7 +2,7 @@ extern crate mdmodels;
 
 #[cfg(test)]
 mod tests {
-    use mdmodels::{self, markdown::parser::parse_markdown};
+    use mdmodels::{self, datamodel::DataModel};
     use pretty_assertions::assert_eq;
     use std::path::Path;
 
@@ -12,7 +12,7 @@ mod tests {
         let path = Path::new("tests/data/model.md");
 
         // Act
-        let model = parse_markdown(path).expect("Could not parse markdown");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Assert
         // Check if there are two objects
@@ -66,7 +66,7 @@ mod tests {
         let path = Path::new("tests/data/model_no_objects.md");
 
         // Act
-        parse_markdown(path).expect("Could not parse markdown");
+        DataModel::from_markdown(path).expect("Could not parse markdown");
     }
 
     #[test]
@@ -76,7 +76,7 @@ mod tests {
         let path = Path::new("tests/data/model_missing_types.md");
 
         // Act
-        parse_markdown(path).expect("Could not parse markdown");
+        DataModel::from_markdown(path).expect("Could not parse markdown");
     }
 
     #[test]
@@ -86,14 +86,14 @@ mod tests {
         let path = Path::new("tests/data/model_duplicates.md");
 
         // Act
-        parse_markdown(path).expect("Could not parse markdown");
+        DataModel::from_markdown(path).expect("Could not parse markdown");
     }
 
     #[test]
     fn test_json_schema() {
         // Arrange
         let path = Path::new("tests/data/model.md");
-        let model = parse_markdown(path).expect("Could not parse markdown");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
         let schema = model.json_schema("Test".to_string());
@@ -123,7 +123,7 @@ mod tests {
     fn test_json_schema_no_object() {
         // Arrange
         let path = Path::new("tests/data/model.md");
-        let model = parse_markdown(path).expect("Could not parse markdown");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
         model.json_schema("Test3".to_string());
@@ -133,7 +133,7 @@ mod tests {
     fn test_sdrdm_schema() {
         // Arrange
         let path = Path::new("tests/data/model.md");
-        let model = parse_markdown(path).expect("Could not parse markdown");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
         let schema = model.sdrdm_schema();
@@ -161,7 +161,7 @@ mod tests {
     fn test_json_schema_all() {
         // Arrange
         let path = Path::new("tests/data/model.md");
-        let model = parse_markdown(path).expect("Could not parse markdown");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
         model.json_schema_all("tests/intermediates/".to_string());
@@ -181,9 +181,9 @@ mod tests {
     fn test_model_merge() {
         // Arrange
         let path = Path::new("tests/data/model.md");
-        let mut model = parse_markdown(path).expect("Could not parse markdown");
+        let mut model = DataModel::from_markdown(path).expect("Could not parse markdown");
         let path2 = Path::new("tests/data/model_merge.md");
-        let model2 = parse_markdown(path2).expect("Could not parse markdown");
+        let model2 = DataModel::from_markdown(path2).expect("Could not parse markdown");
 
         // Act
         model.merge(&model2);

@@ -3,7 +3,9 @@ use std::{error::Error, fs, path::Path};
 use serde::{Deserialize, Serialize};
 
 use crate::exporters::{render_jinja_template, Templates};
+use crate::json::parser::parse_json_schema;
 use crate::markdown::frontmatter::FrontMatter;
+use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
 use crate::{markdown, schema};
 
@@ -165,6 +167,7 @@ impl DataModel {
         Ok(model)
     }
 
+    /// Sort the attributes of all objects by required
     pub fn sort_attrs(&mut self) {
         for obj in &mut self.objects {
             obj.sort_attrs_by_required();
@@ -208,6 +211,32 @@ impl DataModel {
         // Merge the objects and enums
         self.objects.extend(other.objects.clone());
         self.enums.extend(other.enums.clone());
+    }
+
+    /// Parse a markdown file and create a data model
+    ///
+    /// * `path` - Path to the markdown file
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::path::Path;
+    /// use mdmodels::datamodel::DataModel;
+    ///
+    /// let path = Path::new("tests/data/model.md");
+    /// let model = DataModel::from_markdown(path);
+    /// ```
+    /// # Returns
+    /// A data model
+    pub fn from_markdown(path: &Path) -> Result<Self, Box<dyn Error>> {
+        parse_markdown(path)
+    }
+
+    /// Parse a JSON schema and create a data model
+    ///
+    /// * `path` - Path to the JSON schema file
+    pub fn from_json_schema(path: &Path) -> Result<Self, Box<dyn Error>> {
+        parse_json_schema(path)
     }
 }
 

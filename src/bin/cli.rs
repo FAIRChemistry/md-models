@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use mdmodels::{
+    datamodel::DataModel,
     exporters::{render_jinja_template, Templates},
-    markdown::parser::parse_markdown,
 };
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt::Display, io::Write, path::PathBuf, str::FromStr};
@@ -113,7 +113,7 @@ fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
     println!("\n Validating model {} ...", args.input.to_string().bold());
 
     let path = resolve_input_path(&args.input);
-    let model = parse_markdown(&path);
+    let model = DataModel::from_markdown(&path);
 
     match model {
         Ok(_) => print_validation_result(true),
@@ -145,7 +145,7 @@ fn print_validation_result(result: bool) {
 fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
-    let mut model = parse_markdown(&path)?;
+    let mut model = DataModel::from_markdown(&path)?;
     model.sort_attrs();
 
     // Render the template.
