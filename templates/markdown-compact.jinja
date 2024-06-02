@@ -1,0 +1,33 @@
+{% if title %}
+# {{ title }}
+{% endif %}
+{% for object in objects %}
+### {{ object.name }}
+{{ object.docstring }}
+{%- for attribute in object.attributes %}
+- <details>
+  <summary>{{attribute.name}}</summary>
+  - Type: {% for dtype in attribute.dtypes -%} {{dtype}}{% if not loop.last %}, {% endif %}{% endfor -%}
+  {%- if attribute.term %}
+  - Term: {{ attribute.term }}
+  {%- endif %}
+  {%- for option in attribute.options %}
+  - {{ option.key }}: {{ option.value }}
+  {%- endfor %}
+  </details>
+{%- endfor %}
+{% endfor %}
+
+{%- if enums | length > 0 %}
+## Enumerations
+{% endif %}
+
+{%- for enum in enums %}
+### {{ enum.name }}
+
+```
+{%- for key, value in enum.mappings | dictsort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+```
+{% endfor %}

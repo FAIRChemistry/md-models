@@ -365,4 +365,17 @@ mod tests {
         // Assert
         assert_eq!(model.objects.len(), 2);
     }
+
+    #[test]
+    fn test_from_markdown_w_html() {
+        // Arrange
+        let path = Path::new("tests/data/model_w_html.md");
+
+        // Act
+        let model = DataModel::from_markdown(path).expect("Failed to parse markdown");
+
+        // Assert
+        assert_eq!(model.objects.len(), 2);
+        assert_eq!(model.enums.len(), 1);
+    }
 }
