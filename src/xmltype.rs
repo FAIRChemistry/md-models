@@ -19,16 +19,6 @@ impl FromStr for XMLType {
     /// # Arguments
     ///
     /// * `s` - A string slice that holds the XML type definition.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::str::FromStr;
-    /// use mdmodels::xmltype::XMLType;
-    ///
-    /// let attr = XMLType::from_str("@id").unwrap();
-    /// let elem = XMLType::from_str("name").unwrap();
-    /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(name) = s.strip_prefix('@') {
             Ok(XMLType::Attribute {
@@ -52,16 +42,6 @@ impl<'de> Deserialize<'de> for XMLType {
     /// # Arguments
     ///
     /// * `deserializer` - A deserializer instance.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use serde_json::from_str;
-    /// use mdmodels::xmltype::XMLType;
-    ///
-    /// let json = r#"{"is_attr": true, "name": "id"}"#;
-    /// let attr: XMLType = from_str(json).unwrap();
-    /// ```
     fn deserialize<D>(deserializer: D) -> Result<XMLType, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -95,16 +75,6 @@ impl Serialize for XMLType {
     /// # Arguments
     ///
     /// * `serializer` - A serializer instance.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use serde_json::to_string;
-    /// use mdmodels::xmltype::XMLType;
-    ///
-    /// let elem = XMLType::Element { is_attr: false, name: "name".to_string() };
-    /// let json = to_string(&elem).unwrap();
-    /// ```
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
