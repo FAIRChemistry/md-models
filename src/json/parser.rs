@@ -148,8 +148,7 @@ fn process_array(name: &str, value: &serde_json::Value) -> Attribute {
         ref_name
             .as_str()
             .expect("Ref is not a string")
-            .to_string()
-            .split("/")
+            .split('/')
             .last()
             .expect("Could not get the last part of the ref")
             .to_string()
