@@ -96,3 +96,38 @@ impl Serialize for XMLType {
         visitor.serialize(serializer)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_xmltype_from_str() {
+        let attr = XMLType::Attribute {
+            is_attr: true,
+            name: "id".to_string(),
+        };
+        let elem = XMLType::Element {
+            is_attr: false,
+            name: "name".to_string(),
+        };
+        assert_eq!(XMLType::from_str("@id").unwrap(), attr);
+        assert_eq!(XMLType::from_str("name").unwrap(), elem);
+    }
+
+    #[test]
+    fn test_xmltype_deserialize() {
+        let attr = XMLType::Attribute {
+            is_attr: true,
+            name: "id".to_string(),
+        };
+        let elem = XMLType::Element {
+            is_attr: false,
+            name: "name".to_string(),
+        };
+        let attr_json = r#"{"is_attr":true,"name":"id"}"#;
+        let elem_json = r#"{"is_attr":false,"name":"name"}"#;
+        assert_eq!(serde_json::from_str::<XMLType>(attr_json).unwrap(), attr);
+        assert_eq!(serde_json::from_str::<XMLType>(elem_json).unwrap(), elem);
+    }
+}

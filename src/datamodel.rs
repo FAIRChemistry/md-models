@@ -303,4 +303,66 @@ mod tests {
         assert_eq!(model1.enums[0].name, "Enum1");
         assert_eq!(model1.enums[1].name, "Enum2");
     }
+
+    #[test]
+    fn test_sort_attrs() {
+        // Arrange
+        let mut model = DataModel::new(None, None);
+        let mut obj = Object::new("Object1".to_string(), None);
+        obj.add_attribute(crate::attribute::Attribute {
+            name: "not_required".to_string(),
+            is_array: false,
+            dtypes: vec!["string".to_string()],
+            docstring: "".to_string(),
+            options: vec![],
+            term: None,
+            required: false,
+            xml: None,
+        });
+
+        obj.add_attribute(crate::attribute::Attribute {
+            name: "required".to_string(),
+            is_array: false,
+            dtypes: vec!["string".to_string()],
+            docstring: "".to_string(),
+            options: vec![],
+            term: None,
+            required: true,
+            xml: None,
+        });
+
+        model.objects.push(obj);
+
+        // Act
+        model.sort_attrs();
+
+        // Assert
+        assert_eq!(model.objects[0].attributes[0].name, "required");
+        assert_eq!(model.objects[0].attributes[1].name, "not_required");
+    }
+
+    #[test]
+    fn test_from_sdrdm_schema() {
+        // Arrange
+        let path = Path::new("tests/data/expected_sdrdm_schema.json");
+
+        // Act
+        let model = DataModel::from_sdrdm_schema(path).expect("Failed to parse SDRDM schema");
+
+        // Assert
+        assert_eq!(model.objects.len(), 2);
+        assert_eq!(model.enums.len(), 1);
+    }
+
+    #[test]
+    fn test_from_json_schema() {
+        // Arrange
+        let path = Path::new("tests/data/expected_json_schema.json");
+
+        // Act
+        let model = DataModel::from_json_schema(path).expect("Failed to parse JSON schema");
+
+        // Assert
+        assert_eq!(model.objects.len(), 2);
+    }
 }
