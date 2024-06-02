@@ -1,4 +1,6 @@
+{% if title %}
 # {{ title }}
+{% endif %}
 {% for object in objects %}
 ### {{ object.name }}
 {{ object.docstring }}
@@ -12,4 +14,18 @@
   - {{ option.key }}: {{ option.value }}
   {%- endfor -%}
 {%- endfor %}
+{% endfor %}
+
+{%- if enums | length > 0 %}
+## Enumerations
+{% endif %}
+
+{%- for enum in enums %}
+### {{ enum.name }}
+
+```
+{%- for key, value in enum.mappings | dictsort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+```
 {% endfor %}
