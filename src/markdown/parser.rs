@@ -161,12 +161,14 @@ fn extract_attr_name_required(iterator: &mut Parser) -> (bool, String) {
         return (false, text.to_string());
     }
 
-    let text = iterator.next().unwrap();
-    if let Event::Text(text) = text {
-        return (true, text.to_string());
+    // Try for two text events
+    for _ in 0..2 {
+        if let Some(Event::Text(text)) = iterator.next() {
+            return (true, text.to_string());
+        }
     }
 
-    panic!("Could not extract name: Got {:?}", text);
+    panic!("Could not extract name. Plesae check the markdown file.");
 }
 
 /// Extracts the term from an object heading.
