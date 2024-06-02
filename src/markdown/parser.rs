@@ -28,7 +28,15 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     }
 
     let content = fs::read_to_string(path).expect("Could not read file");
+
+    // Remove all html tags
+    let re = Regex::new(r"<[^>]*>").unwrap();
+    let content = re.replace_all(&content, "").to_string();
+
+    // Parse the frontmatter
     let config = parse_frontmatter(content.as_str());
+
+    // Parse the markdown content
     let parser = Parser::new(&content);
     let mut iterator = parser.into_iter();
 
