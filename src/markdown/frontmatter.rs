@@ -22,6 +22,16 @@ pub struct FrontMatter {
 }
 
 impl FrontMatter {
+    pub fn new() -> Self {
+        FrontMatter {
+            id_field: default_id_field(),
+            prefixes: None,
+            nsmap: None,
+            repo: default_repo(),
+            prefix: default_prefix(),
+        }
+    }
+
     /// Returns the value of the `id_field`.
     ///
     /// # Returns
@@ -58,13 +68,7 @@ impl Default for FrontMatter {
     /// # Returns
     /// A `FrontMatter` instance with default values.
     fn default() -> Self {
-        FrontMatter {
-            id_field: default_id_field(),
-            prefixes: None,
-            repo: default_repo(),
-            nsmap: None,
-            prefix: default_prefix(),
-        }
+        Self::new()
     }
 }
 
