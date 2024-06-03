@@ -173,7 +173,13 @@ mod tests {
             let expected_schema =
                 std::fs::read_to_string(format!("tests/intermediates/{}", filename)).unwrap();
             let schema = model.json_schema(obj_name);
-            assert_eq!(schema.trim(), expected_schema.trim());
+
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(schema.as_str())
+                    .expect("Could not parse generated schema"),
+                serde_json::from_str::<serde_json::Value>(expected_schema.as_str())
+                    .expect("Could not parse expected schema")
+            );
         }
     }
 

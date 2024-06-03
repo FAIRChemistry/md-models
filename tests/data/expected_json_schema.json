@@ -22,15 +22,19 @@
     },
     "ontology": {
       "title": "ontology",
+      "$ref": "#/definitions/Ontology"
+    }
+  },
+  "definitions": {
+    "Ontology": {
+      "title": "Ontology",
       "type": "string",
       "enum": [
         "https://www.evidenceontology.org/term/",
         "https://amigo.geneontology.org/amigo/term/",
         "http://semanticscience.org/resource/"
       ]
-    }
-  },
-  "definitions": {
+    },
     "Test2": {
       "title": "Test2",
       "type": "object",
