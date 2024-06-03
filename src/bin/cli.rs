@@ -116,11 +116,15 @@ fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
     let model = DataModel::from_markdown(&path);
 
     match model {
-        Ok(_) => print_validation_result(true),
-        Err(_) => print_validation_result(false),
+        Ok(_) => {
+            print_validation_result(true);
+            Ok(())
+        }
+        Err(_) => {
+            print_validation_result(false);
+            Err("Model is invalid".into())
+        }
     }
-
-    Ok(())
 }
 
 /// Prints the result of the validation.
@@ -233,6 +237,7 @@ fn render_all_json_schemes(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_cmd::Command;
     use pretty_assertions::assert_eq;
 
     /// Test for resolving local input paths.
@@ -249,5 +254,53 @@ mod tests {
         let local = InputType::Local("tests/data/markdown.md".to_string());
         assert_eq!(remote.to_string(), "https://example.com");
         assert_eq!(local.to_string(), "tests/data/markdown.md");
+    }
+
+    #[test]
+    fn test_successful_validation_result() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("validate")
+            .arg("-i")
+            .arg("tests/data/model.md")
+            .assert();
+        assert.success();
+    }
+
+    #[test]
+    fn test_failed_validation_result() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("validate")
+            .arg("-i")
+            .arg("tests/data/model_missing_types.md")
+            .assert();
+        assert.failure();
+    }
+
+    #[test]
+    fn test_successful_conversion() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("convert")
+            .arg("-i")
+            .arg("tests/data/model.md")
+            .arg("-t")
+            .arg("markdown")
+            .assert();
+        assert.success();
+    }
+
+    #[test]
+    fn test_invalid_conversion() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("convert")
+            .arg("-i")
+            .arg("tests/data/model.md")
+            .arg("-t")
+            .arg("json-schema")
+            .assert();
+        assert.failure();
     }
 }
