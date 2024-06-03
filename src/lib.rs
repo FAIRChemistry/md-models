@@ -9,6 +9,7 @@ pub(crate) mod schema;
 pub(crate) mod xmltype;
 
 pub(crate) mod json {
+    mod datatype;
     pub(crate) mod parser;
 }
 
