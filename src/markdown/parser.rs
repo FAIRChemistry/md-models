@@ -13,6 +13,12 @@ use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
 
+#[derive(Debug, PartialEq, Eq)]
+enum ParserState {
+    InDefinition,
+    OutsideDefinition,
+}
+
 /// Parses a Markdown file at the given path and returns a `DataModel`.
 ///
 /// # Arguments
@@ -46,8 +52,9 @@ pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
     let mut model = DataModel::new(None, config);
 
     // Extract objects from the markdown file
+    let mut state = ParserState::OutsideDefinition;
     while let Some(event) = iterator.next() {
-        process_object_event(&mut iterator, &mut objects, event, &mut model);
+        process_object_event(&mut iterator, &mut objects, event, &mut model, &mut state);
     }
 
     // Reset the iterator
@@ -81,16 +88,25 @@ fn process_object_event(
     objects: &mut Vec<object::Object>,
     event: Event,
     model: &mut DataModel,
+    state: &mut ParserState,
 ) {
     match event {
         Event::Start(Tag::Heading(1)) => {
             model.name = Some(extract_name(iterator));
         }
+        Event::Start(Tag::Heading(2)) => {
+            *state = ParserState::OutsideDefinition;
+        }
         Event::Start(Tag::Heading(3)) => {
+            *state = ParserState::InDefinition;
             let object = process_object_heading(iterator);
             objects.push(object);
         }
         Event::Start(Tag::List(None)) => {
+            if *state == ParserState::OutsideDefinition {
+                return;
+            }
+
             let last_object = objects.last_mut().unwrap();
             if !last_object.has_attributes() {
                 iterator.next();
@@ -105,6 +121,10 @@ fn process_object_event(
             }
         }
         Event::Start(Tag::Item) => {
+            if *state == ParserState::OutsideDefinition {
+                return;
+            }
+
             let (required, attr_string) = extract_attr_name_required(iterator);
             let attribute = attribute::Attribute::new(attr_string, required);
             objects.last_mut().unwrap().add_attribute(attribute);
