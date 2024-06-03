@@ -1,6 +1,6 @@
-{% if title %}
+{%- if title %}
 # {{ title }}
-{% endif %}
+{%- endif %}
 {% for object in objects %}
 ### {{ object.name }}
 {{ object.docstring }}
