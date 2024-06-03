@@ -5,7 +5,7 @@ use mdmodels::{
     exporters::{render_jinja_template, Templates},
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt::Display, io::Write, path::PathBuf, str::FromStr};
+use std::{error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr};
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
@@ -148,6 +148,12 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     let mut model = DataModel::from_markdown(&path)?;
     model.sort_attrs();
 
+    // Special case JSON Schema all
+    if let Templates::JsonSchemaAll = args.template {
+        render_all_json_schemes(&model, &args.output)?;
+        return Ok(()); // Early return
+    }
+
     // Render the template.
     let rendered = match args.template {
         Templates::JsonSchema => model.json_schema(args.root.expect(
@@ -197,6 +203,31 @@ fn resolve_input_path(input: &InputType) -> PathBuf {
         }
         InputType::Local(path) => PathBuf::from(path),
     }
+}
+
+/// Renders all JSON Schemas for the model.
+fn render_all_json_schemes(
+    model: &DataModel,
+    outdir: &Option<PathBuf>,
+) -> Result<(), Box<dyn Error>> {
+    if outdir.is_none() {
+        panic!("Output directory is required for JSON Schema all");
+    }
+
+    let outdir = outdir.as_ref().unwrap();
+
+    // Check if the output is a directory
+    if !outdir.is_dir() && outdir.exists() {
+        panic!("Output must be a directory");
+    }
+
+    // If the output directory does not exist, create it
+    fs::create_dir_all(outdir)?;
+
+    // Render the JSON Schema for each entity
+    model.json_schema_all(outdir.to_str().unwrap().to_string());
+
+    Ok(())
 }
 
 #[cfg(test)]

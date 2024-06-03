@@ -38,6 +38,7 @@ pub enum Templates {
     CompactMarkdown,
     Shacl,
     JsonSchema,
+    JsonSchemaAll,
     Shex,
     PythonSdrdm,
 }
@@ -83,9 +84,14 @@ pub fn render_jinja_template(
         Templates::Markdown => env.get_template("markdown.jinja")?,
         Templates::CompactMarkdown => env.get_template("markdown-compact.jinja")?,
         Templates::Shacl => env.get_template("shacl.jinja")?,
-        Templates::JsonSchema => env.get_template("json-schema.jinja")?,
         Templates::Shex => env.get_template("shex.jinja")?,
         Templates::PythonSdrdm => env.get_template("python-sdrdm.jinja")?,
+        _ => {
+            panic!(
+                "The template is not available as a Jinja Template and should not be used using the jinja exporter.
+                Instead, use the dedicated exporter in the DataModel struct."
+            )
+        }
     };
 
     // Render the template
