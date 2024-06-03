@@ -1,0 +1,121 @@
+{
+  "name": "This is a test schema",
+  "objects": [
+    {
+      "name": "Test",
+      "attributes": [
+        {
+          "name": "name",
+          "multiple": false,
+          "dtypes": ["string"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:hello",
+          "required": true,
+          "xml": {
+            "is_attr": true,
+            "name": "name"
+          }
+        },
+        {
+          "name": "number",
+          "multiple": false,
+          "dtypes": ["float"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:one",
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "number"
+          }
+        },
+        {
+          "name": "test2",
+          "multiple": true,
+          "dtypes": ["Test2"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:something",
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "SomeTest2"
+          }
+        },
+        {
+          "name": "ontology",
+          "multiple": false,
+          "dtypes": ["Ontology"],
+          "docstring": "",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "ontology"
+          }
+        }
+      ],
+      "docstring": ""
+    },
+    {
+      "name": "Test2",
+      "attributes": [
+        {
+          "name": "names",
+          "multiple": true,
+          "dtypes": ["string"],
+          "docstring": "",
+          "options": [],
+          "term": "schema:hello",
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "name"
+          }
+        },
+        {
+          "name": "number",
+          "multiple": false,
+          "dtypes": ["float"],
+          "docstring": "",
+          "options": [
+            {
+              "key": "minimum",
+              "value": "0"
+            }
+          ],
+          "term": "schema:one",
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "number"
+          }
+        }
+      ],
+      "docstring": ""
+    }
+  ],
+  "enums": [
+    {
+      "name": "Ontology",
+      "mappings": {
+        "ECO": "https://www.evidenceontology.org/term/",
+        "GO": "https://amigo.geneontology.org/amigo/term/",
+        "SIO": "http://semanticscience.org/resource/"
+      }
+    }
+  ],
+  "config": {
+    "id-field": true,
+    "prefixes": {
+      "schema": "http://schema.org/"
+    },
+    "nsmap": {
+      "tst": "http://example.com/test/"
+    },
+    "repo": "https://www.github.com/my/repo/",
+    "prefix": "tst"
+  }
+}

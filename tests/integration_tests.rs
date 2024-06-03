@@ -60,6 +60,25 @@ mod tests {
     }
 
     #[test]
+    fn test_full_model() {
+        // Arrange
+        let path = Path::new("tests/data/model_full_documentation.md");
+
+        // Act
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Assert
+        let expected =
+            std::fs::read_to_string("tests/data/expected_sdrdm_full_schema.json").unwrap();
+        let expected: serde_json::Value = serde_json::from_str(&expected).unwrap();
+
+        let schema = model.sdrdm_schema();
+        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
+
+        assert_eq!(schema, expected);
+    }
+
+    #[test]
     #[should_panic]
     fn test_parse_no_objects() {
         // Arrange
