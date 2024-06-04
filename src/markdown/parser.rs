@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 use std::error::Error;
-use std::fs;
-use std::path::Path;
 
 use pulldown_cmark::{Event, Parser, Tag};
 use regex::Regex;
@@ -28,16 +26,10 @@ enum ParserState {
 /// # Returns
 ///
 /// A `Result` containing a `DataModel` on success or an error on failure.
-pub fn parse_markdown(path: &Path) -> Result<DataModel, Box<dyn Error>> {
-    if !path.exists() {
-        return Err("File does not exist".into());
-    }
-
-    let content = fs::read_to_string(path).expect("Could not read file");
-
+pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
     // Remove all html tags
     let re = Regex::new(r"<[^>]*>").unwrap();
-    let content = re.replace_all(&content, "").to_string();
+    let content = re.replace_all(content, "").to_string();
 
     // Parse the frontmatter
     let config = parse_frontmatter(content.as_str());

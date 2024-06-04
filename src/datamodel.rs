@@ -229,7 +229,8 @@ impl DataModel {
     /// # Returns
     /// A data model
     pub fn from_markdown(path: &Path) -> Result<Self, Box<dyn Error>> {
-        parse_markdown(path)
+        let content = fs::read_to_string(path)?;
+        parse_markdown(&content)
     }
 
     /// Parse a JSON schema and create a data model

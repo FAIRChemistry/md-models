@@ -2,6 +2,7 @@ use crate::datamodel::DataModel;
 use clap::ValueEnum;
 use lazy_static::lazy_static;
 use minijinja::{context, Environment};
+use pyo3::prelude::*;
 
 lazy_static! {
     /// Maps generic type names to Python-specific type names.
@@ -30,6 +31,7 @@ lazy_static! {
 }
 
 /// Enumeration of available templates.
+#[pyclass]
 #[derive(Debug, ValueEnum, Clone)]
 pub enum Templates {
     PythonDataclass,
@@ -192,7 +194,8 @@ mod tests {
     /// A string containing the rendered template.
     fn build_and_convert(template: Templates) -> String {
         let path = Path::new("tests/data/model.md");
-        let mut model = parse_markdown(path).expect("Failed to parse markdown file");
+        let content = fs::read_to_string(path).expect("Could not read markdown file");
+        let mut model = parse_markdown(&content).expect("Failed to parse markdown file");
         render_jinja_template(&template, &mut model)
             .expect("Could not render template")
             .trim()
