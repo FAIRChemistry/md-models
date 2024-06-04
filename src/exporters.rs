@@ -2,7 +2,6 @@ use crate::datamodel::DataModel;
 use clap::ValueEnum;
 use lazy_static::lazy_static;
 use minijinja::{context, Environment};
-use pyo3::prelude::*;
 
 lazy_static! {
     /// Maps generic type names to Python-specific type names.
@@ -31,7 +30,6 @@ lazy_static! {
 }
 
 /// Enumeration of available templates.
-#[pyclass]
 #[derive(Debug, ValueEnum, Clone)]
 pub enum Templates {
     PythonDataclass,
