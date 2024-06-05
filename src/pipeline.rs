@@ -3,12 +3,14 @@ use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error, fs, path::PathBuf, str::FromStr};
 
+/// Represents a template with metadata and generation specifications.
 #[derive(Debug, Serialize, Deserialize)]
 struct GenTemplate {
     meta: Meta,
     generate: HashMap<String, GenSpecs>,
 }
 
+/// Represents metadata for the template.
 #[derive(Debug, Serialize, Deserialize)]
 struct Meta {
     name: Option<String>,
@@ -16,6 +18,7 @@ struct Meta {
     paths: Vec<PathBuf>,
 }
 
+/// Represents generation specifications for a template.
 #[derive(Debug, Serialize, Deserialize)]
 struct GenSpecs {
     description: Option<String>,
@@ -23,6 +26,15 @@ struct GenSpecs {
     root: Option<String>,
 }
 
+/// Processes the pipeline by reading the template file, building the data model, and generating files based on the specifications.
+///
+/// # Arguments
+///
+/// * `path` - Path to the template file.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
 pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path).unwrap();
     let gen_template: GenTemplate = toml::from_str(content.as_str()).unwrap();
@@ -78,6 +90,15 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
+/// Builds the data model by reading and merging multiple paths.
+///
+/// # Arguments
+///
+/// * `paths` - A slice of PathBuf representing the paths to read.
+///
+/// # Returns
+///
+/// A Result containing the DataModel or an error.
 fn build_models(paths: &[PathBuf]) -> Result<DataModel, Box<dyn Error>> {
     let first_path = paths.first().unwrap();
     path_exists(first_path)?;
@@ -97,6 +118,15 @@ fn build_models(paths: &[PathBuf]) -> Result<DataModel, Box<dyn Error>> {
     Ok(model)
 }
 
+/// Checks if the given path exists.
+///
+/// # Arguments
+///
+/// * `path` - A reference to a PathBuf to check.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
 fn path_exists(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     if !path.exists() {
         return Err(format!("Path does not exist: {:?}", path).into());
@@ -104,6 +134,17 @@ fn path_exists(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Serializes the data model to a JSON schema file.
+///
+/// # Arguments
+///
+/// * `model` - The DataModel to serialize.
+/// * `root` - The root object for the JSON schema.
+/// * `out` - The output path for the JSON schema file.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
 fn serialize_to_json_schema(
     model: DataModel,
     root: Option<String>,
@@ -119,6 +160,16 @@ fn serialize_to_json_schema(
     }
 }
 
+/// Serializes all JSON schemas for the data model to the specified output directory.
+///
+/// # Arguments
+///
+/// * `model` - The DataModel to serialize.
+/// * `out` - The output directory for the JSON schema files.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
 fn serialize_all_json_schemes(model: DataModel, out: &PathBuf) -> Result<(), Box<dyn Error>> {
     if !out.exists() {
         fs::create_dir_all(out)?;
@@ -128,6 +179,16 @@ fn serialize_all_json_schemes(model: DataModel, out: &PathBuf) -> Result<(), Box
     Ok(())
 }
 
+/// Saves the given content to the specified file.
+///
+/// # Arguments
+///
+/// * `out` - The output path for the file.
+/// * `content` - The content to write to the file.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
 fn save_to_file(out: &PathBuf, content: &str) -> Result<(), Box<dyn Error>> {
     let dir = out.parent().unwrap();
     if !dir.exists() {
