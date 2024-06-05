@@ -1,4 +1,5 @@
 ## This is a generated file. Do not modify it manually!
+
 from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses_json import config, dataclass_json
