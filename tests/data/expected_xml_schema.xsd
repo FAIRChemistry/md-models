@@ -8,7 +8,13 @@
     <!-- Test Definition -->
     <xs:complexType name="TestType">
         <xs:sequence>
-            <xs:element name="test2" type="Test2Type"  maxOccurs="unbounded"/>
+            <xs:element name="test2">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Test2" type="Test2Type"  maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
             <xs:element name="ontology" type="OntologyType" />
         </xs:sequence>
         <xs:attribute name="name" type="xs:string" use="required"/>
