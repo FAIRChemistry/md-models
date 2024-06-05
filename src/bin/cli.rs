@@ -10,7 +10,7 @@ use std::{error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
-#[command(name = "MD-Models CLI", version = "1.0")]
+#[command(name = "MD-Models CLI", version = "0.1.0")]
 #[command(about = "Validate and convert Markdown Data Models", long_about = None)]
 struct Cli {
     /// Subcommands for the CLI.
