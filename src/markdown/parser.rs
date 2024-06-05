@@ -124,7 +124,7 @@ fn process_object_event(
         Event::Text(text) => {
             if *state == ParserState::InDefinition {
                 let last_object = objects.last_mut().unwrap();
-                last_object.docstring.push_str(&text.to_string());
+                last_object.docstring.push_str(text.as_ref());
             }
         }
         _ => {}
