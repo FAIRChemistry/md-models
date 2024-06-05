@@ -6,6 +6,7 @@ from dataclasses_json import config, dataclass_json
 from typing import List, Optional
 from enum import Enum
 from uuid import uuid4
+from datetime import date, datetime
 
 
 @dataclass_json

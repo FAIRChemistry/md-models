@@ -3,6 +3,7 @@
 from __future__ import annotations
 from typing import Dict, List, Optional
 from uuid import uuid4
+from datetime import date, datetime
 
 from lxml.etree import _Element
 from pydantic import PrivateAttr, model_validator
