@@ -72,6 +72,7 @@ fn create_enum(name: &str, values: &[String]) -> Enumeration {
     Enumeration {
         name: name.to_string(),
         mappings,
+        docstring: "".to_string(),
     }
 }
 

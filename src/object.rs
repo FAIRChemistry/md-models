@@ -119,6 +119,8 @@ pub struct Enumeration {
     pub name: String,
     /// Mappings associated with the enumeration.
     pub mappings: BTreeMap<String, String>,
+    /// Documentation string for the enumeration.
+    pub docstring: String,
 }
 
 impl Enumeration {

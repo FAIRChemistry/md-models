@@ -281,11 +281,13 @@ mod tests {
         let enm1 = Enumeration {
             name: "Enum1".to_string(),
             mappings: BTreeMap::from([("key1".to_string(), "value1".to_string())]),
+            docstring: "".to_string(),
         };
 
         let enm2 = Enumeration {
             name: "Enum2".to_string(),
             mappings: BTreeMap::from([("key2".to_string(), "value2".to_string())]),
+            docstring: "".to_string(),
         };
 
         model1.objects.push(obj1);

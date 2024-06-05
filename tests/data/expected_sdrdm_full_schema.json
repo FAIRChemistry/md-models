@@ -57,7 +57,7 @@
           }
         }
       ],
-      "docstring": ""
+      "docstring": "The  schema defines the primary structure for the test entity. It contains multiple properties that capture various attributes of a test, including its name, numerical identifier, a nested array of test2 objects, and an ontology reference."
     },
     {
       "name": "Test2",
@@ -94,7 +94,7 @@
           }
         }
       ],
-      "docstring": ""
+      "docstring": "The  schema represents a secondary structure used within the primary  schema. It is designed to hold an array of strings for names, a numerical value with a specified minimum, and other nested properties."
     }
   ],
   "enums": [
@@ -104,7 +104,8 @@
         "ECO": "https://www.evidenceontology.org/term/",
         "GO": "https://amigo.geneontology.org/amigo/term/",
         "SIO": "http://semanticscience.org/resource/"
-      }
+      },
+      "docstring": ""
     }
   ],
   "config": {

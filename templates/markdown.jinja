@@ -3,7 +3,9 @@
 {%- endif %}
 {% for object in objects %}
 ### {{ object.name }}
+{% if object.docstring %}
 {{ object.docstring }}
+{% endif %}
 {%- for attribute in object.attributes %}
 - {{attribute.name}}
   - Type: {% for dtype in attribute.dtypes -%} {{dtype}}{% if not loop.last %}, {% endif %}{% endfor -%}
@@ -22,7 +24,9 @@
 
 {%- for enum in enums %}
 ### {{ enum.name }}
-
+{% if enum.docstring %}
+{{ enum.docstring }}
+{% endif %}
 ```
 {%- for key, value in enum.mappings | dictsort %}
 {{ key }} = {{ value }}

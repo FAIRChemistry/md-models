@@ -121,6 +121,12 @@ fn process_object_event(
             let attribute = attribute::Attribute::new(attr_string, required);
             objects.last_mut().unwrap().add_attribute(attribute);
         }
+        Event::Text(text) => {
+            if *state == ParserState::InDefinition {
+                let last_object = objects.last_mut().unwrap();
+                last_object.docstring.push_str(&text.to_string());
+            }
+        }
         _ => {}
     }
 }
@@ -306,6 +312,7 @@ pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, e
             let enum_obj = Enumeration {
                 name: enum_name,
                 mappings: BTreeMap::new(),
+                docstring: "".to_string(),
             };
             enums.push(enum_obj);
         }

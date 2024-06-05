@@ -103,7 +103,8 @@
         "ECO": "https://www.evidenceontology.org/term/",
         "GO": "https://amigo.geneontology.org/amigo/term/",
         "SIO": "http://semanticscience.org/resource/"
-      }
+      },
+      "docstring": ""
     }
   ],
   "config": {
