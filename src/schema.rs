@@ -289,7 +289,7 @@ fn process_reference(
     }
 
     set_ref_dtype(properties, attribute, reference);
-    set_options(properties, &attribute.options);
+    set_options(&mut properties[name], &attribute.options);
 }
 
 /// Processes an enum reference attribute and adds it to the properties.
