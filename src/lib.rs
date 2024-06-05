@@ -1,5 +1,6 @@
 pub mod datamodel;
 pub mod exporters;
+pub mod pipeline;
 pub mod validation;
 
 pub(crate) mod attribute;

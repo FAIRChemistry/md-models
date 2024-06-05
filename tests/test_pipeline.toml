@@ -1,0 +1,12 @@
+[meta]
+name = "Test"
+description = "Test"
+paths = ["tests/data/model.md"]
+
+[generate]
+shex = { out = "tests/intermediates/schemes/test.shex" }
+json-schema = { out = "tests/intermediates/schemes/test.json", root = "Test" }
+json-schema-all = { out = "tests/intermediates/schemes/json" }
+xml-schema = { out = "tests/intermediates/schemes/test.xsd" }
+python-sdrdm = { out = "tests/intermediates/lib/test_sdrdm.py" }
+python-dataclass = { out = "tests/intermediates/lib/test_dc.py" }

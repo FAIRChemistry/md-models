@@ -3,6 +3,7 @@ use colored::Colorize;
 use mdmodels::{
     datamodel::DataModel,
     exporters::{render_jinja_template, Templates},
+    pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr};
@@ -24,6 +25,8 @@ enum Commands {
     Convert(ConvertArgs),
     /// Validate a markdown model.
     Validate(ValidateArgs),
+    /// Pipeline for generating multiple files.
+    Pipeline(PipelineArgs),
 }
 
 /// Arguments for the validate subcommand.
@@ -56,6 +59,14 @@ struct ConvertArgs {
         help = "Root object to start rendering from (required for JSON Schema)"
     )]
     root: Option<String>,
+}
+
+/// Arguments for the pipeline subcommand.
+#[derive(Parser, Debug)]
+struct PipelineArgs {
+    /// Path to the pipeline configuration file.
+    #[arg(short, long, help = "Path to the pipeline configuration YAML file")]
+    input: PathBuf,
 }
 
 /// Represents the input type, either remote URL or local file path.
@@ -101,6 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match args.cmd {
         Commands::Validate(args) => validate(args),
         Commands::Convert(args) => convert(args),
+        Commands::Pipeline(args) => process_pipeline(&args.input),
     }
 }
 
@@ -302,5 +314,16 @@ mod tests {
             .arg("json-schema")
             .assert();
         assert.failure();
+    }
+
+    #[test]
+    fn test_pipeline_single_model() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("pipeline")
+            .arg("-i")
+            .arg("tests/test_pipeline.toml")
+            .assert();
+        assert.success();
     }
 }
