@@ -19,7 +19,7 @@ nsmap:
   - Term: schema:one
   - XML: @number
 - test2
-  - Type: Test2[]
+  - Type: [Test2](#test2)[]
   - Term: schema:something
   - XML: SomeTest2
 - ontology

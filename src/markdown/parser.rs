@@ -27,12 +27,11 @@ enum ParserState {
 ///
 /// A `Result` containing a `DataModel` on success or an error on failure.
 pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
-    // Remove all html tags
-    let re = Regex::new(r"<[^>]*>").unwrap();
-    let content = re.replace_all(content, "").to_string();
+    // Remove HTML and links
+    let content = clean_content(content);
 
     // Parse the frontmatter
-    let config = parse_frontmatter(content.as_str());
+    let config = parse_frontmatter(&content);
 
     // Parse the markdown content
     let parser = Parser::new(&content);
@@ -65,6 +64,18 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
     validator.validate(&model)?;
 
     Ok(model)
+}
+
+fn clean_content(content: &str) -> String {
+    // Remove all html tags
+    let re = Regex::new(r"<[^>]*>").unwrap();
+    let content = re.replace_all(content, "").to_string();
+
+    // Remove all markdown links
+    let re = Regex::new(r"\[([^\]]+)\]\([^\)]+\)").unwrap();
+    let content = re.replace_all(content.as_str(), "$1").to_string();
+
+    content
 }
 
 /// Processes a single Markdown event for object extraction.

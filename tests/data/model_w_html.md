@@ -27,7 +27,7 @@ nsmap:
 - <details>
   <summary>test2</summary>
 
-  - Type: Test2
+  - Type: [Test2](#test2)
   - Term: schema:something
 
   </details>
