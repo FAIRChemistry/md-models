@@ -2,3 +2,6 @@
 
 # Ignore files that are generated while testing
 tests/intermediates
+
+# Ignore tarpaulin report
+tarpaulin-report.html
