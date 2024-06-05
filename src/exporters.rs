@@ -1,3 +1,5 @@
+use std::{error::Error, str::FromStr};
+
 use crate::datamodel::DataModel;
 use clap::ValueEnum;
 use lazy_static::lazy_static;
@@ -41,6 +43,29 @@ pub enum Templates {
     JsonSchemaAll,
     Shex,
     PythonSdrdm,
+}
+
+/// Converts string representation of a template to a `Templates` enum.
+/// and returns an error if the string is not a valid template type.
+impl FromStr for Templates {
+    type Err = Box<dyn Error>;
+    fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+        match s {
+            "python-dataclass" => Ok(Templates::PythonDataclass),
+            "xml-schema" => Ok(Templates::XmlSchema),
+            "markdown" => Ok(Templates::Markdown),
+            "compact-markdown" => Ok(Templates::CompactMarkdown),
+            "shacl" => Ok(Templates::Shacl),
+            "json-schema" => Ok(Templates::JsonSchema),
+            "json-schema-all" => Ok(Templates::JsonSchemaAll),
+            "shex" => Ok(Templates::Shex),
+            "python-sdrdm" => Ok(Templates::PythonSdrdm),
+            _ => {
+                let err = format!("Invalid template type: {}", s);
+                Err(err.into())
+            }
+        }
+    }
 }
 
 /// Renders a Jinja template based on the provided template type and data model.
