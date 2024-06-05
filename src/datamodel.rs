@@ -31,7 +31,7 @@ use crate::{markdown, schema};
 // * `json_schema` - Generate a JSON schema from the data model
 // * `json_schema_all` - Generate JSON schemas for all objects in the data model
 // * `sdrdm_schema` - Generate a SDRDM schema from the data model
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DataModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
