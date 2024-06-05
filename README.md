@@ -42,6 +42,16 @@ The following templates are available:
 - `shacl`: SHACL shapes definition
 - `shex`: ShEx shapes definition
 
+## Development
+
+This project uses GitHub Actions for continuous integration. The tests can be run using the following command:
+
+```bash
+cargo test
+cargo clippy
+```
+
+After that, the tests and clippy will run automatically on every commit.
 
 ## ToDo's
 
