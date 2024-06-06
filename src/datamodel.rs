@@ -233,6 +233,27 @@ impl DataModel {
         parse_markdown(&content)
     }
 
+    /// Parse a markdown file and create a data model
+    ///
+    /// * `path` - Path to the markdown file
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::path::Path;
+    /// use std::fs;
+    /// use mdmodels::datamodel::DataModel;
+    ///
+    /// let path = Path::new("tests/data/model.md");
+    /// let content = fs::read_to_string(path).unwrap();
+    /// let model = DataModel::from_markdown_string(content.as_str());
+    /// ```
+    /// # Returns
+    /// A data model
+    pub fn from_markdown_string(content: &str) -> Result<Self, Box<dyn Error>> {
+        parse_markdown(content)
+    }
+
     /// Parse a JSON schema and create a data model
     ///
     /// * `path` - Path to the JSON schema file
@@ -376,6 +397,21 @@ mod tests {
 
         // Act
         let model = DataModel::from_markdown(path).expect("Failed to parse markdown");
+
+        // Assert
+        assert_eq!(model.objects.len(), 2);
+        assert_eq!(model.enums.len(), 1);
+    }
+
+    #[test]
+    fn test_from_markdown_string() {
+        // Arrange
+        let path = Path::new("tests/data/model.md");
+        let content = fs::read_to_string(path).unwrap();
+
+        // Act
+        let model =
+            DataModel::from_markdown_string(content.as_str()).expect("Failed to parse markdown");
 
         // Assert
         assert_eq!(model.objects.len(), 2);
