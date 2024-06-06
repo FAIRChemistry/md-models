@@ -25,7 +25,7 @@ There exist many ways to formalize real-world structures into data schemes and m
 
 > Wait, not another schema language!
 
-We are aware that there are many schema languages out there, and we do not aim to replace them. Instead, we aim to provide a way to define data models in a human-readable format that can be used to convert into other schema languages and programming languages. This way, you can define your data model in a way that is easy to read and write for humans and convert it into a machine-readable format when needed to ensure integrity with existing software solutions.
+We are aware that there are many schema languages out there, and we do not aim to replace them. Instead, we aim to provide a way to define data models in a human-readable format that can be used to convert into other schema languages and programming languages. Our goal is to provide a gateway for non-developers to contribute to the definition of data models and to make the process of defining data models more accessible to a broader audience, while ensuring the integrity into existing solutions.
 
 ## How it works
 
