@@ -51,8 +51,6 @@ cargo test
 cargo clippy
 ```
 
-After that, the tests and clippy will run automatically on every commit.
-
 ## ToDo's
 
 - [x] Python PyDantic template
