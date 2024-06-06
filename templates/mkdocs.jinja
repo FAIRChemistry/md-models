@@ -1,0 +1,89 @@
+{##### Macros ####}
+
+{# Get the type of an attribute #}
+{%- macro get_dtype(attribute) %}
+{%- for dtype in attribute.dtypes %}
+    {%- set dtype_string -%}
+    `{{ wrap_multiple(wrap_multiple(dtype, attribute.multiple)) }}`
+    {%- endset -%}
+    {{ linkify(dtype, dtype_string) }}
+{%- endfor %}
+{%- endmacro %}
+
+{# Wrap a multiple in a list statement if it is the case #}
+{%- macro wrap_multiple(dtype, multiple) -%}
+
+{%- if multiple is true -%}
+list[{{ dtype }}]
+{%- else -%}
+{{ dtype }}
+{%- endif -%}
+
+{%- endmacro -%}
+
+{# Turn in-document types into links #}
+{%- macro linkify(dtype, dtype_string) %}
+
+{%- if dtype in object_names or dtype in enum_names -%}
+[{{ dtype_string }}](#{{ dtype | lower }})
+{%- else -%}
+{{ dtype_string }}
+{%- endif -%}
+
+{%- endmacro %}
+{#################}
+
+---
+hide:
+    - navigation
+---
+
+# Model Reference
+
+This page provides comprehensive information about the structure and components of the data model, including detailed descriptions of the types and their properties, information on enumerations, and an overview of the ontologies used and their associated prefixes. Below, you will find a graph that visually represents the overall structure of the data model.
+
+??? quote "Graph"
+    ``` mermaid
+    flowchart TB
+    {%- for object in objects %}
+    {%- for attribute in object.attributes %}
+    {%- for dtype in attribute.dtypes %}
+    {%- if dtype in object_names or dtype in enum_names %}
+        {{ object.name | lower}}({{ object.name }}) --> {{ dtype | lower }}({{ dtype }})
+    {%- endif %}
+    {%- endfor %}
+    {%- endfor %}
+    {%- endfor %}
+    ```
+
+{% if prefixes | length > 0 %}
+## Ontologies
+
+{%- for prefix, value in prefixes %}
+- [{{ prefix }}]({{ value }})
+{%- endfor %}
+{% endif %}
+
+## Types
+
+{% for object in objects  %}
+### {{ object.name }}
+{{ object.docstring }}
+{%- for attribute in object.attributes %}
+{%- set required %}
+{%- if attribute.required %}*{% endif %}
+{%- endset %}
+
+__{{ attribute.name }}__{{ required }} {{ get_dtype(attribute) }}
+{% if attribute.docstring %}
+- {{ attribute.docstring }}
+{%- endif  %}
+{%- for option in attribute.options -%}
+{%- if option.key != 'description' %}
+- `{{ option.key | capitalize }}`: {{ option.value }}
+{%- endif  %}
+{%- endfor %}
+{%- endfor %}
+
+------
+{% endfor %}

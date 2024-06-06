@@ -43,6 +43,7 @@ pub enum Templates {
     JsonSchemaAll,
     Shex,
     PythonSdrdm,
+    MkDocs,
 }
 
 /// Converts string representation of a template to a `Templates` enum.
@@ -60,6 +61,7 @@ impl FromStr for Templates {
             "json-schema-all" => Ok(Templates::JsonSchemaAll),
             "shex" => Ok(Templates::Shex),
             "python-sdrdm" => Ok(Templates::PythonSdrdm),
+            "mk-docs" => Ok(Templates::MkDocs),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
@@ -111,6 +113,7 @@ pub fn render_jinja_template(
         Templates::Shacl => env.get_template("shacl.jinja")?,
         Templates::Shex => env.get_template("shex.jinja")?,
         Templates::PythonSdrdm => env.get_template("python-sdrdm.jinja")?,
+        Templates::MkDocs => env.get_template("mkdocs.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
@@ -276,6 +279,17 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_xml_schema.xsd")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_mkdocs() {
+        // Arrange
+        let rendered = build_and_convert(Templates::MkDocs);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_mkdocs.md")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }

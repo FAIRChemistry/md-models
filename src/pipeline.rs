@@ -78,6 +78,10 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                 let content = model.clone().convert_to(&template)?;
                 save_to_file(&specs.out, content.as_str())?;
             }
+            Templates::MkDocs => {
+                let content = model.clone().convert_to(&template)?;
+                save_to_file(&specs.out, content.as_str())?;
+            }
         }
 
         println!(
