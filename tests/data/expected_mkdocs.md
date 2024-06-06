@@ -36,6 +36,8 @@ __test2__ [`list[Test2]`](#test2)
 
 
 __ontology__ [`Ontology`](#ontology)
+
+
 ------
 
 ### Test2
@@ -47,6 +49,8 @@ __names__ `list[string]`
 __number__ `float`
 
 - `Minimum`: 0
+
+
 
 ## Enumerations
 

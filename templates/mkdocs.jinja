@@ -85,8 +85,8 @@ __{{ attribute.name }}__{{ required }} {{ get_dtype(attribute) }}
 {%- endfor %}
 {%- endfor %}
 
-{%- if not loop.last %}------{% endif %}
-{% endfor -%}
+{% if not loop.last %}------{%- endif %}
+{% endfor %}
 {%- if enums | length > 0 %}
 ## Enumerations
 {% endif %}
