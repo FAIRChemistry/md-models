@@ -96,9 +96,9 @@ __{{ attribute.name }}__{{ required }} {{ get_dtype(attribute) }}
 {% if enum.docstring %}
 {{ enum.docstring }}
 {% endif %}
-```
+| Alias | Value |
+|-------|-------|
 {%- for key, value in enum.mappings | dictsort %}
-{{ key }} = {{ value }}
+| `{{ key }}` | {{ value }} |
 {%- endfor %}
-```
 {% endfor %}

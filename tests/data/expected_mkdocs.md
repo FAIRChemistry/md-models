@@ -56,8 +56,8 @@ __number__ `float`
 
 ### Ontology
 
-```
-ECO = https://www.evidenceontology.org/term/
-GO = https://amigo.geneontology.org/amigo/term/
-SIO = http://semanticscience.org/resource/
-```
+| Alias | Value |
+|-------|-------|
+| `ECO` | https://www.evidenceontology.org/term/ |
+| `GO` | https://amigo.geneontology.org/amigo/term/ |
+| `SIO` | http://semanticscience.org/resource/ |
