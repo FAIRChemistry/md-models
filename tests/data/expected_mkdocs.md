@@ -36,8 +36,6 @@ __test2__ [`list[Test2]`](#test2)
 
 
 __ontology__ [`Ontology`](#ontology)
-
-
 ------
 
 ### Test2
@@ -50,4 +48,12 @@ __number__ `float`
 
 - `Minimum`: 0
 
-------
+## Enumerations
+
+### Ontology
+
+```
+ECO = https://www.evidenceontology.org/term/
+GO = https://amigo.geneontology.org/amigo/term/
+SIO = http://semanticscience.org/resource/
+```

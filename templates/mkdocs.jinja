@@ -85,5 +85,20 @@ __{{ attribute.name }}__{{ required }} {{ get_dtype(attribute) }}
 {%- endfor %}
 {%- endfor %}
 
-------
+{%- if not loop.last %}------{% endif %}
+{% endfor -%}
+{%- if enums | length > 0 %}
+## Enumerations
+{% endif %}
+
+{%- for enum in enums %}
+### {{ enum.name }}
+{% if enum.docstring %}
+{{ enum.docstring }}
+{% endif %}
+```
+{%- for key, value in enum.mappings | dictsort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+```
 {% endfor %}
