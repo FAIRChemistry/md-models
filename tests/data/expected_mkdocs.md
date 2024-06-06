@@ -12,6 +12,10 @@ This page provides comprehensive information about the structure and components 
     flowchart TB
         test(Test) --> test2(Test2)
         test(Test) --> ontology(Ontology)
+    
+        click test "#test" "Go to Test"
+        click test2 "#test2" "Go to Test2"
+        click ontology "#ontology" "Go to Ontology"
     ```
 
 

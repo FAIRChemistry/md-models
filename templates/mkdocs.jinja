@@ -54,6 +54,12 @@ This page provides comprehensive information about the structure and components 
     {%- endfor %}
     {%- endfor %}
     {%- endfor %}
+    {% for object in object_names %}
+        click {{ object | lower }} "#{{ object | lower }}" "Go to {{ object }}"
+    {%- endfor %}
+    {%- for enum in enum_names %}
+        click {{ enum | lower }} "#{{ enum | lower }}" "Go to {{ enum }}"
+    {%- endfor %}
     ```
 
 {% if prefixes | length > 0 %}
