@@ -65,6 +65,7 @@ impl Attribute {
         match option.key.to_lowercase().as_str() {
             "type" => self.set_dtype(option.value),
             "term" => self.term = Some(option.value),
+            "description" => self.docstring = option.value,
             "xml" => self.set_xml(XMLType::from_str(&option.value).expect("Invalid XML type")),
             _ => self.options.push(option),
         }
@@ -204,9 +205,13 @@ mod tests {
         let mut attr = Attribute::new("name".to_string(), false);
         let option = AttrOption::new("description".to_string(), "This is a test".to_string());
         attr.add_option(option);
+        let option = AttrOption::new("something".to_string(), "something".to_string());
+        attr.add_option(option);
+
         assert_eq!(attr.options.len(), 1);
-        assert_eq!(attr.options[0].key, "description");
-        assert_eq!(attr.options[0].value, "This is a test");
+        assert_eq!(attr.options[0].key, "something");
+        assert_eq!(attr.options[0].value, "something");
+        assert_eq!(attr.docstring, "This is a test");
     }
 
     #[test]
