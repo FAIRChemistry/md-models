@@ -7,7 +7,7 @@
           "name": "name",
           "multiple": false,
           "dtypes": ["string"],
-          "docstring": "",
+          "docstring": "The name of the test.",
           "options": [],
           "term": "schema:hello",
           "required": true,

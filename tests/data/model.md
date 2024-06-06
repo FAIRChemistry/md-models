@@ -13,6 +13,7 @@ nsmap:
 - __name__
   - Type: string
   - Term: schema:hello
+  - Description: The name of the test.
   - XML: @name
 - number
   - Type: float

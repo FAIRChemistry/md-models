@@ -6,7 +6,8 @@
     "name": {
       "title": "name",
       "term": "schema:hello",
-      "type": "string"
+      "type": "string",
+      "description": "The name of the test."
     },
     "number": {
       "title": "number",
