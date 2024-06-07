@@ -45,7 +45,14 @@ class {{ object.name }}:
             "{{ prefix }}": "{{ address }}",
             {%- endfor %}
             {%- for attribute in object.attributes %}
-            {%- if attribute.term %}
+            {%- if attribute.is_id %}
+            "{{ attribute.name }}": {
+                {%- if attribute.term %}
+                "@id": "{{ attribute.term }}",
+                {%- endif %}
+                "@type": "@id",
+            }
+            {%- elif attribute.term %}
             "{{ attribute.name }}": "{{ attribute.term }}",
             {%- endif %}
             {%- endfor %}

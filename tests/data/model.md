@@ -11,7 +11,7 @@ nsmap:
 ### Test
 
 - __name__
-  - Type: string
+  - Type: Identifier
   - Term: schema:hello
   - Description: The name of the test.
   - XML: @name

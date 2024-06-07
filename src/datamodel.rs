@@ -312,6 +312,7 @@ mod tests {
         obj1.add_attribute(crate::attribute::Attribute {
             name: "test1".to_string(),
             is_array: false,
+            is_id: false,
             dtypes: vec!["string".to_string()],
             docstring: "".to_string(),
             options: vec![],
@@ -324,6 +325,7 @@ mod tests {
         obj2.add_attribute(crate::attribute::Attribute {
             name: "test2".to_string(),
             is_array: false,
+            is_id: false,
             dtypes: vec!["string".to_string()],
             docstring: "".to_string(),
             options: vec![],
@@ -369,6 +371,7 @@ mod tests {
         obj.add_attribute(crate::attribute::Attribute {
             name: "not_required".to_string(),
             is_array: false,
+            is_id: false,
             dtypes: vec!["string".to_string()],
             docstring: "".to_string(),
             options: vec![],
@@ -380,6 +383,7 @@ mod tests {
         obj.add_attribute(crate::attribute::Attribute {
             name: "required".to_string(),
             is_array: false,
+            is_id: false,
             dtypes: vec!["string".to_string()],
             docstring: "".to_string(),
             options: vec![],

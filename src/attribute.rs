@@ -12,6 +12,8 @@ pub struct Attribute {
     /// Indicates if the attribute is an array.
     #[serde(rename = "multiple")]
     pub is_array: bool,
+    /// Is an identifier or not
+    pub is_id: bool,
     /// Data types associated with the attribute.
     pub dtypes: Vec<String>,
     /// Documentation string for the attribute.
@@ -41,6 +43,7 @@ impl Attribute {
             docstring: String::new(),
             options: Vec::new(),
             is_array: false,
+            is_id: false,
             term: None,
             required,
             xml: Some(XMLType::from_str(name.as_str()).unwrap()),
@@ -77,13 +80,21 @@ impl Attribute {
     ///
     /// * `dtype` - The data type to set.
     fn set_dtype(&mut self, dtype: String) {
-        if dtype.ends_with("[]") {
-            self.is_array = true;
-            self.dtypes.push(dtype.trim_end_matches("[]").to_string());
-            return;
+        let mut dtype = dtype;
+        // Handle special case for identifiers
+        if dtype.to_lowercase().starts_with("identifier") {
+            self.is_id = true;
+            // Regex replace identifier or Identifier with string
+            let pattern = regex::Regex::new(r"[I|i]dentifier").unwrap();
+            dtype = pattern.replace_all(&dtype, "string").to_string();
         }
 
-        self.dtypes.push(dtype);
+        // Handle special case for arrays
+        if dtype.ends_with("[]") {
+            self.is_array = true;
+        }
+
+        self.dtypes.push(dtype.trim_end_matches("[]").to_string());
     }
 
     /// Converts the attribute to a JSON schema.

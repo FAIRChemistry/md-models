@@ -26,6 +26,7 @@ impl PrimitiveTypes {
         json_mappings.insert("null".to_string(), "null".to_string());
         json_mappings.insert("date".to_string(), "string".to_string());
         json_mappings.insert("number".to_string(), "number".to_string());
+        json_mappings.insert("identifier".to_string(), "string".to_string());
 
         PrimitiveTypes {
             types: vec![
@@ -37,6 +38,7 @@ impl PrimitiveTypes {
                 "null".to_string(),
                 "number".to_string(),
                 "date".to_string(),
+                "identifier".to_string(),
             ],
             json_mappings,
         }
