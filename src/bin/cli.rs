@@ -173,7 +173,7 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Render the template.
     let rendered = match args.template {
         Templates::JsonSchema => model.json_schema(args.root),
-        _ => render_jinja_template(&args.template, &mut model)?,
+        _ => render_jinja_template(&args.template, &mut model, None)?,
     };
 
     // Output the rendered content.

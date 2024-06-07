@@ -1,4 +1,4 @@
-use std::{error::Error, str::FromStr};
+use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
 use crate::datamodel::DataModel;
 use clap::ValueEnum;
@@ -46,6 +46,23 @@ pub enum Templates {
     MkDocs,
 }
 
+impl Display for Templates {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Templates::PythonDataclass => write!(f, "python-dataclass"),
+            Templates::XmlSchema => write!(f, "xml-schema"),
+            Templates::Markdown => write!(f, "markdown"),
+            Templates::CompactMarkdown => write!(f, "compact-markdown"),
+            Templates::Shacl => write!(f, "shacl"),
+            Templates::JsonSchema => write!(f, "json-schema"),
+            Templates::JsonSchemaAll => write!(f, "json-schema-all"),
+            Templates::Shex => write!(f, "shex"),
+            Templates::PythonSdrdm => write!(f, "python-sdrdm"),
+            Templates::MkDocs => write!(f, "mk-docs"),
+        }
+    }
+}
+
 /// Converts string representation of a template to a `Templates` enum.
 /// and returns an error if the string is not a valid template type.
 impl FromStr for Templates {
@@ -83,6 +100,7 @@ impl FromStr for Templates {
 pub fn render_jinja_template(
     template: &Templates,
     model: &mut DataModel,
+    config: Option<&HashMap<String, String>>,
 ) -> Result<String, minijinja::Error> {
     // Load the template environment
     let mut env = Environment::new();
@@ -133,6 +151,7 @@ pub fn render_jinja_template(
         prefixes => prefixes,
         repo => model.config.as_ref().unwrap().repo.clone(),
         prefix => model.config.as_ref().unwrap().prefix.clone(),
+        config => config,
     })
 }
 
@@ -222,7 +241,7 @@ mod tests {
         let path = Path::new("tests/data/model.md");
         let content = fs::read_to_string(path).expect("Could not read markdown file");
         let mut model = parse_markdown(&content).expect("Failed to parse markdown file");
-        render_jinja_template(&template, &mut model)
+        render_jinja_template(&template, &mut model, None)
             .expect("Could not render template")
             .trim()
             .to_string()

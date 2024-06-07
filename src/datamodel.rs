@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::{error::Error, fs, path::Path};
 
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::exporters::{render_jinja_template, Templates};
@@ -8,6 +10,7 @@ use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
 use crate::{markdown, schema};
+use colored::Colorize;
 
 // Data model
 //
@@ -190,26 +193,52 @@ impl DataModel {
     //
     // If the Jinja template is invalid
     //
-    pub fn convert_to(&mut self, template: &Templates) -> Result<String, minijinja::Error> {
+    pub fn convert_to(
+        &mut self,
+        template: &Templates,
+        config: Option<&HashMap<String, String>>,
+    ) -> Result<String, minijinja::Error> {
         self.sort_attrs();
-        render_jinja_template(template, self)
+        render_jinja_template(template, self, config)
     }
 
     // Merge two data models
     //
     // * `other` - The other data model to merge
     pub fn merge(&mut self, other: &Self) {
+        // Intialize a variable to check if the merge is valid
+        let mut valid = true;
+
         // Check if there are any duplicate objects or enums
         for obj in &other.objects {
             if self.objects.iter().any(|o| o.name == obj.name) {
-                panic!("Duplicate object '{}' found in the data model", obj.name);
+                error!(
+                    "[{}] {}: Object {} is defined more than once.",
+                    "Merge".bold(),
+                    "DuplicateError".bold(),
+                    obj.name.red().bold(),
+                );
+
+                valid = false;
             }
         }
 
         for enm in &other.enums {
             if self.enums.iter().any(|e| e.name == enm.name) {
-                panic!("Duplicate enum '{}' found in the data model", enm.name);
+                error!(
+                    "[{}] {}: Enumeration {} is defined more than once.",
+                    "Merge".bold(),
+                    "DuplicateError".bold(),
+                    enm.name.red().bold(),
+                );
+
+                valid = false;
             }
+        }
+
+        // If the merge is not valid, panic
+        if !valid {
+            panic!("Merge is not valid");
         }
 
         // Merge the objects and enums

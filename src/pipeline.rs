@@ -80,7 +80,7 @@ impl From<bool> for MergeState {
 ///
 /// A Result indicating success or failure.
 pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    let content = std::fs::read_to_string(path).unwrap();
+    let content = std::fs::read_to_string(path)?;
     let mut gen_template: GenTemplate = toml::from_str(content.as_str()).unwrap();
 
     if let Some(parent) = path.parent() {
@@ -102,36 +102,36 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                 serialize_all_json_schemes(&specs.out, paths, &merge_state)?;
             }
             Templates::Shex => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::Shacl => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::Markdown => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::CompactMarkdown => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::PythonDataclass => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::PythonSdrdm => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::XmlSchema => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
             }
             Templates::MkDocs => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
+                // If the template is not set to merge, then disable the navigation.
+                let mut config = HashMap::new();
+                if let MergeState::Merge = merge_state {
+                    config.insert("nav".to_string(), "false".to_string());
+                }
+
+                serialize_by_template(&specs.out, paths, &merge_state, &template, Some(&config))?;
             }
         }
-
-        println!(
-            "  Generated {} - {}",
-            name.bold().green(),
-            specs.out.to_str().unwrap().bold()
-        )
     }
 
     Ok(())
@@ -270,11 +270,15 @@ fn serialize_by_template(
     specs: &[PathBuf],
     merge_state: &MergeState,
     template: &Templates,
+    config: Option<&HashMap<String, String>>,
 ) -> Result<(), Box<dyn Error>> {
     match merge_state {
         MergeState::Merge => {
+            print_render_msg(out, template);
+
             let mut model = build_models(specs)?;
-            let content = model.convert_to(template)?;
+            let content = model.convert_to(template, None)?;
+
             return save_to_file(out, content.as_str());
         }
         MergeState::NoMerge => {
@@ -290,9 +294,11 @@ fn serialize_by_template(
                     return Err(format!("Path does not exist: {:?}", spec).into());
                 }
 
-                let mut model = DataModel::from_markdown(spec)?;
                 let path = replace_wildcard_fname(out, get_file_name(spec).as_str());
-                let content = model.convert_to(template)?;
+                print_render_msg(&path, template);
+
+                let mut model = DataModel::from_markdown(spec)?;
+                let content = model.convert_to(template, config)?;
 
                 save_to_file(&path, content.as_str())?;
             }
@@ -370,6 +376,14 @@ fn save_to_file(out: &PathBuf, content: &str) -> Result<(), Box<dyn Error>> {
 
     fs::write(out, content.trim())?;
     Ok(())
+}
+
+fn print_render_msg(out: &Path, template: &Templates) {
+    println!(
+        " [{}] Writing to '{}'",
+        template.to_string().green().bold(),
+        out.to_str().unwrap().to_string().bold(),
+    );
 }
 
 #[cfg(test)]
