@@ -33,18 +33,30 @@ list[{{ dtype }}]
 {%- endmacro %}
 {#################}
 
+{%- if config == none or config.nav == "false" %}
 ---
 hide:
     - navigation
 ---
+{% endif %}
 
+{%- if title %}
+# {{ title }}
+{%- else -%}
 # Model Reference
+{%- endif %}
 
 This page provides comprehensive information about the structure and components of the data model, including detailed descriptions of the types and their properties, information on enumerations, and an overview of the ontologies used and their associated prefixes. Below, you will find a graph that visually represents the overall structure of the data model.
 
 ??? quote "Graph"
     ``` mermaid
     flowchart TB
+    {%- for object in object_names %}
+        {{ object | lower}}({{ object }})
+    {%- endfor %}
+    {%- for enum in enum_names %}
+        {{ enum | lower}}({{ enum }})
+    {%- endfor %}
     {%- for object in objects %}
     {%- for attribute in object.attributes %}
     {%- for dtype in attribute.dtypes %}
