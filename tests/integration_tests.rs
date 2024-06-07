@@ -109,13 +109,32 @@ mod tests {
     }
 
     #[test]
-    fn test_json_schema() {
+    fn test_json_schema_known_obj() {
         // Arrange
         let path = Path::new("tests/data/model.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
-        let schema = model.json_schema("Test".to_string());
+        let schema = model.json_schema(Some("Test".to_string()));
+        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
+
+        // Assert
+        let expected_schema =
+            std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
+        // Parse with serde_json
+        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
+
+        assert_eq!(schema, expected_schema);
+    }
+
+    #[test]
+    fn test_json_schema_unknown_obj() {
+        // Arrange
+        let path = Path::new("tests/data/model.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Act
+        let schema = model.json_schema(None);
         let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
 
         // Assert
@@ -134,7 +153,7 @@ mod tests {
         let model = mdmodels::datamodel::DataModel::new(None, None);
 
         // Act
-        model.json_schema("Test".to_string());
+        model.json_schema(Some("Test".to_string()));
     }
 
     #[test]
@@ -145,7 +164,7 @@ mod tests {
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
-        model.json_schema("Test3".to_string());
+        model.json_schema(Some("Test3".to_string()));
     }
 
     #[test]
@@ -191,7 +210,7 @@ mod tests {
             let obj_name = filename.replace(".json", "");
             let expected_schema =
                 std::fs::read_to_string(format!("tests/intermediates/{}", filename)).unwrap();
-            let schema = model.json_schema(obj_name);
+            let schema = model.json_schema(Some(obj_name));
 
             assert_eq!(
                 serde_json::from_str::<serde_json::Value>(schema.as_str())

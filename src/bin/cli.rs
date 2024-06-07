@@ -172,9 +172,7 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
 
     // Render the template.
     let rendered = match args.template {
-        Templates::JsonSchema => model.json_schema(args.root.expect(
-            "Root object name is required. Please add --root <object_name> or -r <object_name>",
-        )),
+        Templates::JsonSchema => model.json_schema(args.root),
         _ => render_jinja_template(&args.template, &mut model)?,
     };
 
@@ -304,7 +302,7 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_conversion() {
+    fn test_json_schema_no_root() {
         let mut cmd = Command::cargo_bin("md-models").unwrap();
         let assert = cmd
             .arg("convert")
@@ -313,7 +311,7 @@ mod tests {
             .arg("-t")
             .arg("json-schema")
             .assert();
-        assert.failure();
+        assert.success();
     }
 
     #[test]

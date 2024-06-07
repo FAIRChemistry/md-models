@@ -71,16 +71,20 @@ impl DataModel {
     // # Returns
     //
     // A JSON schema string
-    pub fn json_schema(&self, obj_name: String) -> String {
+    pub fn json_schema(&self, obj_name: Option<String>) -> String {
         if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
 
-        if self.objects.iter().all(|o| o.name != obj_name) {
-            panic!("Object not found in the markdown file");
+        match obj_name {
+            Some(name) => {
+                if self.objects.iter().all(|o| o.name != name) {
+                    panic!("Object not found in the markdown file");
+                }
+                schema::to_json_schema(&name, self)
+            }
+            None => schema::to_json_schema(&self.objects[0].name, self),
         }
-
-        schema::to_json_schema(&obj_name, self)
     }
 
     // Get the JSON schema for all objects in the markdown file
