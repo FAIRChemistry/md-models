@@ -395,13 +395,13 @@ mod tests {
     fn test_has_wildcard_fname() {
         let path = PathBuf::from("path/to/*.json");
         let result = has_wildcard_fname(&path);
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]
     fn test_has_wildcard_fname_no_wildcard() {
         let path = PathBuf::from("path/to/file.json");
         let result = has_wildcard_fname(&path);
-        assert_eq!(result, false);
+        assert!(!result);
     }
 }
