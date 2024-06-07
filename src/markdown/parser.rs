@@ -173,6 +173,13 @@ fn extract_name(iterator: &mut Parser) -> String {
         return text.to_string();
     }
 
+    // Try for two text events
+    for _ in 0..2 {
+        if let Some(Event::Text(text)) = iterator.next() {
+            return text.to_string();
+        }
+    }
+
     panic!("Could not extract name: Got {:?}", iterator.next().unwrap());
 }
 
