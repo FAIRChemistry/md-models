@@ -246,4 +246,17 @@ mod tests {
         assert!(enum_names.contains(&"Ontology".to_string()));
         assert!(enum_names.contains(&"AddedEnum".to_string()));
     }
+
+    #[test]
+    #[should_panic]
+    fn test_model_merge_invalid() {
+        // Arrange
+        let path = Path::new("tests/data/model.md");
+        let mut model = DataModel::from_markdown(path).expect("Could not parse markdown");
+        let path2 = Path::new("tests/data/model_merge_invalid.md");
+        let model2 = DataModel::from_markdown(path2).expect("Could not parse markdown");
+
+        // Act
+        model.merge(&model2);
+    }
 }
