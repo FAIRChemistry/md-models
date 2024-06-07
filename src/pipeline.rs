@@ -1,13 +1,28 @@
 use crate::{datamodel::DataModel, exporters::Templates};
 use colored::Colorize;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, error::Error, fs, path::PathBuf, str::FromStr};
+use std::{
+    collections::HashMap,
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 /// Represents a template with metadata and generation specifications.
 #[derive(Debug, Serialize, Deserialize)]
 struct GenTemplate {
     meta: Meta,
     generate: HashMap<String, GenSpecs>,
+}
+
+impl GenTemplate {
+    pub fn prepend_root(&mut self, path: &Path) {
+        for (_, specs) in self.generate.iter_mut() {
+            specs.prepend_root(path);
+        }
+    }
 }
 
 /// Represents metadata for the template.
@@ -24,6 +39,35 @@ struct GenSpecs {
     description: Option<String>,
     out: PathBuf,
     root: Option<String>,
+    #[serde(rename = "per-spec")]
+    per_spec: Option<bool>,
+}
+
+impl GenSpecs {
+    pub fn prepend_root(&mut self, path: &Path) {
+        if path.is_file() {
+            panic!("Root to prepend is not a directory.");
+        }
+
+        self.out = path.join(&self.out);
+    }
+}
+
+/// Sate that determines whether objects are merged or not.
+#[derive(Debug)]
+enum MergeState {
+    Merge,
+    NoMerge,
+}
+
+impl From<bool> for MergeState {
+    fn from(value: bool) -> Self {
+        if value {
+            MergeState::NoMerge
+        } else {
+            MergeState::Merge
+        }
+    }
 }
 
 /// Processes the pipeline by reading the template file, building the data model, and generating files based on the specifications.
@@ -37,50 +81,49 @@ struct GenSpecs {
 /// A Result indicating success or failure.
 pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path).unwrap();
-    let gen_template: GenTemplate = toml::from_str(content.as_str()).unwrap();
-    let model = build_models(gen_template.meta.paths.as_slice())?;
+    let mut gen_template: GenTemplate = toml::from_str(content.as_str()).unwrap();
+
+    if let Some(parent) = path.parent() {
+        gen_template.prepend_root(parent);
+    }
+
+    let paths = gen_template.meta.paths.as_slice();
 
     for (name, specs) in gen_template.generate.into_iter() {
         let template = Templates::from_str(name.as_str())?;
+        let merge_state = MergeState::from(specs.per_spec.unwrap_or(false));
 
         match template {
             Templates::JsonSchema => {
-                serialize_to_json_schema(model.clone(), specs.root, &specs.out)?;
+                let model = build_models(paths)?;
+                serialize_to_json_schema(model, specs.root, &specs.out, &merge_state)?;
             }
             Templates::JsonSchemaAll => {
-                serialize_all_json_schemes(model.clone(), &specs.out)?;
+                serialize_all_json_schemes(&specs.out, paths, &merge_state)?;
             }
             Templates::Shex => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::Shacl => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::Markdown => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::CompactMarkdown => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::PythonDataclass => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::PythonSdrdm => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::XmlSchema => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
             Templates::MkDocs => {
-                let content = model.clone().convert_to(&template)?;
-                save_to_file(&specs.out, content.as_str())?;
+                serialize_by_template(&specs.out, paths, &merge_state, &template)?;
             }
         }
 
@@ -153,10 +196,17 @@ fn serialize_to_json_schema(
     model: DataModel,
     root: Option<String>,
     out: &PathBuf,
+    merge_state: &MergeState,
 ) -> Result<(), Box<dyn Error>> {
+    if let MergeState::NoMerge = merge_state {
+        return Err(
+            "Per spec is not supported for single JSON schema generation at the moment.".into(),
+        );
+    }
+
     match root {
         Some(root) => {
-            let schema = model.json_schema(root);
+            let schema = model.json_schema(Some(root));
             save_to_file(out, &schema)?;
             Ok(())
         }
@@ -174,13 +224,132 @@ fn serialize_to_json_schema(
 /// # Returns
 ///
 /// A Result indicating success or failure.
-fn serialize_all_json_schemes(model: DataModel, out: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn serialize_all_json_schemes(
+    out: &PathBuf,
+    specs: &[PathBuf],
+    merge_state: &MergeState,
+) -> Result<(), Box<dyn Error>> {
+    if out.is_file() {
+        return Err("Output path is a file".into());
+    }
     if !out.exists() {
         fs::create_dir_all(out)?;
     }
-    model.json_schema_all(out.to_str().unwrap().to_string());
+
+    match merge_state {
+        MergeState::Merge => {
+            let model = build_models(specs)?;
+            model.json_schema_all(out.to_str().unwrap().to_string());
+            Ok(())
+        }
+        MergeState::NoMerge => {
+            for spec in specs {
+                let model = DataModel::from_markdown(spec)?;
+                let path = out.join(get_file_name(spec));
+                model.json_schema_all(path.to_str().unwrap().to_string());
+            }
+            Ok(())
+        }
+    }
+}
+
+/// Serializes the data model by the specified template.
+///
+/// # Arguments
+///
+/// * `out` - The output path for the serialized data model.
+/// * `specs` - A slice of PathBuf representing the paths to read.
+/// * `merge_state` - The merge state.
+/// * `template` - The template to use for serialization.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
+fn serialize_by_template(
+    out: &PathBuf,
+    specs: &[PathBuf],
+    merge_state: &MergeState,
+    template: &Templates,
+) -> Result<(), Box<dyn Error>> {
+    match merge_state {
+        MergeState::Merge => {
+            let mut model = build_models(specs)?;
+            let content = model.convert_to(template)?;
+            return save_to_file(out, content.as_str());
+        }
+        MergeState::NoMerge => {
+            if !has_wildcard_fname(out) {
+                return Err("
+                    Output file name must contain a wildcard.
+                    For example, a valid wildcard is 'path/to/*.json'"
+                    .into());
+            }
+
+            for spec in specs {
+                if !spec.exists() {
+                    return Err(format!("Path does not exist: {:?}", spec).into());
+                }
+
+                let mut model = DataModel::from_markdown(spec)?;
+                let path = replace_wildcard_fname(out, get_file_name(spec).as_str());
+                let content = model.convert_to(template)?;
+
+                save_to_file(&path, content.as_str())?;
+            }
+        }
+    }
 
     Ok(())
+}
+
+/// Checks if the given path has a wildcard file name.
+///
+/// # Arguments
+///
+/// * `path` - The path to check.
+///
+/// # Returns
+///
+/// A boolean indicating if the path has a wildcard file name.
+fn has_wildcard_fname(path: &Path) -> bool {
+    let pattern = r"^.+/\*\.[a-zA-Z0-9]+$";
+    let re = Regex::new(pattern).unwrap();
+    re.is_match(path.to_str().unwrap())
+}
+
+/// Replaces the wildcard file name with the given name.
+///
+/// # Arguments
+///
+/// * `path` - The path to replace the wildcard file name.
+/// * `name` - The name to replace the wildcard file name with.
+///
+/// # Returns
+///
+/// A PathBuf with the wildcard file name replaced.
+fn replace_wildcard_fname(path: &Path, name: &str) -> PathBuf {
+    let path = PathBuf::from(path);
+    let file_name = path.file_name().unwrap().to_str().unwrap();
+    let new_name = file_name.replace('*', name);
+    let parent = path.parent().unwrap();
+
+    parent.join(new_name)
+}
+
+/// Gets the file name without the extension.
+///
+/// # Arguments
+///
+/// * `path` - The path to get the file name from.
+///
+/// # Returns
+///
+/// A string containing the file name without the extension.
+fn get_file_name(path: &Path) -> String {
+    // Get the filename without the extension
+    let file_name = path.file_name().unwrap().to_str().unwrap();
+    let file_name = file_name.split('.').collect::<Vec<&str>>()[0];
+    file_name.to_string()
 }
 
 /// Saves the given content to the specified file.
@@ -201,4 +370,24 @@ fn save_to_file(out: &PathBuf, content: &str) -> Result<(), Box<dyn Error>> {
 
     fs::write(out, content.trim())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_has_wildcard_fname() {
+        let path = PathBuf::from("path/to/*.json");
+        let result = has_wildcard_fname(&path);
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_has_wildcard_fname_no_wildcard() {
+        let path = PathBuf::from("path/to/file.json");
+        let result = has_wildcard_fname(&path);
+        assert_eq!(result, false);
+    }
 }
