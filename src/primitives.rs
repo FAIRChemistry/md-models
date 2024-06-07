@@ -36,6 +36,7 @@ impl PrimitiveTypes {
                 "bool".to_string(),
                 "null".to_string(),
                 "number".to_string(),
+                "date".to_string(),
             ],
             json_mappings,
         }
