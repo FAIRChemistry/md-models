@@ -5,7 +5,7 @@
 {% macro create_attribute(attr) %}
     {{ attr.name }}: {{ get_type(attr) }} = {{ xml_type(attr.xml) }}(
             {% if attr.required is false and attr.multiple is false -%}
-            default=None,
+            default={%- if attr.default -%}{{ attr.default }}{%- else -%}None{%- endif -%},
             {% endif -%}
             {% if attr.multiple is true -%}
             default_factory=ListPlus,
@@ -86,7 +86,7 @@ List[{{ type(attr, true) }}]
 {%- if object.name == name -%}
         self,
         {%- for attr in object.attributes %}
-        {{ attr.name }}: {{ get_type(attr) }},
+        {{ attr.name }}: {{ get_type(attr) }}{{ get_default(attr) }},
         {%- endfor %}
         **kwargs,
 {%- endif -%}
@@ -94,15 +94,34 @@ List[{{ type(attr, true) }}]
 {%- endmacro -%}
 
 {#
+    This macro is used to determine the default of an attribute
+#}
+{% macro get_default(attr) -%}
+{%- if attr.multiple -%}
+ = []
+{%- elif 'default' in attr -%}
+ = {% if attr.default is number -%}
+    {{ attr.default }}
+    {%- elif attr.default is string -%}
+    "{{ attr.default }}"
+    {%- else -%}
+    {{ attr.default | capitalize }}
+    {%- endif -%}
+{%- elif attr.required is false -%}
+ = None
+{%- endif -%}
+{%- endmacro -%}
+
+{#
     This macro is used to generate parameters for the body
     of a method. Mostly for adding entries to list objects.
 #}
-{%- macro params(objects, name) -%}
+{%- macro params(objects, name) %}
 {%- for object in objects -%}
-{%- if object.name == name -%}
+{%- if object.name == name %}
         {%- for attr in object.attributes %}
             "{{ attr.name }}": {{ attr.name }}{% if not loop.last %}, {% endif %}
         {%- endfor %}
-{%- endif -%}
-{%- endfor -%}
-{%- endmacro -%}
+{%- endif %}
+{%- endfor %}
+{%- endmacro %}

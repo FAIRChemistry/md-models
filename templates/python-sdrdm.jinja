@@ -31,8 +31,7 @@ class {{object.name}}(
     def add_to_{{ attr.name }}(
         {{ utils.signature(objects, dtype) }}
     ):
-        params = {
-            {{ utils.params(objects, dtype) }}
+        params = { {{ utils.params(objects, dtype) }}
         }
 
         self.{{ attr.name }}.append(
@@ -44,6 +43,7 @@ class {{object.name}}(
     {%- endif %}
     {%- endfor %}
     {%- endfor %}
+
 {% endfor %}
 {%- for enum in enums %}
 class {{ enum.name }}(Enum):
