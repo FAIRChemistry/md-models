@@ -1,0 +1,13 @@
+[meta]
+name = "Test"
+description = "Test"
+paths = ["tests/data/model.md", "tests/data/model_merge.md"]
+
+[generate]
+json-schema-all = { out = "intermediates/merge/schemes/json", per-spec = true }
+xml-schema = { out = "intermediates/merge/schemes/*.xsd", per-spec = true }
+python-sdrdm = { out = "intermediates/merge/lib/*.py", per-spec = true }
+python-dataclass = { out = "intermediates/merge/lib/*.py", per-spec = true }
+markdown = { out = "intermediates/merge/*.md", per-spec = true }
+compact-markdown = { out = "intermediates/merge/*.md", per-spec = true }
+mk-docs = { out = "intermediates/merge/*.md", per-spec = true }

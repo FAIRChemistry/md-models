@@ -162,7 +162,6 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
     let mut model = DataModel::from_markdown(&path)?;
-    model.sort_attrs();
 
     // Special case JSON Schema all
     if let Templates::JsonSchemaAll = args.template {
@@ -323,5 +322,27 @@ mod tests {
             .arg("tests/test_pipeline.toml")
             .assert();
         assert.success();
+    }
+
+    #[test]
+    fn test_pipeline_multiple_models() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("pipeline")
+            .arg("-i")
+            .arg("tests/test_pipeline_per_spec.toml")
+            .assert();
+        assert.success();
+    }
+
+    #[test]
+    fn test_pipeline_multiple_models_invalid() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("pipeline")
+            .arg("-i")
+            .arg("tests/test_pipeline_per_spec_invalid.toml")
+            .assert();
+        assert.failure();
     }
 }

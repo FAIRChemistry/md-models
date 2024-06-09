@@ -404,4 +404,14 @@ mod tests {
         let result = has_wildcard_fname(&path);
         assert!(!result);
     }
+
+    #[test]
+    fn test_build_models() {
+        let specs = vec![
+            PathBuf::from("tests/data/model.md"),
+            PathBuf::from("tests/data/model_merge.md"),
+        ];
+        let result = build_models(&specs);
+        assert!(result.is_ok());
+    }
 }
