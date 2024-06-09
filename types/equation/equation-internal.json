@@ -1,0 +1,207 @@
+{
+  "name": "Equation",
+  "objects": [
+    {
+      "name": "Equation",
+      "attributes": [
+        {
+          "name": "id",
+          "multiple": false,
+          "is_id": true,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Unique identifier for the equation.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "id"
+          }
+        },
+        {
+          "name": "equation",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "The equation that is used in the data model.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "equation"
+          }
+        },
+        {
+          "name": "variables",
+          "multiple": true,
+          "is_id": false,
+          "dtypes": [
+            "EqVariable"
+          ],
+          "docstring": "List of variables that are used in the equation.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "list_of_variables"
+          }
+        },
+        {
+          "name": "parameters",
+          "multiple": true,
+          "is_id": false,
+          "dtypes": [
+            "EqParameter"
+          ],
+          "docstring": "List of parameters that are used in the equation.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "list_of_parameters"
+          }
+        }
+      ],
+      "docstring": "Represents an equation that can be used in a data model."
+    },
+    {
+      "name": "EqVariable",
+      "attributes": [
+        {
+          "name": "id",
+          "multiple": false,
+          "is_id": true,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Unique identifier for the variable.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "id"
+          }
+        },
+        {
+          "name": "name",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Name of the variable.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "name"
+          }
+        },
+        {
+          "name": "symbol",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Symbol of the variable.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "symbol"
+          }
+        }
+      ],
+      "docstring": "Represents a variable that is used in the equation."
+    },
+    {
+      "name": "EqParameter",
+      "attributes": [
+        {
+          "name": "id",
+          "multiple": false,
+          "is_id": true,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Unique identifier for the parameter.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "id"
+          }
+        },
+        {
+          "name": "name",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Name of the parameter.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "name"
+          }
+        },
+        {
+          "name": "symbol",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Symbol of the parameter.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "symbol"
+          }
+        },
+        {
+          "name": "value",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "float"
+          ],
+          "docstring": "Value of the parameter.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "value"
+          }
+        }
+      ],
+      "docstring": "Represents a parameter that is used in the equation."
+    }
+  ],
+  "enums": [],
+  "config": {
+    "id-field": true,
+    "prefixes": null,
+    "nsmap": null,
+    "repo": "https://github.com/JR-1991/md-models",
+    "prefix": "md"
+  }
+}

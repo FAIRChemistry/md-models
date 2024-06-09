@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::collections::BTreeMap;
 use std::error::Error;
 
@@ -10,6 +11,21 @@ use crate::object::{self, Enumeration};
 use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
+
+lazy_static! {
+    static ref MD_MODEL_TYPES: BTreeMap<&'static str, &'static str> = {
+        let mut m = BTreeMap::new();
+        m.insert(
+            "Equation",
+            include_str!("../../types/equation/equation-internal.json"),
+        );
+        m.insert(
+            "UnitDefinition",
+            include_str!("../../types/unit-definition/unit-definition-internal.json"),
+        );
+        m
+    };
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum ParserState {
@@ -58,6 +74,9 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
 
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
     model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
+
+    // Add internal types, if used
+    add_internal_types(&mut model);
 
     // Validate the model
     let mut validator = Validator::new();
@@ -371,5 +390,34 @@ fn process_enum_mappings(enum_obj: &mut Enumeration, mappings: String) {
         let key = parts[0].trim().replace('"', "");
         let value = parts[1].trim().replace('"', "");
         enum_obj.mappings.insert(key.to_string(), value.to_string());
+    }
+}
+
+fn add_internal_types(model: &mut DataModel) {
+    // Get all datatypes within the model
+    let mut all_types = vec![];
+    for object in &model.objects {
+        for attr in &object.attributes {
+            all_types.extend(attr.dtypes.clone());
+        }
+    }
+
+    let object_names = model
+        .objects
+        .iter()
+        .map(|obj| obj.name.clone())
+        .collect::<Vec<String>>();
+
+    for (name, content) in MD_MODEL_TYPES.iter() {
+        if object_names.contains(&name.to_string()) {
+            continue;
+        }
+
+        if all_types.contains(&name.to_string()) {
+            model.merge(
+                &serde_json::from_str::<DataModel>(content)
+                    .expect("Failed to parse internal data type"),
+            )
+        }
     }
 }

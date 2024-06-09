@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "UnitDefinition",
+  "type": "object",
+  "properties": {
+    "id": {
+      "title": "id",
+      "description": "Unique identifier for the unit definition.",
+      "type": "string"
+    },
+    "list_of_units": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BaseUnit"
+      }
+    }
+  },
+  "description": "Represents a unit definition that is based on the SI unit system.",
+  "definitions": {
+    "BaseUnit": {
+      "title": "BaseUnit",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "title": "kind",
+          "$ref": "#/definitions/UnitType"
+        },
+        "exponent": {
+          "title": "exponent",
+          "description": "Exponent of the base unit in the unit definition.",
+          "type": "integer"
+        },
+        "multiplier": {
+          "title": "multiplier",
+          "description": "Multiplier of the base unit in the unit definition.",
+          "type": "number"
+        },
+        "scale": {
+          "title": "scale",
+          "description": "Scale of the base unit in the unit definition.",
+          "type": "number"
+        }
+      },
+      "description": "Represents a base unit in the unit definition."
+    }
+  }
+}

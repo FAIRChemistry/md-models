@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "Equation",
+  "type": "object",
+  "properties": {
+    "id": {
+      "title": "id",
+      "description": "Unique identifier for the equation.",
+      "type": "string"
+    },
+    "equation": {
+      "title": "equation",
+      "description": "The equation that is used in the data model.",
+      "type": "string"
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EqVariable"
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EqParameter"
+      }
+    }
+  },
+  "description": "Represents an equation that can be used in a data model.",
+  "definitions": {
+    "EqParameter": {
+      "title": "EqParameter",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier for the parameter.",
+          "type": "string"
+        },
+        "name": {
+          "title": "name",
+          "description": "Name of the parameter.",
+          "type": "string"
+        },
+        "symbol": {
+          "title": "symbol",
+          "description": "Symbol of the parameter.",
+          "type": "string"
+        },
+        "value": {
+          "title": "value",
+          "description": "Value of the parameter.",
+          "type": "number"
+        }
+      },
+      "description": "Represents a parameter that is used in the equation."
+    },
+    "EqVariable": {
+      "title": "EqVariable",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier for the variable.",
+          "type": "string"
+        },
+        "name": {
+          "title": "name",
+          "description": "Name of the variable.",
+          "type": "string"
+        },
+        "symbol": {
+          "title": "symbol",
+          "description": "Symbol of the variable.",
+          "type": "string"
+        }
+      },
+      "description": "Represents a variable that is used in the equation."
+    }
+  }
+}

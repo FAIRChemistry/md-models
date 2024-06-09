@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Roots -->
+    <xs:element name="UnitDefinition" type="UnitDefinitionType"/>
+    <xs:element name="BaseUnit" type="BaseUnitType"/>
+
+    <!-- UnitDefinition Definition -->
+    <xs:complexType name="UnitDefinitionType">
+        <xs:sequence>
+            <xs:element name="list_of_units">
+                <xs:annotation>
+                    <xs:documentation>
+                        Base units that define the unit.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="BaseUnit" type="BaseUnitType" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Unique identifier for the unit definition.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- BaseUnit Definition -->
+    <xs:complexType name="BaseUnitType">
+        <xs:attribute name="kind" type="xs:UnitType"  use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Kind of the base unit (e.g., meter, kilogram, second).
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="exponent" type="xs:integer"  use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Exponent of the base unit in the unit definition.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="multiplier" type="xs:float">
+            <xs:annotation>
+                <xs:documentation>
+                    Multiplier of the base unit in the unit definition.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="scale" type="xs:float">
+            <xs:annotation>
+                <xs:documentation>
+                    Scale of the base unit in the unit definition.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- Enum UnitType Definition -->
+    <xs:simpleType name="UnitTypeType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ampere"/>
+            <xs:enumeration value="avogadro"/>
+            <xs:enumeration value="becquerel"/>
+            <xs:enumeration value="candela"/>
+            <xs:enumeration value="coulomb"/>
+            <xs:enumeration value="dimensionless"/>
+            <xs:enumeration value="farad"/>
+            <xs:enumeration value="gram"/>
+            <xs:enumeration value="gray"/>
+            <xs:enumeration value="henry"/>
+            <xs:enumeration value="hertz"/>
+            <xs:enumeration value="item"/>
+            <xs:enumeration value="joule"/>
+            <xs:enumeration value="katal"/>
+            <xs:enumeration value="kelvin"/>
+            <xs:enumeration value="kilogram"/>
+            <xs:enumeration value="litre"/>
+            <xs:enumeration value="lumen"/>
+            <xs:enumeration value="lux"/>
+            <xs:enumeration value="metre"/>
+            <xs:enumeration value="mole"/>
+            <xs:enumeration value="newton"/>
+            <xs:enumeration value="ohm"/>
+            <xs:enumeration value="pascal"/>
+            <xs:enumeration value="radian"/>
+            <xs:enumeration value="second"/>
+            <xs:enumeration value="siemens"/>
+            <xs:enumeration value="sievert"/>
+            <xs:enumeration value="steradian"/>
+            <xs:enumeration value="tesla"/>
+            <xs:enumeration value="volt"/>
+            <xs:enumeration value="watt"/>
+            <xs:enumeration value="weber"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

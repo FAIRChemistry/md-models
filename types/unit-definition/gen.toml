@@ -1,0 +1,9 @@
+[meta]
+name = "Unit Definition"
+description = "This TOML file orchestrates the conversion of the UnitDefinition schema to various formats."
+paths = ["unit-definition.md"]
+
+[generate]
+xml-schema = { out = "unit-definition.xsd" }
+json-schema = { out = "unit-definition.json", root = "UnitDefinition" }
+internal = { out = "unit-definition-internal.json" }

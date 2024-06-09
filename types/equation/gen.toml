@@ -1,0 +1,9 @@
+[meta]
+name = "Equation"
+description = "This TOML file orchestrates the conversion of the Equation schema to various formats."
+paths = ["equation.md"]
+
+[generate]
+xml-schema = { out = "equation.xsd" }
+json-schema = { out = "equation.json", root = "Equation" }
+internal = { out = "equation-internal.json" }

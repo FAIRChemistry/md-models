@@ -1,0 +1,161 @@
+{
+  "name": "SI Unit",
+  "objects": [
+    {
+      "name": "UnitDefinition",
+      "attributes": [
+        {
+          "name": "id",
+          "multiple": false,
+          "is_id": true,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "Unique identifier for the unit definition.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "id"
+          }
+        },
+        {
+          "name": "list_of_units",
+          "multiple": true,
+          "is_id": false,
+          "dtypes": [
+            "BaseUnit"
+          ],
+          "docstring": "Base units that define the unit.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "list_of_units"
+          }
+        }
+      ],
+      "docstring": "Represents a unit definition that is based on the SI unit system."
+    },
+    {
+      "name": "BaseUnit",
+      "attributes": [
+        {
+          "name": "kind",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "UnitType"
+          ],
+          "docstring": "Kind of the base unit (e.g., meter, kilogram, second).",
+          "options": [],
+          "term": null,
+          "required": true,
+          "xml": {
+            "is_attr": true,
+            "name": "kind"
+          }
+        },
+        {
+          "name": "exponent",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "integer"
+          ],
+          "docstring": "Exponent of the base unit in the unit definition.",
+          "options": [],
+          "term": null,
+          "required": true,
+          "xml": {
+            "is_attr": true,
+            "name": "exponent"
+          }
+        },
+        {
+          "name": "multiplier",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "float"
+          ],
+          "docstring": "Multiplier of the base unit in the unit definition.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "multiplier"
+          }
+        },
+        {
+          "name": "scale",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "float"
+          ],
+          "docstring": "Scale of the base unit in the unit definition.",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": true,
+            "name": "scale"
+          }
+        }
+      ],
+      "docstring": "Represents a base unit in the unit definition."
+    }
+  ],
+  "enums": [
+    {
+      "name": "UnitType",
+      "mappings": {
+        "AMPERE": "ampere",
+        "AVOGADRO": "avogadro",
+        "BECQUEREL": "becquerel",
+        "CANDELA": "candela",
+        "COULOMB": "coulomb",
+        "DIMENSIONLESS": "dimensionless",
+        "FARAD": "farad",
+        "GRAM": "gram",
+        "GRAY": "gray",
+        "HENRY": "henry",
+        "HERTZ": "hertz",
+        "ITEM": "item",
+        "JOULE": "joule",
+        "KATAL": "katal",
+        "KELVIN": "kelvin",
+        "KILOGRAM": "kilogram",
+        "LITRE": "litre",
+        "LUMEN": "lumen",
+        "LUX": "lux",
+        "METRE": "metre",
+        "MOLE": "mole",
+        "NEWTON": "newton",
+        "OHM": "ohm",
+        "PASCAL": "pascal",
+        "RADIAN": "radian",
+        "SECOND": "second",
+        "SIEMENS": "siemens",
+        "SIEVERT": "sievert",
+        "STERADIAN": "steradian",
+        "TESLA": "tesla",
+        "VOLT": "volt",
+        "WATT": "watt",
+        "WEBER": "weber"
+      },
+      "docstring": ""
+    }
+  ],
+  "config": {
+    "id-field": true,
+    "prefixes": null,
+    "nsmap": null,
+    "repo": "https://github.com/JR-1991/md-models",
+    "prefix": "md"
+  }
+}

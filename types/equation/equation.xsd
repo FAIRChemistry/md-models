@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Roots -->
+    <xs:element name="Equation" type="EquationType"/>
+    <xs:element name="EqVariable" type="EqVariableType"/>
+    <xs:element name="EqParameter" type="EqParameterType"/>
+
+    <!-- Equation Definition -->
+    <xs:complexType name="EquationType">
+        <xs:sequence>
+            <xs:element name="equation" type="xs:string">
+                <xs:annotation>
+                    <xs:documentation>
+                        The equation that is used in the data model.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="variables">
+                <xs:annotation>
+                    <xs:documentation>
+                        List of variables that are used in the equation.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="EqVariable" type="EqVariableType" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="parameters">
+                <xs:annotation>
+                    <xs:documentation>
+                        List of parameters that are used in the equation.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="EqParameter" type="EqParameterType" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Unique identifier for the equation.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- EqVariable Definition -->
+    <xs:complexType name="EqVariableType">
+        <xs:attribute name="id" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Unique identifier for the variable.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="name" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Name of the variable.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="symbol" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Symbol of the variable.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- EqParameter Definition -->
+    <xs:complexType name="EqParameterType">
+        <xs:attribute name="id" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Unique identifier for the parameter.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="name" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Name of the parameter.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="symbol" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Symbol of the parameter.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="value" type="xs:float">
+            <xs:annotation>
+                <xs:documentation>
+                    Value of the parameter.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+
+</xs:schema>
