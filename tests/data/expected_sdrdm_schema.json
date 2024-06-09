@@ -6,7 +6,7 @@
         {
           "name": "name",
           "multiple": false,
-          "is_id": false,
+          "is_id": true,
           "dtypes": ["string"],
           "docstring": "The name of the test.",
           "options": [],
@@ -26,6 +26,7 @@
           "options": [],
           "term": "schema:one",
           "required": false,
+          "default": 1.0,
           "xml": {
             "is_attr": true,
             "name": "number"

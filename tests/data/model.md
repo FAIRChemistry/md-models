@@ -19,6 +19,7 @@ nsmap:
   - Type: float
   - Term: schema:one
   - XML: @number
+  - Default: 1.0
 - test2
   - Type: [Test2](#test2)[]
   - Term: schema:something

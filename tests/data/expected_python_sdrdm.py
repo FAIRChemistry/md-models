@@ -24,7 +24,7 @@ class Test(
         )
 
     number: Optional[float] = attr(
-            default=None,
+            default=1.0,
             tag="number",
             json_schema_extra=dict(term = "schema:one",)
         )
@@ -43,16 +43,15 @@ class Test(
 
     _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")
 
-    
+
     def add_to_test2(
         self,
-        names: List[str],
-        number: Optional[float],
+        names: List[str]= [],
+        number: Optional[float]= None,
         **kwargs,
     ):
         params = {
-            
-            "names": names, 
+            "names": names,
             "number": number
         }
 
@@ -61,6 +60,7 @@ class Test(
         )
 
         return self.test2[-1]
+
 
 class Test2(
     sdRDM.DataModel,
@@ -80,7 +80,6 @@ class Test2(
 
     _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")
 
-    
 
 class Ontology(Enum):
     ECO = "https://www.evidenceontology.org/term/"
