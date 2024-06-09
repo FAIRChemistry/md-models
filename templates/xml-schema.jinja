@@ -2,16 +2,21 @@
     This macro determines whether an attribute/element is required
 #}
 {%- macro is_required(attribute) -%}
-    {%- if attribute.required is true -%}
-        use="required"
-    {%- endif -%}
+    {%- if attribute.required is true %} use="required"{%- endif -%}
+{%- endmacro -%}
+
+{#
+    This macro creates a default value for an element/attribute.
+#}
+{%- macro get_default(attr) -%}
+    {%- if 'default' in attr -%} default="{{ attr.default }}"{%- endif -%}
 {%- endmacro -%}
 
 {#
     This macro determines whether an attribute/element is required
 #}
 {%- macro is_multiple(attribute) -%}
-    {%- if attribute.multiple is true %} maxOccurs="unbounded"{% endif -%}
+    {%- if attribute.multiple is true %} maxOccurs="unbounded"{%- endif -%}
     {%- if attribute.required is true and attribute.multiple is true %} minOccurs="1"{%- endif -%}
 {%- endmacro -%}
 
@@ -19,69 +24,82 @@
     This macro creates an entry in the XML schema for a given attribute.
 #}
 {%- macro create_attribute(attribute) -%}
-        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}" {{ is_required(attribute) }}/>
+        {%- if attribute.docstring | length > 0 %}
+        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}"
+            {%- if is_required(attribute) %} {{ is_required(attribute) }}{%- endif -%}
+            {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
+            >
+            <xs:annotation>
+                <xs:documentation>
+                    {{ attribute.docstring }}
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        {%- else -%}
+        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}"
+        {%- if is_required(attribute) %} {{ is_required(attribute) }}{%- endif -%}
+        {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
+        />
+        {%- endif -%}
 {%- endmacro %}
 
 {#
     This macro creates an entry in the XML schema for a given element.
 #}
 {%- macro create_element(attribute) -%}
-{%- if attribute.dtypes | length == 1 %}
-            {%- if attribute.dtypes[0] in object_names -%}
+{%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
 
-            {%- if attribute.multiple is true -%}
+    {%- if attribute.multiple is true -%}
             <xs:element name="{{attribute.name}}">
+                {%- if attribute.docstring | length > 0 -%}
+                <xs:annotation>
+                    <xs:documentation>
+                        {{ attribute.docstring }}
+                    </xs:documentation>
+                </xs:annotation>
+                {%- endif %}
                 <xs:complexType>
                     <xs:sequence>
-                        <xs:element name="{{attribute.dtypes[0]}}" type="{{attribute.dtypes[0]}}Type" {{ is_multiple(attribute) }}/>
+                        <xs:element name="{{attribute.dtypes[0]}}" type="{{attribute.dtypes[0]}}Type"
+                        {%- if is_multiple(attribute) %}{{ is_multiple(attribute) }}{%- endif -%}
+                        />
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
+    {%- else -%}
+            {%- if attribute.docstring | length > 0 -%}
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type">
+                <xs:annotation>
+                    <xs:documentation>
+                        {{ attribute.docstring }}
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
             {%- else -%}
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type" {{ is_multiple(attribute) }}/>
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"/>
             {%- endif -%}
+    {%- endif -%}
 
-            {%- elif attribute.dtypes[0] in enum_names -%}
-
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type" {{ is_multiple(attribute) }}/>
-
-            {%- else -%}
-
-            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}" {{ is_multiple(attribute) }}/>
-
-            {%- endif -%}
 {%- else -%}
-            <xs:element name="{{attribute.name}}" {{ is_multiple(attribute) }}/>
-                <xs:complexType>
-                    <xs:sequence>
-                        {%- for dtype in attribute.dtypes %}
-                        {%- if dtype in object_names -%}
+            {%- if attribute.docstring | length > 0 -%}
+            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"
+            {%- if is_multiple(attribute) %} {{ is_multiple(attribute) }}{% endif -%}
+            {%- if get_default(attribute) %} {{ get_default(attribute) }}{% endif -%}
+            >
+                <xs:annotation>
+                    <xs:documentation>
+                        {{ attribute.docstring }}
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            {%- else -%}
+            <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"
+            {%- if is_multiple(attribute) %} {{ is_multiple(attribute) }}{%- endif %}
+            {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
+            />
+            {%- endif -%}
 
-                        {%- if attribute.multiple is true -%}
-                        <xs:element name="{{attribute.name}}">
-                            <xs:complexType>
-                                <xs:sequence>
-                                    <xs:element name="{{dtype}}" type="{{dtype}}Type" {{ is_multiple(attribute) }}/>
-                                </xs:sequence>
-                            </xs:complexType>
-                        </xs:element>
-                        {%- else -%}
-                        <xs:element name="{{attribute.name}}" type="{{dtype}}Type" {{ is_multiple(attribute) }}/>
-                        {%- endif -%}
-
-                        {%- elif dtype in enum_names -%}
-
-                        <xs:element name="{{attribute.name}}" type="{{dtype}}Type" {{ is_multiple(attribute) }}/>
-
-                        {%- else -%}
-
-                        <xs:element name="{{attribute.name}}" type="xs:{{dtype}}" {{ is_multiple(attribute) }}/>
-
-                        {%- endif -%}
-                        {%- endfor %}
-                    </xs:sequence>
-                </xs:complexType>
-{%- endif %}
+            {%- endif -%}
 {%- endmacro %}
 
 <?xml version="1.0" encoding="UTF-8" ?>
