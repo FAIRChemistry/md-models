@@ -4,7 +4,7 @@ use serde_with::skip_serializing_none;
 use std::collections::BTreeMap;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 /// Represents an object with a name, attributes, docstring, and an optional term.
 pub struct Object {
     /// Name of the object.
@@ -108,11 +108,23 @@ impl Object {
 
     /// Sorts the attributes of the object by their `required` field in descending order.
     pub fn sort_attrs_by_required(&mut self) {
-        self.attributes.sort_by(|a, b| b.required.cmp(&a.required))
+        let mut top_elements: Vec<Attribute> = vec![];
+        let mut bottom_elements: Vec<Attribute> = vec![];
+
+        for attr in self.attributes.iter() {
+            if attr.required && attr.default.is_none() {
+                top_elements.push(attr.clone());
+            } else {
+                bottom_elements.push(attr.clone());
+            }
+        }
+
+        self.attributes = top_elements;
+        self.attributes.append(&mut bottom_elements);
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 /// Represents an enumeration with a name and mappings.
 pub struct Enumeration {
     /// Name of the enumeration.
