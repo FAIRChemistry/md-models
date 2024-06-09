@@ -34,7 +34,7 @@ use colored::Colorize;
 // * `json_schema` - Generate a JSON schema from the data model
 // * `json_schema_all` - Generate JSON schemas for all objects in the data model
 // * `sdrdm_schema` - Generate a SDRDM schema from the data model
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DataModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -299,6 +299,8 @@ impl DataModel {
 mod tests {
     use std::collections::BTreeMap;
 
+    use crate::attribute::DataType;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -319,6 +321,7 @@ mod tests {
             term: None,
             required: false,
             xml: None,
+            default: None,
         });
 
         let mut obj2 = Object::new("Object2".to_string(), None);
@@ -332,6 +335,7 @@ mod tests {
             term: None,
             required: false,
             xml: None,
+            default: None,
         });
 
         let enm1 = Enumeration {
@@ -378,6 +382,7 @@ mod tests {
             term: None,
             required: false,
             xml: None,
+            default: Some(DataType::String("".to_string())),
         });
 
         obj.add_attribute(crate::attribute::Attribute {
@@ -390,6 +395,7 @@ mod tests {
             term: None,
             required: true,
             xml: None,
+            default: None,
         });
 
         model.objects.push(obj);
