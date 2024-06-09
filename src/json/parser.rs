@@ -137,10 +137,12 @@ fn create_object(schema: &serde_json::Value) -> Object {
         // Add all other keys as options
         for (key, value) in value.as_object().unwrap() {
             if !PROP_KEYS.contains(&key.as_str()) {
-                attribute.add_option(AttrOption::new(
-                    key.to_string(),
-                    value.as_str().unwrap().to_string(),
-                ));
+                attribute
+                    .add_option(AttrOption::new(
+                        key.to_string(),
+                        value.as_str().unwrap().to_string(),
+                    ))
+                    .expect("Failed to add option");
             }
         }
 

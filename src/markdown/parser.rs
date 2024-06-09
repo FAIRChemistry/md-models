@@ -261,10 +261,16 @@ fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
 /// * `objects` - A mutable reference to the list of objects.
 /// * `key` - The key of the attribute option.
 /// * `value` - The value of the attribute option.
-fn add_option_to_last_attribute(objects: &mut [object::Object], key: String, value: String) {
+fn add_option_to_last_attribute(
+    objects: &mut [object::Object],
+    key: String,
+    value: String,
+) -> Result<(), Box<dyn Error>> {
     let last_attr = objects.last_mut().unwrap().get_last_attribute();
     let option = attribute::AttrOption::new(key, value);
-    last_attr.add_option(option);
+    last_attr.add_option(option)?;
+
+    Ok(())
 }
 
 /// Distributes attribute options among the objects.
@@ -280,7 +286,7 @@ fn add_option_to_last_attribute(objects: &mut [object::Object], key: String, val
 fn distribute_attribute_options(objects: &mut [object::Object], attr_string: String) -> Option<()> {
     if attr_string.contains(':') {
         let (key, value) = process_option(&attr_string);
-        add_option_to_last_attribute(objects, key, value);
+        add_option_to_last_attribute(objects, key, value).expect("Failed to add option");
         return None;
     }
 
