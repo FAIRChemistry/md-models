@@ -30,7 +30,8 @@ from datetime import date, datetime
 class {{ object.name }}:
 
     {%- for attribute in object.attributes %}
-    {%- if attribute.multiple is true %}
+    {%- if attribute.name == "id" -%}
+    {%- elif attribute.multiple is true %}
     {{ attribute.name }}: List[{{ attribute.dtypes[0] }}] = field(default_factory=list)
     {%- elif 'default' in attribute%}
     {{ attribute.name }}: {{ attribute.dtypes[0] }} = {{ get_default(attribute.default) }}
