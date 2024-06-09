@@ -115,9 +115,7 @@ pub fn render_jinja_template(
         Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
         Templates::PythonDataclass | Templates::PythonSdrdm => {
             convert_model_types(model, &PYTHON_TYPE_MAPS);
-            if let Templates::PythonSdrdm = template {
-                sort_attributes_by_required(model);
-            }
+            sort_attributes_by_required(model);
         }
         _ => {}
     }
@@ -142,7 +140,7 @@ pub fn render_jinja_template(
 
     // Render the template
     let prefixes = get_prefixes(model);
-    template.render(context! {
+    let rendered = template.render(context! {
         objects => model.objects,
         object_names => model.objects.iter().map(|o| o.name.clone()).collect::<Vec<String>>(),
         enums => model.enums,
@@ -152,7 +150,12 @@ pub fn render_jinja_template(
         repo => model.config.as_ref().unwrap().repo.clone(),
         prefix => model.config.as_ref().unwrap().prefix.clone(),
         config => config,
-    })
+    });
+
+    match rendered {
+        Ok(r) => Ok(clean_and_trim(&r)),
+        Err(e) => Err(e),
+    }
 }
 
 /// Converts the data types in the model according to the provided type map.
@@ -213,10 +216,30 @@ fn filter_objects_wo_terms(model: &mut DataModel) {
 /// * `model` - The data model whose attributes are to be sorted.
 fn sort_attributes_by_required(model: &mut DataModel) {
     for object in &mut model.objects {
-        object
-            .attributes
-            .sort_by(|a, b| b.required.cmp(&a.required));
+        object.sort_attrs_by_required();
     }
+}
+
+fn clean_and_trim(s: &str) -> String {
+    let splitted = s.split('\n').collect::<Vec<&str>>();
+    let mut cleaned = vec![];
+    let mut consec_empty = 0;
+
+    for line in splitted {
+        let trimmed = line.trim_end();
+        if !trimmed.is_empty() {
+            cleaned.push(trimmed);
+            consec_empty = 0;
+        } else {
+            consec_empty += 1;
+            if consec_empty < 3 {
+                cleaned.push(trimmed);
+            }
+        }
+    }
+
+    cleaned.join("\n").trim().to_string()
+    // s.to_string()
 }
 
 #[cfg(test)]
@@ -243,7 +266,6 @@ mod tests {
         let mut model = parse_markdown(&content).expect("Failed to parse markdown file");
         render_jinja_template(&template, &mut model, None)
             .expect("Could not render template")
-            .trim()
             .to_string()
     }
 
