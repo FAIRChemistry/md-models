@@ -4,17 +4,17 @@ This directory contains types that the MD-Models library provides out of the she
 
 ## Types available
 
-- [Unit Definition](types/unit-definition)
-- [Equation](types/equation)
+- [Unit Definition](./unit-definition)
+- [Equation](./equation)
 
 ## How to use
 
 To use a type in your data model, simply reference it in the `Type` section of your data model's attribute. For example, to use the `UnitDefinition` type in your data model, you would write:
 
 ```markdown
-- id
+- unit
   - Type: UnitDefinition
-  - Description: Unique identifier for the unit definition.
+  - Description: Unit of the estimated parameter.
 ```
 
 This will add the `UnitDefinition` type to your data model and can thus be used across your data model. If you like to modify these types, feel free to copy the markdown file to your own project and modify it as you see fit.
