@@ -82,7 +82,7 @@ impl DataModel {
         match obj_name {
             Some(name) => {
                 if self.objects.iter().all(|o| o.name != name) {
-                    panic!("Object not found in the markdown file");
+                    panic!("Object '{}' not found in the markdown file", name);
                 }
                 schema::to_json_schema(&name, self)
             }
