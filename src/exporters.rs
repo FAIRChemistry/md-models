@@ -44,6 +44,7 @@ pub enum Templates {
     Shex,
     PythonSdrdm,
     MkDocs,
+    Internal,
 }
 
 impl Display for Templates {
@@ -59,6 +60,7 @@ impl Display for Templates {
             Templates::Shex => write!(f, "shex"),
             Templates::PythonSdrdm => write!(f, "python-sdrdm"),
             Templates::MkDocs => write!(f, "mk-docs"),
+            Templates::Internal => write!(f, "internal"),
         }
     }
 }
@@ -79,6 +81,7 @@ impl FromStr for Templates {
             "shex" => Ok(Templates::Shex),
             "python-sdrdm" => Ok(Templates::PythonSdrdm),
             "mk-docs" => Ok(Templates::MkDocs),
+            "internal" => Ok(Templates::Internal),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())

@@ -22,6 +22,10 @@ impl GenTemplate {
         for (_, specs) in self.generate.iter_mut() {
             specs.prepend_root(path);
         }
+
+        for spec in self.meta.paths.iter_mut() {
+            *spec = path.join(&spec)
+        }
     }
 }
 
@@ -131,6 +135,10 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
 
                 serialize_by_template(&specs.out, paths, &merge_state, &template, Some(&config))?;
             }
+            Templates::Internal => {
+                let model = build_models(paths)?;
+                serialize_to_internal_schema(model, &specs.out, &merge_state)?;
+            }
         }
     }
 
@@ -208,9 +216,40 @@ fn serialize_to_json_schema(
         Some(root) => {
             let schema = model.json_schema(Some(root));
             save_to_file(out, &schema)?;
+            print_render_msg(out, &Templates::JsonSchema);
             Ok(())
         }
         None => Err("Root object has to be specified".into()),
+    }
+}
+
+/// Serializes the data model to the internal schema.
+///
+/// Please note, this format may only be used for internal purposes.
+///
+/// # Arguments
+///
+/// * `model` - The DataModel to serialize.
+/// * `out` - The output path for the internal schema file.
+///
+/// # Returns
+///
+/// A Result indicating success or failure.
+fn serialize_to_internal_schema(
+    model: DataModel,
+    out: &PathBuf,
+    merge_state: &MergeState,
+) -> Result<(), Box<dyn Error>> {
+    match merge_state {
+        MergeState::Merge => {
+            let schema = model.sdrdm_schema();
+            save_to_file(out, &schema)?;
+            print_render_msg(out, &Templates::Internal);
+            Ok(())
+        }
+        MergeState::NoMerge => {
+            Err("Per spec is not supported for internal schema generation at the moment.".into())
+        }
     }
 }
 
@@ -240,6 +279,7 @@ fn serialize_all_json_schemes(
         MergeState::Merge => {
             let model = build_models(specs)?;
             model.json_schema_all(out.to_str().unwrap().to_string());
+            print_render_msg(out, &Templates::JsonSchemaAll);
             Ok(())
         }
         MergeState::NoMerge => {
@@ -247,6 +287,7 @@ fn serialize_all_json_schemes(
                 let model = DataModel::from_markdown(spec)?;
                 let path = out.join(get_file_name(spec));
                 model.json_schema_all(path.to_str().unwrap().to_string());
+                print_render_msg(&path, &Templates::JsonSchemaAll);
             }
             Ok(())
         }
