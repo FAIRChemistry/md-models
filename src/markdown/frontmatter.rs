@@ -4,7 +4,7 @@ use gray_matter::{engine::YAML, Matter};
 use serde::{Deserialize, Serialize};
 
 /// Represents the front matter data of a markdown file.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct FrontMatter {
     /// A boolean field with a default value, renamed from `id-field`.
     #[serde(default = "default_id_field", rename = "id-field")]
