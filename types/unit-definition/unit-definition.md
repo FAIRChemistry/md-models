@@ -16,10 +16,9 @@ Represents a unit definition that is based on the SI unit system.
   - Type: Identifier
   - Description: Unique identifier for the unit definition.
   - XML: @id
-- list_of_units
+- base_units
   - Type: BaseUnit[]
   - Description: Base units that define the unit.
-  - XML: list_of_units
 
 ### BaseUnit
 

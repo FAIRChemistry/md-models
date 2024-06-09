@@ -21,7 +21,7 @@
           }
         },
         {
-          "name": "list_of_units",
+          "name": "base_units",
           "multiple": true,
           "is_id": false,
           "dtypes": [
@@ -33,7 +33,7 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "list_of_units"
+            "name": "base_units"
           }
         }
       ],

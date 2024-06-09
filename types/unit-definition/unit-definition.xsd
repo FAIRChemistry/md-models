@@ -8,7 +8,7 @@
     <!-- UnitDefinition Definition -->
     <xs:complexType name="UnitDefinitionType">
         <xs:sequence>
-            <xs:element name="list_of_units">
+            <xs:element name="base_units">
                 <xs:annotation>
                     <xs:documentation>
                         Base units that define the unit.

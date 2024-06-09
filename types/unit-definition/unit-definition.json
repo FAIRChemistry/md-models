@@ -8,7 +8,7 @@
       "description": "Unique identifier for the unit definition.",
       "type": "string"
     },
-    "list_of_units": {
+    "base_units": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/BaseUnit"
