@@ -1,4 +1,15 @@
 {#
+    This macro checks whether there are any attributes that are elements
+#}
+{%- macro has_elements(attributes) -%}
+    {%- for attribute in attributes -%}
+        {%- if attribute.xml.is_attr is false -%}
+            Has element
+        {%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
+
+{#
     This macro determines whether an attribute/element is required
 #}
 {%- macro is_required(attribute) -%}
@@ -51,7 +62,7 @@
 
     {%- if attribute.multiple is true -%}
             <xs:element name="{{attribute.name}}">
-                {%- if attribute.docstring | length > 0 -%}
+                {%- if attribute.docstring | length > 0 %}
                 <xs:annotation>
                     <xs:documentation>
                         {{ attribute.docstring }}
@@ -112,6 +123,7 @@
     {% for object in objects%}
     <!-- {{ object.name }} Definition -->
     <xs:complexType name="{{ object.name }}Type">
+        {%- if has_elements(object.attributes) %}
         <xs:sequence>
             {%- for attribute in object.attributes %}
             {%- if attribute.xml.is_attr is false %}
@@ -119,10 +131,11 @@
             {%- endif %}
             {%- endfor %}
         </xs:sequence>
-        {%- for attribute in object.attributes %}
-        {%- if attribute.xml.is_attr is true %}
+        {%- endif -%}
+        {%- for attribute in object.attributes -%}
+        {%- if attribute.xml.is_attr is true -%}
         {{ create_attribute(attribute) }}
-        {%- endif %}
+        {%- endif -%}
         {%- endfor %}
     </xs:complexType>
     {% endfor %}

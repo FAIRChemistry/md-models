@@ -17,23 +17,20 @@
             </xs:element>
             <xs:element name="ontology" type="OntologyType"/>
         </xs:sequence>
-
         <xs:attribute name="name" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     The name of the test.
                 </xs:documentation>
             </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="number" type="xs:float" default="1.0"/>
+        </xs:attribute><xs:attribute name="number" type="xs:float" default="1.0"/>
     </xs:complexType>
 
     <!-- Test2 Definition -->
     <xs:complexType name="Test2Type">
         <xs:sequence>
             <xs:element name="names" type="xs:string"  maxOccurs="unbounded"/>
-        </xs:sequence>
-        <xs:attribute name="number" type="xs:float"/>
+        </xs:sequence><xs:attribute name="number" type="xs:float"/>
     </xs:complexType>
 
     <!-- Enum Ontology Definition -->
