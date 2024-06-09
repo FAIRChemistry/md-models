@@ -96,10 +96,11 @@ __{{ attribute.name }}__{{ required }} {{ get_dtype(attribute) }}
 {% if attribute.docstring %}
 - {{ attribute.docstring }}
 {%- endif  %}
-{%- for option in attribute.options -%}
-{%- if option.key != 'description' %}
-- `{{ option.key | capitalize }}`: {{ option.value }}
+{% if 'default' in attribute %}
+- `Default`: {{ attribute.default }}
 {%- endif  %}
+{%- for option in attribute.options -%}
+- `{{ option.key | capitalize }}`: {{ option.value }}
 {%- endfor %}
 {%- endfor %}
 
