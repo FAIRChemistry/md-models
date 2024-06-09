@@ -1,7 +1,7 @@
 [meta]
 name = "Test"
 description = "Test"
-paths = ["tests/data/model.md", "tests/data/model_merge.md"]
+paths = ["data/model.md", "data/model_merge.md"]
 
 [generate]
 xml-schema = { out = "intermediates/merge/schemes/filename.xsd", per-spec = true }

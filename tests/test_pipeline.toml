@@ -1,7 +1,7 @@
 [meta]
 name = "Test"
 description = "Test"
-paths = ["tests/data/model.md"]
+paths = ["data/model.md"]
 
 [generate]
 shex = { out = "intermediates/non_merge/schemes/test.shex" }

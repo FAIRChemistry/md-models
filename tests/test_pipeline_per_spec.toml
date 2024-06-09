@@ -1,7 +1,7 @@
 [meta]
 name = "Test"
 description = "Test"
-paths = ["tests/data/model.md", "tests/data/model_merge.md"]
+paths = ["data/model.md", "data/model_merge.md"]
 
 [generate]
 json-schema-all = { out = "intermediates/merge/schemes/json", per-spec = true }
