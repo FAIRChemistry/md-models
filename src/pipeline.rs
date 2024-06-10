@@ -45,6 +45,8 @@ struct GenSpecs {
     root: Option<String>,
     #[serde(rename = "per-spec")]
     per_spec: Option<bool>,
+    #[serde(flatten)]
+    config: HashMap<String, String>,
 }
 
 impl GenSpecs {
@@ -93,7 +95,7 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
 
     let paths = gen_template.meta.paths.as_slice();
 
-    for (name, specs) in gen_template.generate.into_iter() {
+    for (name, mut specs) in gen_template.generate.into_iter() {
         let template = Templates::from_str(name.as_str())?;
         let merge_state = MergeState::from(specs.per_spec.unwrap_or(false));
 
@@ -106,34 +108,83 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                 serialize_all_json_schemes(&specs.out, paths, &merge_state)?;
             }
             Templates::Shex => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::Shacl => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::Markdown => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::CompactMarkdown => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::PythonDataclass => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::PythonSdrdm => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::XmlSchema => {
-                serialize_by_template(&specs.out, paths, &merge_state, &template, None)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::MkDocs => {
                 // If the template is not set to merge, then disable the navigation.
-                let mut config = HashMap::new();
                 if let MergeState::Merge = merge_state {
-                    config.insert("nav".to_string(), "false".to_string());
+                    if !specs.config.contains_key("nav") {
+                        specs.config.insert("nav".to_string(), "false".to_string());
+                    }
                 }
 
-                serialize_by_template(&specs.out, paths, &merge_state, &template, Some(&config))?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::Internal => {
                 let model = build_models(paths)?;
@@ -318,7 +369,7 @@ fn serialize_by_template(
             print_render_msg(out, template);
 
             let mut model = build_models(specs)?;
-            let content = model.convert_to(template, None)?;
+            let content = model.convert_to(template, config)?;
 
             return save_to_file(out, content.as_str());
         }
