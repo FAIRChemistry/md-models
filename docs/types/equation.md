@@ -16,6 +16,7 @@ This page provides comprehensive information about the structure and components 
         click eqparameter "#eqparameter" "Go to EqParameter"
     ```
 
+
 ## Types
 
 
