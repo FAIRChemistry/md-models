@@ -1,0 +1,77 @@
+{
+  "objects": [
+    {
+      "name": "Test",
+      "attributes": [
+        {
+          "name": "name",
+          "multiple": false,
+          "is_id": true,
+          "dtypes": [
+            "string"
+          ],
+          "docstring": "",
+          "options": [],
+          "term": null,
+          "required": true,
+          "xml": {
+            "is_attr": false,
+            "name": "name"
+          }
+        },
+        {
+          "name": "number",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "integer"
+          ],
+          "docstring": "",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "number"
+          }
+        }
+      ],
+      "docstring": "",
+      "parent": "Something"
+    },
+    {
+      "name": "Something",
+      "attributes": [
+        {
+          "name": "number",
+          "multiple": false,
+          "is_id": false,
+          "dtypes": [
+            "integer"
+          ],
+          "docstring": "",
+          "options": [],
+          "term": null,
+          "required": false,
+          "xml": {
+            "is_attr": false,
+            "name": "number"
+          }
+        }
+      ],
+      "docstring": ""
+    }
+  ],
+  "enums": [],
+  "config": {
+    "id-field": true,
+    "prefixes": {
+      "schema": "http://schema.org/"
+    },
+    "nsmap": {
+      "tst": "http://example.com/test/"
+    },
+    "repo": "https://www.github.com/my/repo/",
+    "prefix": "tst"
+  }
+}

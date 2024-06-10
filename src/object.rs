@@ -15,6 +15,8 @@ pub struct Object {
     pub docstring: String,
     /// Optional term associated with the object.
     pub term: Option<String>,
+    /// Parent object of the object.
+    pub parent: Option<String>,
 }
 
 impl Object {
@@ -34,6 +36,7 @@ impl Object {
             attributes: Vec::new(),
             docstring: String::new(),
             term,
+            parent: None,
         }
     }
 

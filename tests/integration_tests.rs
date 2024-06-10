@@ -259,4 +259,33 @@ mod tests {
         // Act
         model.merge(&model2);
     }
+
+    #[test]
+    #[should_panic]
+    fn test_inheritance_invalid() {
+        // Arrange
+        let path = Path::new("tests/data/model_inheritance_invalid.md");
+
+        // Act
+        DataModel::from_markdown(path).expect("Could not parse markdown");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_inheritance() {
+        // Arrange
+        let path = Path::new("tests/data/model_inheritance_invalid.md");
+
+        // Act
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Assert
+        let schema = model.sdrdm_schema();
+        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
+
+        let expected_schema =
+            std::fs::read_to_string("tests/data/expected_sdrdm_schema_inheritance.json").unwrap();
+
+        assert_eq!(schema, expected_schema);
+    }
 }

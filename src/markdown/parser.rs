@@ -1,13 +1,16 @@
+use colored::Colorize;
+use core::panic;
 use lazy_static::lazy_static;
+use log::error;
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use pulldown_cmark::{Event, Parser, Tag};
+use pulldown_cmark::{CowStr, Event, Parser, Tag};
 use regex::Regex;
 
 use crate::attribute;
 use crate::datamodel::DataModel;
-use crate::object::{self, Enumeration};
+use crate::object::{self, Enumeration, Object};
 use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
@@ -31,6 +34,7 @@ lazy_static! {
 enum ParserState {
     InDefinition,
     OutsideDefinition,
+    InHeading,
 }
 
 /// Parses a Markdown file at the given path and returns a `DataModel`.
@@ -72,8 +76,12 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
         process_enum_event(&mut iterator, &mut enums, event);
     }
 
+    // Filter empty objects and enums
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
     model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
+
+    // Apply inheritance
+    add_parent_types(&mut model)?;
 
     // Add internal types, if used
     add_internal_types(&mut model);
@@ -120,9 +128,36 @@ fn process_object_event(
             *state = ParserState::OutsideDefinition;
         }
         Event::Start(Tag::Heading(3)) => {
-            *state = ParserState::InDefinition;
+            *state = ParserState::InHeading;
             let object = process_object_heading(iterator);
             objects.push(object);
+        }
+        Event::End(Tag::Heading(3)) => {
+            *state = ParserState::InDefinition;
+        }
+        Event::Text(CowStr::Borrowed("[")) => {
+            if *state == ParserState::InHeading {
+                // Extract parent from the next text event
+                let last_object = objects.last_mut().unwrap();
+                let parent = iterator.next();
+
+                match parent {
+                    Some(Event::Text(text)) if text.to_string() != "]" => {
+                        last_object.parent = Some(text.to_string());
+                    }
+                    _ => {
+                        error!(
+                            "[{}] {}: Opening bracket but no parent name. Inheritance wont be applied",
+                            last_object.name.bold(),
+                            "SyntaxError".bold(),
+                        );
+
+                        panic!(
+                            "Inheritance syntax error. Expected parent name after opening bracket."
+                        );
+                    }
+                }
+            }
         }
         Event::Start(Tag::List(None)) => {
             if *state == ParserState::OutsideDefinition {
@@ -391,6 +426,51 @@ fn process_enum_mappings(enum_obj: &mut Enumeration, mappings: String) {
         let value = parts[1].trim().replace('"', "");
         enum_obj.mappings.insert(key.to_string(), value.to_string());
     }
+}
+
+/// Adds parent types to the objects in the model.
+///
+/// # Arguments
+///
+/// * `model` - A mutable reference to the data model.
+///
+///
+/// # Panics
+///
+/// Panics if an object has a parent that does not exist.
+///
+/// # Errors
+///
+/// An error is logged if an object has a parent that does not exist.
+///
+fn add_parent_types(model: &mut DataModel) -> Result<(), Box<dyn Error>> {
+    // Filter and clone the objects without a parent
+    let parents: Vec<Object> = model
+        .objects
+        .iter()
+        .filter(|o| o.parent.is_none())
+        .cloned()
+        .collect();
+
+    // Iterate over the objects and add the parent attributes
+    for object in model.objects.iter_mut() {
+        if let Some(parent_name) = &object.parent {
+            if let Some(parent) = parents.iter().find(|o| o.name == *parent_name) {
+                object.attributes.extend(parent.attributes.clone());
+            } else {
+                error!(
+                    "[{}] {}: Parent {} does not exist.",
+                    object.name.red().bold(),
+                    "InheritanceError".bold(),
+                    parent_name.red().bold(),
+                );
+
+                return Err("Object has a parent that does not exist".into());
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn add_internal_types(model: &mut DataModel) {
