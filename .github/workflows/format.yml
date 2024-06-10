@@ -1,8 +1,22 @@
 name: Rust Format Check
 
 on:
-  - push
-  - pull_request
+  push:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "templates/**"
+      - "types/**"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "templates/**"
+      - "types/**"
 
 jobs:
   rustfmt:
