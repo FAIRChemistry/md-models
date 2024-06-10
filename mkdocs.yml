@@ -46,6 +46,10 @@ nav:
       - "Conversion": library/conversion.md
       - "Code Generation": library/code-generation.md
       - "Continuous integration": library/pipelines.md
+  - "Data Types":
+      - "Overview": types/index.md
+      - "Equation": types/equation.md
+      - "Unit Definition": types/unit-definition.md
 markdown_extensions:
   - attr_list
   - admonition
@@ -53,5 +57,17 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - toc:
+      permalink: true
 plugins:
   - search

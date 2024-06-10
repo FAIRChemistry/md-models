@@ -7,3 +7,4 @@ paths = ["unit-definition.md"]
 xml-schema = { out = "unit-definition.xsd" }
 json-schema = { out = "unit-definition.json", root = "UnitDefinition" }
 internal = { out = "unit-definition-internal.json" }
+mk-docs = { out = "../../docs/templates/unit-definition.md", nav = "true" }

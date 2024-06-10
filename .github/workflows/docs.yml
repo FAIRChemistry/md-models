@@ -3,9 +3,10 @@ name: Documentation
 on:
   push:
     branches:
-      - "add-docs"
+      - "main"
     paths:
       - "docs/**"
+      - "types/**"
       - "mkdocs.yml"
 
 permissions:
@@ -18,12 +19,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install MD-Models
+        run: cargo install --path .
+
+      - name: Run the generation pipeline
+        run: sh .github/scripts/generate_types.sh
+
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
+
       - uses: actions/cache@v2
         with:
           path: .cache
           key: ${{ github.ref }}
+
       - run: pip install mkdocs-material jupyter nbconvert mkdocs-jupyter
+
       - run: mkdocs gh-deploy --force
+
+      - name: "Update docs"
+        shell: "bash"
+        run: |
+          if [[ `git status --porcelain` ]]; then
+              git add ./types
+              git add ./docs/types
+              git config --global user.name 'MD-Models Bot'
+              git config --global user.email 'mdmodels@bot.com'
+              git commit -am "Docs update"
+              git push
+          else
+            echo "Nothing changed!"
+          fi
