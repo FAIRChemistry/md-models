@@ -1,11 +1,11 @@
 # MD-Models Types
 
-This directory contains types that the MD-Models library provides out of the shelf. You can use these types in your own data models by simply referencing them in your data model's attributes `Type` section.
+This page contains types that the MD-Models library provides from of the shelf. You can use these types in your own data models by simply referencing them in your data model's attributes `Type` section.
 
 ## Types available
 
-- [Unit Definition](./unit-definition)
-- [Equation](./equation)
+- [Unit Definition](./unit-definition.md)
+- [Equation](./equation.md)
 
 ## How to use
 
