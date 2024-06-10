@@ -7,4 +7,4 @@ paths = ["equation.md"]
 xml-schema = { out = "equation.xsd" }
 json-schema = { out = "equation.json", root = "Equation" }
 internal = { out = "equation-internal.json" }
-mk-docs = { out = "../../docs/templates/equation.md", nav = "true" }
+mk-docs = { out = "../../docs/types/equation.md", nav = "true" }
