@@ -1,0 +1,121 @@
+{#
+    This macro determines whether the type is multiple
+#}
+{% macro is_multiple(attr) %}
+  {%- if attr.multiple -%}[]{%- endif -%}
+{% endmacro %}
+
+{#
+    This macro returns the type
+#}
+{% macro get_type(attr) %}
+  {%- if attr.dtypes[0] in object_names -%}
+  {{ attr.dtypes[0] }}
+  {%- else -%}
+  {{ attr.dtypes[0] }}
+  {%- endif -%}
+{% endmacro %}
+
+{#
+    This macro determines whether the type is optional
+#}
+{% macro is_optional(attr) %}
+  {%- if attr.required is false -%}?{%- endif -%}
+{% endmacro %}
+
+{#
+    This macro wraps a codec type
+#}
+{% macro wrap_codec_type(dtype, attr) %}
+  {%- if attr.multiple -%}
+  D.array({{ codec_type(dtype, attr) }})
+  {%- elif attr.required is false -%}
+  D.nullable({{ codec_type(dtype, attr) }})
+  {%- else -%}
+  {{ codec_type(dtype, attr) }}
+  {%- endif -%}
+{% endmacro %}
+
+{#
+    This macro wraps a codec type
+#}
+{% macro codec_type(dtype, attr) %}
+  {%- if dtype in object_names or dtype in enum_names -%}
+  {{ dtype }}Codec
+  {%- else -%}
+  D.{{ dtype }}
+  {%- endif -%}
+{% endmacro %}
+
+{# ########################## #}
+{# Code structure starts here #}
+{# ########################## #}
+import * as D from 'io-ts/Decoder';
+import { isLeft } from "fp-ts/Either";
+
+// Generic validate function
+export function validate<T>(codec: D.Decoder<unknown, T>, value: unknown): T {
+  const result = codec.decode(value);
+  if (isLeft(result)) {
+    throw new Error(D.draw(result.left));
+  }
+  return result.right;
+}
+
+// JSON-LD Types
+export interface JsonLdContext {
+  [key: string]: any;
+}
+
+export interface JsonLd {
+  '@context'?: JsonLdContext;
+  '@id'?: string;
+  '@type'?: string;
+}
+
+// {{ title }} Type definitions
+{%- for object in objects %}
+/**
+{%- if object.docstring %}
+    {{ wrap(object.docstring, 70, "", "    ") }}
+{% endif %}
+
+{%- for attr in object.attributes %}
+    * @param {{ attr.name }} {%- if attr.docstring %} - {{ attr.docstring }}{%- endif %}
+{%- endfor %}
+**/
+export interface {{ object.name }} extends JsonLd {
+  {%- for attr in object.attributes %}
+  {{ attr.name }}{{ is_optional(attr) }}: {{ get_type(attr) }}{{ is_multiple(attr) }};
+  {%- endfor %}
+}
+
+export const {{ object.name }}Codec = D.lazy("{{ object.name }}", () => D.struct({
+  {%- for attr in object.attributes %}
+    {{ attr.name }}: {{ wrap_codec_type(get_type(attr), attr) }},
+  {%- endfor %}
+}));
+
+{% endfor %}
+
+{%- if enums | length > 0 %}
+// {{ title }} Enum definitions
+{%- for enum in enums %}
+{%- if enum.docstring %}
+/**
+ * {{ wrap(enum.docstring, 70, " ", "    ") }}
+**/
+{%- endif %}
+export enum {{ enum.name }} {
+  {%- for key, value in enum.mappings | dictsort %}
+  {{ key }} = '{{ value }}',
+  {%- endfor %}
+}
+
+export const {{ enum.name }}Codec = D.union(
+  {%- for key, value in enum.mappings | dictsort %}
+  D.literal({{ enum.name }}.{{ key }}),
+  {%- endfor %}
+);
+{% endfor %}
+{% endif %}

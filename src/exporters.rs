@@ -4,6 +4,7 @@ use crate::datamodel::DataModel;
 use clap::ValueEnum;
 use lazy_static::lazy_static;
 use minijinja::{context, Environment};
+use textwrap::wrap;
 
 lazy_static! {
     /// Maps generic type names to Python-specific type names.
@@ -29,6 +30,14 @@ lazy_static! {
         m.insert("str".to_string(), "string".to_string());
         m
     };
+
+    /// Maps MD-Models type names to Typescript-specific type names.
+    static ref TYPESCRIPT_TYPE_MAPS: std::collections::HashMap<String, String> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("integer".to_string(), "number".to_string());
+        m.insert("float".to_string(), "number".to_string());
+        m
+    };
 }
 
 /// Enumeration of available templates.
@@ -45,6 +54,7 @@ pub enum Templates {
     PythonSdrdm,
     MkDocs,
     Internal,
+    Typescript,
 }
 
 impl Display for Templates {
@@ -61,6 +71,7 @@ impl Display for Templates {
             Templates::PythonSdrdm => write!(f, "python-sdrdm"),
             Templates::MkDocs => write!(f, "mk-docs"),
             Templates::Internal => write!(f, "internal"),
+            Templates::Typescript => write!(f, "typescript"),
         }
     }
 }
@@ -82,6 +93,7 @@ impl FromStr for Templates {
             "python-sdrdm" => Ok(Templates::PythonSdrdm),
             "mk-docs" => Ok(Templates::MkDocs),
             "internal" => Ok(Templates::Internal),
+            "typescript" => Ok(Templates::Typescript),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
@@ -111,17 +123,21 @@ pub fn render_jinja_template(
 
     // Perform type conversions and filtering based on the template
     match template {
+        Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
+        Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
         Templates::Shacl | Templates::Shex => {
             convert_model_types(model, &SHACL_TYPE_MAPS);
             filter_objects_wo_terms(model);
         }
-        Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
         Templates::PythonDataclass | Templates::PythonSdrdm => {
             convert_model_types(model, &PYTHON_TYPE_MAPS);
             sort_attributes_by_required(model);
         }
         _ => {}
     }
+
+    // Add custom functions to the Jinja environment
+    env.add_function("wrap", wrap_text);
 
     // Get the appropriate template
     let template = match template {
@@ -133,6 +149,7 @@ pub fn render_jinja_template(
         Templates::Shex => env.get_template("shex.jinja")?,
         Templates::PythonSdrdm => env.get_template("python-sdrdm.jinja")?,
         Templates::MkDocs => env.get_template("mkdocs.jinja")?,
+        Templates::Typescript => env.get_template("typescript.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
@@ -159,6 +176,27 @@ pub fn render_jinja_template(
         Ok(r) => Ok(clean_and_trim(&r)),
         Err(e) => Err(e),
     }
+}
+
+/// Template function that allows to wrap text at a certain length.
+///
+/// # Arguments
+///
+/// * `text` - The text to wrap.
+/// * `width` - The maximum length of a line.
+/// * `offset` - The offset to use for all lines.
+///
+/// # Returns
+///
+/// A string with the wrapped text.
+fn wrap_text(text: &str, width: usize, initial_offset: &str, offset: &str) -> String {
+    let options = textwrap::Options::new(width)
+        .initial_indent(initial_offset)
+        .subsequent_indent(offset)
+        .width(width)
+        .break_words(false);
+
+    wrap(text, options).join("\n")
 }
 
 /// Converts the data types in the model according to the provided type map.
@@ -334,6 +372,17 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_mkdocs.md")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_typescript() {
+        // Arrange
+        let rendered = build_and_convert(Templates::Typescript);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_typescript.ts")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }
