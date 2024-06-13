@@ -12,10 +12,10 @@ This data model implements a set of SI units for the representation of physical 
 
 Represents a unit definition that is based on the SI unit system.
 
-- id
-  - Type: Identifier
-  - Description: Unique identifier for the unit definition.
-  - XML: @id
+- name
+  - Type: string
+  - Description: Common name of the unit definition.
+  - XML: @name
 - base_units
   - Type: BaseUnit[]
   - Description: Base units that define the unit.

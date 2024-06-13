@@ -5,19 +5,19 @@
       "name": "UnitDefinition",
       "attributes": [
         {
-          "name": "id",
+          "name": "name",
           "multiple": false,
-          "is_id": true,
+          "is_id": false,
           "dtypes": [
             "string"
           ],
-          "docstring": "Unique identifier for the unit definition.",
+          "docstring": "Common name of the unit definition.",
           "options": [],
           "term": null,
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "id"
+            "name": "name"
           }
         },
         {

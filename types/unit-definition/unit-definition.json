@@ -3,9 +3,9 @@
   "title": "UnitDefinition",
   "type": "object",
   "properties": {
-    "id": {
-      "title": "id",
-      "description": "Unique identifier for the unit definition.",
+    "name": {
+      "title": "name",
+      "description": "Common name of the unit definition.",
       "type": "string"
     },
     "base_units": {

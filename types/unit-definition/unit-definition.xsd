@@ -21,10 +21,10 @@
                 </xs:complexType>
             </xs:element>
         </xs:sequence>
-        <xs:attribute name="id" type="xs:string">
+        <xs:attribute name="name" type="xs:string">
             <xs:annotation>
                 <xs:documentation>
-                    Unique identifier for the unit definition.
+                    Common name of the unit definition.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
