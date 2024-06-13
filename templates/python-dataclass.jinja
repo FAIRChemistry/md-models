@@ -9,7 +9,7 @@
     {%- elif default is string -%}
         "{{ default }}"
     {%- else -%}
-        {{ default }}
+        {{ default | capitalize }}
     {%- endif -%}
 {%- endmacro -%}
 
@@ -38,7 +38,7 @@ class {{ object.name }}:
     {%- elif attribute.required is true %}
     {{ attribute.name }}: {{ attribute.dtypes[0] }}
     {%- else %}
-    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = None
+    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = field(default=None, metadata=config(exclude=lambda x: x is None))
     {%- endif %}
     {%- endfor %}
 
@@ -83,6 +83,9 @@ class {{ object.name }}:
     ):
         params = { {{ utils.params(objects, dtype) }}
         }
+
+        if "id" in kwargs:
+            params["id"] = kwargs["id"]
 
         self.{{ attr.name }}.append(
             {{ dtype }}(**params)
