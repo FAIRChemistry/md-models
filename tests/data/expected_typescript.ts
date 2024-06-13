@@ -30,9 +30,9 @@ export interface JsonLd {
 **/
 export interface Test extends JsonLd {
   name: string;
-  number?: number;
-  test2?: Test2[];
-  ontology?: Ontology;
+  number?: number | null;
+  test2?: Test2[] | null;
+  ontology?: Ontology | null;
 }
 
 export const TestCodec = D.lazy("Test", () => D.struct({
@@ -48,8 +48,8 @@ export const TestCodec = D.lazy("Test", () => D.struct({
     * @param number
 **/
 export interface Test2 extends JsonLd {
-  names?: string[];
-  number?: number;
+  names?: string[] | null;
+  number?: number | null;
 }
 
 export const Test2Codec = D.lazy("Test2", () => D.struct({

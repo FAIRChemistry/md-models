@@ -15,7 +15,7 @@ class Test:
     name: str
     number: float = 1.0
     test2: List[Test2] = field(default_factory=list)
-    ontology: Optional[Ontology] = None
+    ontology: Optional[Ontology] = field(default=None, metadata=config(exclude=lambda x: x is None))
 
     # JSON-LD fields
     id: str = field(
@@ -54,6 +54,9 @@ class Test:
             "number": number
         }
 
+        if "id" in kwargs:
+            params["id"] = kwargs["id"]
+
         self.test2.append(
             Test2(**params)
         )
@@ -65,7 +68,7 @@ class Test:
 @dataclass
 class Test2:
     names: List[str] = field(default_factory=list)
-    number: Optional[float] = None
+    number: Optional[float] = field(default=None, metadata=config(exclude=lambda x: x is None))
 
     # JSON-LD fields
     id: str = field(
