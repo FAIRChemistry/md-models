@@ -81,12 +81,12 @@ export interface JsonLd {
 {% endif %}
 
 {%- for attr in object.attributes %}
-    * @param {{ attr.name }} {%- if attr.docstring %} - {{ attr.docstring }}{%- endif %}
+    * @param {{ attr.name }} {%- if attr.docstring %} - {{ wrap(attr.docstring, 70, "", "             ") }}{%- endif %}
 {%- endfor %}
 **/
 export interface {{ object.name }} extends JsonLd {
   {%- for attr in object.attributes %}
-  {{ attr.name }}{{ is_optional(attr) }}: {{ get_type(attr) }}{{ is_multiple(attr) }};
+  {{ attr.name }}{{ is_optional(attr) }}: {{ get_type(attr) }}{{ is_multiple(attr) }} {%- if attr.required is false %} | null{% endif %};
   {%- endfor %}
 }
 
