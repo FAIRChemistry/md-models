@@ -23,9 +23,9 @@ This page provides comprehensive information about the structure and components 
 ### UnitDefinition
 Represents a unit definition that is based on the SI unit system.
 
-__id__ `string`
+__name__ `string`
 
-- Unique identifier for the unit definition.
+- Common name of the unit definition.
 
 
 __base_units__ [`list[BaseUnit]`](#baseunit)
