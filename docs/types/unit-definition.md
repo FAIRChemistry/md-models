@@ -23,6 +23,11 @@ This page provides comprehensive information about the structure and components 
 ### UnitDefinition
 Represents a unit definition that is based on the SI unit system.
 
+__id__ `string`
+
+- Unique identifier of the unit definition.
+
+
 __name__ `string`
 
 - Common name of the unit definition.

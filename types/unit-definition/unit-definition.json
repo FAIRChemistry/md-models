@@ -3,6 +3,11 @@
   "title": "UnitDefinition",
   "type": "object",
   "properties": {
+    "id": {
+      "title": "id",
+      "description": "Unique identifier of the unit definition.",
+      "type": "string"
+    },
     "name": {
       "title": "name",
       "description": "Common name of the unit definition.",
