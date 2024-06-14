@@ -45,7 +45,7 @@ class Test:
 
     def add_to_test2(
         self,
-        names: List[str]= [],
+        names: list[str]= [],
         number: Optional[float]= None,
         **kwargs,
     ):

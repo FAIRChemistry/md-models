@@ -71,7 +71,7 @@ Union[
 #}
 {%- macro get_type(attr) -%}
 {%- if attr.multiple is true -%}
-List[{{ type(attr, true) }}]
+list[{{ type(attr, true) }}]
 {%- else -%}
 {{ type(attr) }}
 {%- endif -%}

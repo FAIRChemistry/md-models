@@ -29,7 +29,7 @@ class Test(
             json_schema_extra=dict(term = "schema:one",)
         )
 
-    test2: List[Test2] = element(
+    test2: list[Test2] = element(
             default_factory=ListPlus,
             tag="SomeTest2",
             json_schema_extra=dict(term = "schema:something",)
@@ -46,7 +46,7 @@ class Test(
 
     def add_to_test2(
         self,
-        names: List[str]= [],
+        names: list[str]= [],
         number: Optional[float]= None,
         **kwargs,
     ):
@@ -66,7 +66,7 @@ class Test2(
     sdRDM.DataModel,
     search_mode="unordered",
 ):
-    names: List[str] = element(
+    names: list[str] = element(
             default_factory=ListPlus,
             tag="name",
             json_schema_extra=dict(term = "schema:hello",)
