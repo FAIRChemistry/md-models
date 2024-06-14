@@ -152,6 +152,15 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     Some(&specs.config),
                 )?;
             }
+            Templates::PythonPydantic => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
+            }
             Templates::PythonSdrdm => {
                 serialize_by_template(
                     &specs.out,

@@ -36,6 +36,7 @@ lazy_static! {
         let mut m = std::collections::HashMap::new();
         m.insert("integer".to_string(), "number".to_string());
         m.insert("float".to_string(), "number".to_string());
+        m.insert("date".to_string(), "string".to_string());
         m
     };
 }
@@ -43,7 +44,6 @@ lazy_static! {
 /// Enumeration of available templates.
 #[derive(Debug, ValueEnum, Clone)]
 pub enum Templates {
-    PythonDataclass,
     XmlSchema,
     Markdown,
     CompactMarkdown,
@@ -51,7 +51,9 @@ pub enum Templates {
     JsonSchema,
     JsonSchemaAll,
     Shex,
+    PythonDataclass,
     PythonSdrdm,
+    PythonPydantic,
     MkDocs,
     Internal,
     Typescript,
@@ -61,6 +63,8 @@ impl Display for Templates {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Templates::PythonDataclass => write!(f, "python-dataclass"),
+            Templates::PythonPydantic => write!(f, "python-pydantic"),
+            Templates::PythonSdrdm => write!(f, "python-sdrdm"),
             Templates::XmlSchema => write!(f, "xml-schema"),
             Templates::Markdown => write!(f, "markdown"),
             Templates::CompactMarkdown => write!(f, "compact-markdown"),
@@ -68,7 +72,6 @@ impl Display for Templates {
             Templates::JsonSchema => write!(f, "json-schema"),
             Templates::JsonSchemaAll => write!(f, "json-schema-all"),
             Templates::Shex => write!(f, "shex"),
-            Templates::PythonSdrdm => write!(f, "python-sdrdm"),
             Templates::MkDocs => write!(f, "mk-docs"),
             Templates::Internal => write!(f, "internal"),
             Templates::Typescript => write!(f, "typescript"),
@@ -83,6 +86,8 @@ impl FromStr for Templates {
     fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
         match s {
             "python-dataclass" => Ok(Templates::PythonDataclass),
+            "python-sdrdm" => Ok(Templates::PythonSdrdm),
+            "python-pydantic" => Ok(Templates::PythonPydantic),
             "xml-schema" => Ok(Templates::XmlSchema),
             "markdown" => Ok(Templates::Markdown),
             "compact-markdown" => Ok(Templates::CompactMarkdown),
@@ -90,7 +95,6 @@ impl FromStr for Templates {
             "json-schema" => Ok(Templates::JsonSchema),
             "json-schema-all" => Ok(Templates::JsonSchemaAll),
             "shex" => Ok(Templates::Shex),
-            "python-sdrdm" => Ok(Templates::PythonSdrdm),
             "mk-docs" => Ok(Templates::MkDocs),
             "internal" => Ok(Templates::Internal),
             "typescript" => Ok(Templates::Typescript),
@@ -129,7 +133,7 @@ pub fn render_jinja_template(
             convert_model_types(model, &SHACL_TYPE_MAPS);
             filter_objects_wo_terms(model);
         }
-        Templates::PythonDataclass | Templates::PythonSdrdm => {
+        Templates::PythonDataclass | Templates::PythonSdrdm | Templates::PythonPydantic => {
             convert_model_types(model, &PYTHON_TYPE_MAPS);
             sort_attributes_by_required(model);
         }
@@ -142,6 +146,7 @@ pub fn render_jinja_template(
     // Get the appropriate template
     let template = match template {
         Templates::PythonDataclass => env.get_template("python-dataclass.jinja")?,
+        Templates::PythonPydantic => env.get_template("python-pydantic.jinja")?,
         Templates::XmlSchema => env.get_template("xml-schema.jinja")?,
         Templates::Markdown => env.get_template("markdown.jinja")?,
         Templates::CompactMarkdown => env.get_template("markdown-compact.jinja")?,
@@ -190,13 +195,19 @@ pub fn render_jinja_template(
 ///
 /// A string with the wrapped text.
 fn wrap_text(text: &str, width: usize, initial_offset: &str, offset: &str) -> String {
+    // Remove multiple spaces
     let options = textwrap::Options::new(width)
         .initial_indent(initial_offset)
         .subsequent_indent(offset)
         .width(width)
         .break_words(false);
 
-    wrap(text, options).join("\n")
+    wrap(remove_multiple_spaces(text).as_str(), options).join("\n")
+}
+
+/// Removes leading and trailing whitespace and multiple spaces from a string.
+fn remove_multiple_spaces(input: &str) -> String {
+    input.split_whitespace().collect::<Vec<&str>>().join(" ")
 }
 
 /// Converts the data types in the model according to the provided type map.
@@ -383,6 +394,17 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_typescript.ts")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_pydantic() {
+        // Arrange
+        let rendered = build_and_convert(Templates::PythonPydantic);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_pydantic.py")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }

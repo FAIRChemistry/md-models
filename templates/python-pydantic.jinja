@@ -1,0 +1,102 @@
+{#
+    This macro determines whether a given attributes default is a string
+#}
+{%- macro get_default(default) -%}
+    {%- if default == "false" or default == "true" -%}
+        {{ default | capitalize }}
+    {%- elif default == "False" or default == "True" -%}
+        {{ default | capitalize }}
+    {%- elif default is string -%}
+        "{{ default }}"
+    {%- else -%}
+        {{ default | capitalize }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{% import "python-sdrdm-macros.jinja" as utils %}
+## This is a generated file. Do not modify it manually!
+
+from __future__ import annotations
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
+from enum import Enum
+from uuid import uuid4
+from datetime import date, datetime
+
+{% for object in objects %}
+class {{ object.name }}(BaseModel):
+
+    {%- for attribute in object.attributes %}
+    {%- if attribute.multiple is true %}
+    {{ attribute.name }}: list[{{ attribute.dtypes[0] }}] = Field(default_factory=list)
+    {%- elif 'default' in attribute%}
+    {{ attribute.name }}: {{ attribute.dtypes[0] }} = {{ get_default(attribute.default) }}
+    {%- elif attribute.required is true %}
+    {{ attribute.name }}: {{ attribute.dtypes[0] }}
+    {%- else %}
+    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = Field(default=None)
+    {%- endif %}
+    {%- endfor %}
+
+    # JSON-LD fields
+    ld_id: str = Field(
+        serialization_alias="@id",
+        default_factory=lambda: "{{ prefix }}:{{ object.name }}/" + str(uuid4())
+    )
+    ld_type: list[str] = Field(
+        serialization_alias="@type",
+        default_factory = lambda: [
+            "{{ prefix }}:{{ object.name }}",
+            {%- if object.term -%}"{{ object.term }}"{%- endif %}
+        ],
+    )
+    ld_context: dict[str, str | dict] = Field(
+        serialization_alias="@context",
+        default_factory = lambda: {
+            "{{ prefix }}": "{{ repo }}",
+            {%- for prefix, address in prefixes %}
+            "{{ prefix }}": "{{ address }}",
+            {%- endfor %}
+            {%- for attribute in object.attributes %}
+            {%- if attribute.is_id %}
+            "{{ attribute.name }}": {
+                {%- if attribute.term %}
+                "@id": "{{ attribute.term }}",
+                {%- endif %}
+                "@type": "@id",
+            },
+            {%- elif attribute.term %}
+            "{{ attribute.name }}": "{{ attribute.term }}",
+            {%- endif -%}
+            {%- endfor %}
+        }
+    )
+    {% for attr in object.attributes %}
+    {% for dtype in attr.dtypes %}
+    {%- if dtype in object_names and attr.multiple is true %}
+    def add_to_{{ attr.name }}(
+        {{ utils.signature(objects, dtype) }}
+    ):
+        params = { {{ utils.params(objects, dtype) }}
+        }
+
+        if "id" in kwargs:
+            params["id"] = kwargs["id"]
+
+        self.{{ attr.name }}.append(
+            {{ dtype }}(**params)
+        )
+
+        return self.{{ attr.name }}[-1]
+
+    {%- endif %}
+    {%- endfor %}
+    {% endfor %}
+{%- endfor %}
+
+{%- for enum in enums %}
+class {{ enum.name }}(Enum):
+    {%- for key, value in enum.mappings | dictsort %}
+    {{ key }} = "{{ value }}"
+    {%- endfor %}
+{% endfor %}
