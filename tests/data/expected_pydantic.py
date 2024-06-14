@@ -16,17 +16,17 @@ class Test(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "tst:Test/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "tst:Test",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
@@ -67,17 +67,17 @@ class Test2(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "tst:Test2/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "tst:Test2",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
