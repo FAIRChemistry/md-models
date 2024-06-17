@@ -80,11 +80,11 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
     model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
 
-    // Apply inheritance
-    add_parent_types(&mut model)?;
-
     // Add internal types, if used
     add_internal_types(&mut model);
+
+    // Apply inheritance
+    add_parent_types(&mut model)?;
 
     // Validate the model
     let mut validator = Validator::new();
@@ -452,11 +452,29 @@ fn add_parent_types(model: &mut DataModel) -> Result<(), Box<dyn Error>> {
         .cloned()
         .collect();
 
+    let mut to_merge: Vec<DataModel> = vec![];
+    let mut added_internals: Vec<String> = vec![];
+
+    // REFACTOR THIS
     // Iterate over the objects and add the parent attributes
     for object in model.objects.iter_mut() {
         if let Some(parent_name) = &object.parent {
             if let Some(parent) = parents.iter().find(|o| o.name == *parent_name) {
                 object.attributes.extend(parent.attributes.clone());
+            } else if let Some(internal_type) = MD_MODEL_TYPES.get(parent_name.as_str()) {
+                let mut internal_type = serde_json::from_str::<DataModel>(internal_type)
+                    .expect("Failed to parse internal data type");
+
+                // Pop the first object parent and add the attributes
+                let target_obj = internal_type.objects[0].clone();
+                internal_type.objects.remove(0);
+
+                object.attributes.extend(target_obj.attributes.clone());
+
+                if !added_internals.contains(parent_name) {
+                    to_merge.push(internal_type);
+                    added_internals.push(parent_name.clone());
+                }
             } else {
                 error!(
                     "[{}] {}: Parent {} does not exist.",
@@ -468,6 +486,10 @@ fn add_parent_types(model: &mut DataModel) -> Result<(), Box<dyn Error>> {
                 return Err("Object has a parent that does not exist".into());
             }
         }
+    }
+
+    for internal in to_merge {
+        model.merge(&internal);
     }
 
     Ok(())
