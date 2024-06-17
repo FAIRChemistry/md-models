@@ -10,11 +10,7 @@ The `Equation` type is used to define an equation that can be used in a data mod
 
 Represents an equation that can be used in a data model.
 
-- id
-  - Type: Identifier
-  - Description: Unique identifier for the equation.
-  - XML: @id
-- equation
+- __equation__
   - Type: string
   - Description: The equation that is used in the data model.
   - XML: equation
@@ -31,11 +27,11 @@ Represents an equation that can be used in a data model.
 
 Represents a variable that is used in the equation.
 
-- id
+- __id__
   - Type: Identifier
   - Description: Unique identifier for the variable.
   - XML: @id
-- name
+- __name__
   - Type: string
   - Description: Name of the variable.
   - XML: @name
@@ -48,11 +44,11 @@ Represents a variable that is used in the equation.
 
 Represents a parameter that is used in the equation.
 
-- id
+- __id__
   - Type: Identifier
   - Description: Unique identifier for the parameter.
   - XML: @id
-- name
+- __name__
   - Type: string
   - Description: Name of the parameter.
   - XML: @name

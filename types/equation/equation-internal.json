@@ -5,22 +5,6 @@
       "name": "Equation",
       "attributes": [
         {
-          "name": "id",
-          "multiple": false,
-          "is_id": true,
-          "dtypes": [
-            "string"
-          ],
-          "docstring": "Unique identifier for the equation.",
-          "options": [],
-          "term": null,
-          "required": false,
-          "xml": {
-            "is_attr": true,
-            "name": "id"
-          }
-        },
-        {
           "name": "equation",
           "multiple": false,
           "is_id": false,
@@ -30,7 +14,7 @@
           "docstring": "The equation that is used in the data model.",
           "options": [],
           "term": null,
-          "required": false,
+          "required": true,
           "xml": {
             "is_attr": false,
             "name": "equation"
@@ -84,7 +68,7 @@
           "docstring": "Unique identifier for the variable.",
           "options": [],
           "term": null,
-          "required": false,
+          "required": true,
           "xml": {
             "is_attr": true,
             "name": "id"
@@ -100,7 +84,7 @@
           "docstring": "Name of the variable.",
           "options": [],
           "term": null,
-          "required": false,
+          "required": true,
           "xml": {
             "is_attr": true,
             "name": "name"
@@ -138,7 +122,7 @@
           "docstring": "Unique identifier for the parameter.",
           "options": [],
           "term": null,
-          "required": false,
+          "required": true,
           "xml": {
             "is_attr": true,
             "name": "id"
@@ -154,7 +138,7 @@
           "docstring": "Name of the parameter.",
           "options": [],
           "term": null,
-          "required": false,
+          "required": true,
           "xml": {
             "is_attr": true,
             "name": "name"

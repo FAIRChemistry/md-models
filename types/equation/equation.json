@@ -3,11 +3,6 @@
   "title": "Equation",
   "type": "object",
   "properties": {
-    "id": {
-      "title": "id",
-      "description": "Unique identifier for the equation.",
-      "type": "string"
-    },
     "equation": {
       "title": "equation",
       "description": "The equation that is used in the data model.",
@@ -28,6 +23,28 @@
   },
   "description": "Represents an equation that can be used in a data model.",
   "definitions": {
+    "EqVariable": {
+      "title": "EqVariable",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier for the variable.",
+          "type": "string"
+        },
+        "name": {
+          "title": "name",
+          "description": "Name of the variable.",
+          "type": "string"
+        },
+        "symbol": {
+          "title": "symbol",
+          "description": "Symbol of the variable.",
+          "type": "string"
+        }
+      },
+      "description": "Represents a variable that is used in the equation."
+    },
     "EqParameter": {
       "title": "EqParameter",
       "type": "object",
@@ -54,28 +71,6 @@
         }
       },
       "description": "Represents a parameter that is used in the equation."
-    },
-    "EqVariable": {
-      "title": "EqVariable",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier for the variable.",
-          "type": "string"
-        },
-        "name": {
-          "title": "name",
-          "description": "Name of the variable.",
-          "type": "string"
-        },
-        "symbol": {
-          "title": "symbol",
-          "description": "Symbol of the variable.",
-          "type": "string"
-        }
-      },
-      "description": "Represents a variable that is used in the equation."
     }
   }
 }

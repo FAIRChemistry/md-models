@@ -41,25 +41,18 @@
                 </xs:complexType>
             </xs:element>
         </xs:sequence>
-        <xs:attribute name="id" type="xs:string">
-            <xs:annotation>
-                <xs:documentation>
-                    Unique identifier for the equation.
-                </xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
     </xs:complexType>
 
     <!-- EqVariable Definition -->
     <xs:complexType name="EqVariableType">
-        <xs:attribute name="id" type="xs:string">
+        <xs:attribute name="id" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     Unique identifier for the variable.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="name" type="xs:string">
+        <xs:attribute name="name" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     Name of the variable.
@@ -77,14 +70,14 @@
 
     <!-- EqParameter Definition -->
     <xs:complexType name="EqParameterType">
-        <xs:attribute name="id" type="xs:string">
+        <xs:attribute name="id" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     Unique identifier for the parameter.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="name" type="xs:string">
+        <xs:attribute name="name" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     Name of the parameter.
