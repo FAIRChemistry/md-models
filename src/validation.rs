@@ -188,6 +188,33 @@ fn validate_object(object: &Object, types: &[&str]) -> Result<(), ()> {
         valid = Err(());
     }
 
+    // Check if the object has duplicate attributes
+    let attr_names = object
+        .attributes
+        .iter()
+        .map(|attribute| attribute.name.as_str())
+        .collect::<Vec<&str>>();
+
+    let unique = unique_elements(&attr_names);
+    if attr_names.len() != unique.len() {
+        let duplicates = attr_names
+            .iter()
+            .filter(|&name| attr_names.iter().filter(|&n| n == name).count() > 1)
+            .collect::<Vec<&&str>>();
+
+        let duplicates = unique_elements(&duplicates);
+
+        for name in duplicates {
+            error!(
+                "[{}] {}: Property {} is defined more than once.",
+                object.name.bold(),
+                "DuplicateError".bold(),
+                name.red().bold(),
+            );
+        }
+        valid = Err(());
+    }
+
     // Validate the attributes of the object
     object.attributes.iter().for_each(|attribute| {
         let result = validate_attribute(attribute, types, &object.name);
