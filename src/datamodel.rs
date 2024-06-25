@@ -206,7 +206,7 @@ impl DataModel {
     //
     // * `other` - The other data model to merge
     pub fn merge(&mut self, other: &Self) {
-        // Intialize a variable to check if the merge is valid
+        // Initialize a variable to check if the merge is valid
         let mut valid = true;
 
         // Check if there are any duplicate objects or enums

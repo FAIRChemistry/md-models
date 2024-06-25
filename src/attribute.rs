@@ -350,7 +350,7 @@ mod tests {
             attr.xml.expect("Could not find XML option"),
             XMLType::Attribute {
                 is_attr: true,
-                name: "name".to_string()
+                name: "name".to_string(),
             },
             "XMLType is not correct. Expected an attribute type."
         );
@@ -365,7 +365,7 @@ mod tests {
             attr.xml.expect("Could not find XML option"),
             XMLType::Element {
                 is_attr: false,
-                name: "name".to_string()
+                name: "name".to_string(),
             },
             "XMLType is not correct. Expected an element type."
         );
@@ -378,7 +378,7 @@ mod tests {
             attr.xml.unwrap(),
             XMLType::Element {
                 is_attr: false,
-                name: "name".to_string()
+                name: "name".to_string(),
             }
         );
     }
