@@ -65,6 +65,7 @@ WATT = watt
 BECQUEREL = becquerel
 GRAY = gray
 KELVIN = kelvin
+CELSIUS = celsius
 MOLE = mole
 SIEMENS = siemens
 WEBER = weber
