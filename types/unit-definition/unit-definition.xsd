@@ -76,6 +76,7 @@
             <xs:enumeration value="avogadro"/>
             <xs:enumeration value="becquerel"/>
             <xs:enumeration value="candela"/>
+            <xs:enumeration value="celsius"/>
             <xs:enumeration value="coulomb"/>
             <xs:enumeration value="dimensionless"/>
             <xs:enumeration value="farad"/>
