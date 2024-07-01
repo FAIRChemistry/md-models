@@ -4,6 +4,7 @@ authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
 description = "A tool to generate models, code and schemas from markdown files"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 serde = { version = "1.0.198", features = ["derive"] }
