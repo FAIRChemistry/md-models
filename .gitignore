@@ -1,4 +1,6 @@
 /target
+.DS_Store
+*/.DS_Store
 
 # Ignore files that are generated while testing
 tests/intermediates
