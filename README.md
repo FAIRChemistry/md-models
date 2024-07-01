@@ -47,13 +47,3 @@ This project uses GitHub Actions for continuous integration. The tests can be ru
 cargo test
 cargo clippy
 ```
-
-## ToDo's
-
-- [x] Python PyDantic template
-- [ ] SQL template
-- [x] Shex template
-- [ ] Python SQLModel template
-- [x] Model validation
-- [ ] File validation (XML, JSON, SHACL etc.)
-- [ ] Python bindings using PyO3
