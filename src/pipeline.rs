@@ -23,13 +23,11 @@ impl GenTemplate {
             specs.prepend_root(path);
         }
 
-        self.meta.paths = self.meta.paths
+        self.meta.paths = self
+            .meta
+            .paths
             .iter_mut()
-            .map(
-                |spec| {
-                    path.join(spec)
-                }
-            )
+            .map(|spec| path.join(spec))
             .collect();
     }
 }
@@ -538,26 +536,28 @@ mod tests {
                 description: None,
                 paths: vec![PathBuf::from("model.md")],
             },
-            generate: HashMap::from_iter(
-                vec![
-                    (
-                        "json-schema".to_string(),
-                        GenSpecs {
-                            description: None,
-                            out: PathBuf::from("schema.json"),
-                            root: None,
-                            per_spec: None,
-                            config: HashMap::new(),
-                        },
-                    ),
-                ]
-            ),
+            generate: HashMap::from_iter(vec![(
+                "json-schema".to_string(),
+                GenSpecs {
+                    description: None,
+                    out: PathBuf::from("schema.json"),
+                    root: None,
+                    per_spec: None,
+                    config: HashMap::new(),
+                },
+            )]),
         };
 
         let path = PathBuf::from("tests/data");
         gen_template.prepend_root(&path);
 
-        assert_eq!(gen_template.meta.paths[0], PathBuf::from("tests/data/model.md"));
-        assert_eq!(gen_template.generate["json-schema"].out, PathBuf::from("tests/data/schema.json"));
+        assert_eq!(
+            gen_template.meta.paths[0],
+            PathBuf::from("tests/data/model.md")
+        );
+        assert_eq!(
+            gen_template.generate["json-schema"].out,
+            PathBuf::from("tests/data/schema.json")
+        );
     }
 }
