@@ -115,7 +115,7 @@ impl Object {
         let mut bottom_elements: Vec<Attribute> = vec![];
 
         for attr in self.attributes.iter() {
-            if attr.required && attr.default.is_none() {
+            if attr.required && attr.default.is_none() && !attr.is_array {
                 top_elements.push(attr.clone());
             } else {
                 bottom_elements.push(attr.clone());
