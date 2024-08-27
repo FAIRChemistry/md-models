@@ -19,7 +19,7 @@ cargo install --path .
 The command line tool can be used to convert markdown files to various formats. The following command will convert a markdown file to Python code:
 
 ```bash
-md-models -i model.md -o lib.py -l python-dataclass
+md-models convert -i model.md -o lib.py -l python-dataclass
 ```
 
 This will read the input file `model.md` and write the output to `lib.py` using the Python dataclass template. Alternatively, you can also pass a URL as input to fetch the model remotely. For an overview of all available templates, you can use the following command:
@@ -33,6 +33,7 @@ md-models --help
 The following templates are available:
 
 - `python-dataclass`: Python dataclass implementation with JSON-LD support
+- `python-pydantic`: PyDantic implementation with JSON-LD support
 - `python-sdrdm`: Python PyDantic implementation with multiple output formats
 - `xml-schema`: XML schema definition
 - `json-schema`: JSON schema definition
