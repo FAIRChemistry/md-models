@@ -1,4 +1,4 @@
-{% import "python-sdrdm-macros.jinja" as utils %}
+{% import "python-macros.jinja" as utils %}
 
 ## This is a generated file. Do not modify it manually!
 
@@ -6,24 +6,20 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from uuid import uuid4
 from datetime import date, datetime
+from xml.dom import minidom
 
 from lxml.etree import _Element
 from pydantic import PrivateAttr, model_validator
-from pydantic_xml import attr, element
-
-import sdRDM
-from sdRDM.base.listplus import ListPlus
-from sdRDM.tools.utils import elem2dict
+from pydantic_xml import attr, element, BaseXmlModel
 
 {% for object in objects %}
 class {{object.name}}(
-    sdRDM.DataModel,
+    BaseXmlModel,
     search_mode="unordered",
 ):
     {%- for attr in object.attributes -%}
         {{ utils.create_attribute(attr) }}
     {%- endfor %}
-    _repo: str = PrivateAttr(default="{{ repo }}")
 
     {% for attr in object.attributes %}
     {%- for dtype in attr.dtypes %}
@@ -43,6 +39,22 @@ class {{object.name}}(
     {%- endif %}
     {%- endfor %}
     {%- endfor %}
+
+    def xml(self, encoding: str = "unicode") -> str | bytes:
+        """Converts the object to an XML string
+
+        Args:
+            encoding (str, optional): The encoding to use. If set to "bytes", will return a bytes string.
+                                      Defaults to "unicode".
+        """
+
+        if encoding == "bytes":
+            return self.to_xml()
+
+        raw_xml = self.to_xml(encoding=None)
+        parsed_xml = minidom.parseString(raw_xml)
+        return parsed_xml.toprettyxml(indent="  ")
+
 
 {% endfor %}
 {%- for enum in enums %}
