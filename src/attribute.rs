@@ -73,6 +73,7 @@ impl Attribute {
             "description" => self.docstring = option.value,
             "xml" => self.set_xml(XMLType::from_str(&option.value).expect("Invalid XML type")),
             "default" => self.default = Some(DataType::from_str(&option.value)?),
+            "multiple" => self.is_array = option.value.to_lowercase() == "true",
             _ => self.options.push(option),
         }
 

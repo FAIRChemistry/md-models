@@ -301,4 +301,18 @@ mod tests {
         assert_eq!(model.objects.len(), 1);
         assert_eq!(model.enums.len(), 1);
     }
+
+    #[test]
+    fn test_multiple_keyword() {
+        // Arrange
+        let path = Path::new("tests/data/model_multiple_keyword.md");
+
+        // Act
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Assert
+        assert_eq!(model.objects.len(), 1);
+        assert_eq!(model.objects[0].attributes.len(), 1);
+        assert!(model.objects[0].attributes[0].is_array);
+    }
 }
