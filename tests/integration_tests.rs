@@ -288,4 +288,17 @@ mod tests {
 
         assert_eq!(schema, expected_schema);
     }
+
+    #[test]
+    fn test_no_frontmatter() {
+        // Arrange
+        let path = Path::new("tests/data/model_no_frontmatter.md");
+
+        // Act
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Assert
+        assert_eq!(model.objects.len(), 1);
+        assert_eq!(model.enums.len(), 1);
+    }
 }

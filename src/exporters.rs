@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
-use crate::datamodel::DataModel;
+use crate::{datamodel::DataModel, markdown::frontmatter::FrontMatter};
 use clap::ValueEnum;
 use lazy_static::lazy_static;
 use minijinja::{context, Environment};
@@ -162,6 +162,12 @@ pub fn render_jinja_template(
             )
         }
     };
+
+    // If there is no config, create an empty one
+    // This is necessary to avoid errors when rendering the template
+    if model.config.is_none() {
+        model.config = Some(FrontMatter::default());
+    }
 
     // Render the template
     let prefixes = get_prefixes(model);
