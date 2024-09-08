@@ -52,7 +52,7 @@ pub enum Templates {
     JsonSchemaAll,
     Shex,
     PythonDataclass,
-    PythonSdrdm,
+    PythonPydanticXML,
     PythonPydantic,
     MkDocs,
     Internal,
@@ -64,7 +64,7 @@ impl Display for Templates {
         match self {
             Templates::PythonDataclass => write!(f, "python-dataclass"),
             Templates::PythonPydantic => write!(f, "python-pydantic"),
-            Templates::PythonSdrdm => write!(f, "python-sdrdm"),
+            Templates::PythonPydanticXML => write!(f, "python-pydantic-xml"),
             Templates::XmlSchema => write!(f, "xml-schema"),
             Templates::Markdown => write!(f, "markdown"),
             Templates::CompactMarkdown => write!(f, "compact-markdown"),
@@ -86,7 +86,7 @@ impl FromStr for Templates {
     fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
         match s {
             "python-dataclass" => Ok(Templates::PythonDataclass),
-            "python-sdrdm" => Ok(Templates::PythonSdrdm),
+            "python-sdrdm" => Ok(Templates::PythonPydanticXML),
             "python-pydantic" => Ok(Templates::PythonPydantic),
             "xml-schema" => Ok(Templates::XmlSchema),
             "markdown" => Ok(Templates::Markdown),
@@ -133,7 +133,7 @@ pub fn render_jinja_template(
             convert_model_types(model, &SHACL_TYPE_MAPS);
             filter_objects_wo_terms(model);
         }
-        Templates::PythonDataclass | Templates::PythonSdrdm | Templates::PythonPydantic => {
+        Templates::PythonDataclass | Templates::PythonPydanticXML | Templates::PythonPydantic => {
             convert_model_types(model, &PYTHON_TYPE_MAPS);
             sort_attributes_by_required(model);
         }
@@ -152,7 +152,7 @@ pub fn render_jinja_template(
         Templates::CompactMarkdown => env.get_template("markdown-compact.jinja")?,
         Templates::Shacl => env.get_template("shacl.jinja")?,
         Templates::Shex => env.get_template("shex.jinja")?,
-        Templates::PythonSdrdm => env.get_template("python-sdrdm.jinja")?,
+        Templates::PythonPydanticXML => env.get_template("python-pydantic-xml.jinja")?,
         Templates::MkDocs => env.get_template("mkdocs.jinja")?,
         Templates::Typescript => env.get_template("typescript.jinja")?,
         _ => {
@@ -361,12 +361,12 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_to_python_sdrdm() {
+    fn test_convert_to_python_pydantic_xml() {
         // Arrange
-        let rendered = build_and_convert(Templates::PythonSdrdm);
+        let rendered = build_and_convert(Templates::PythonPydanticXML);
 
         // Assert
-        let expected = fs::read_to_string("tests/data/expected_python_sdrdm.py")
+        let expected = fs::read_to_string("tests/data/expected_python_pydantic_xml.py")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }

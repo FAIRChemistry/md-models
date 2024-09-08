@@ -8,7 +8,7 @@
             default={%- if attr.default -%}{{ attr.default }}{%- else -%}None{%- endif -%},
             {% endif -%}
             {% if attr.multiple is true -%}
-            default_factory=ListPlus,
+            default_factory=list,
             {% endif -%}
             tag="{{ xml_tag(attr.xml) }}",
             json_schema_extra={{ create_options(attr.options, attr.term) }}
