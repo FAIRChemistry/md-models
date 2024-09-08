@@ -4,18 +4,15 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from uuid import uuid4
 from datetime import date, datetime
+from xml.dom import minidom
 
 from lxml.etree import _Element
 from pydantic import PrivateAttr, model_validator
-from pydantic_xml import attr, element
-
-import sdRDM
-from sdRDM.base.listplus import ListPlus
-from sdRDM.tools.utils import elem2dict
+from pydantic_xml import attr, element, BaseXmlModel
 
 
 class Test(
-    sdRDM.DataModel,
+    BaseXmlModel,
     search_mode="unordered",
 ):
     name: str = attr(
@@ -30,7 +27,7 @@ class Test(
         )
 
     test2: list[Test2] = element(
-            default_factory=ListPlus,
+            default_factory=list,
             tag="SomeTest2",
             json_schema_extra=dict(term = "schema:something",)
         )
@@ -40,8 +37,6 @@ class Test(
             tag="ontology",
             json_schema_extra=dict()
         )
-
-    _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")
 
 
     def add_to_test2(
@@ -61,13 +56,28 @@ class Test(
 
         return self.test2[-1]
 
+    def xml(self, encoding: str = "unicode") -> str | bytes:
+        """Converts the object to an XML string
+
+        Args:
+            encoding (str, optional): The encoding to use. If set to "bytes", will return a bytes string.
+                                      Defaults to "unicode".
+        """
+
+        if encoding == "bytes":
+            return self.to_xml()
+
+        raw_xml = self.to_xml(encoding=None)
+        parsed_xml = minidom.parseString(raw_xml)
+        return parsed_xml.toprettyxml(indent="  ")
+
 
 class Test2(
-    sdRDM.DataModel,
+    BaseXmlModel,
     search_mode="unordered",
 ):
     names: list[str] = element(
-            default_factory=ListPlus,
+            default_factory=list,
             tag="name",
             json_schema_extra=dict(term = "schema:hello",)
         )
@@ -78,7 +88,21 @@ class Test2(
             json_schema_extra=dict(term = "schema:one",minimum = "0",)
         )
 
-    _repo: str = PrivateAttr(default="https://www.github.com/my/repo/")
+
+    def xml(self, encoding: str = "unicode") -> str | bytes:
+        """Converts the object to an XML string
+
+        Args:
+            encoding (str, optional): The encoding to use. If set to "bytes", will return a bytes string.
+                                      Defaults to "unicode".
+        """
+
+        if encoding == "bytes":
+            return self.to_xml()
+
+        raw_xml = self.to_xml(encoding=None)
+        parsed_xml = minidom.parseString(raw_xml)
+        return parsed_xml.toprettyxml(indent="  ")
 
 
 class Ontology(Enum):
