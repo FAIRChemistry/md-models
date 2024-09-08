@@ -21,6 +21,7 @@ lazy_static! {
     static ref SHACL_TYPE_MAPS: std::collections::HashMap<String, String> = {
         let mut m = std::collections::HashMap::new();
         m.insert("float".to_string(), "double".to_string());
+        m.insert("bytes".to_string(), "base64Binary".to_string());
         m
     };
 
@@ -28,6 +29,7 @@ lazy_static! {
     static ref XSD_TYPE_MAPS: std::collections::HashMap<String, String> = {
         let mut m = std::collections::HashMap::new();
         m.insert("str".to_string(), "string".to_string());
+        m.insert("bytes".to_string(), "base64Binary".to_string());
         m
     };
 
@@ -37,6 +39,7 @@ lazy_static! {
         m.insert("integer".to_string(), "number".to_string());
         m.insert("float".to_string(), "number".to_string());
         m.insert("date".to_string(), "string".to_string());
+        m.insert("bytes".to_string(), "string".to_string());
         m
     };
 }
