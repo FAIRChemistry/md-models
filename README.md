@@ -34,7 +34,7 @@ The following templates are available:
 
 - `python-dataclass`: Python dataclass implementation with JSON-LD support
 - `python-pydantic`: PyDantic implementation with JSON-LD support
-- `python-sdrdm`: Python PyDantic implementation with multiple output formats
+- `python-pydantic-xml`: PyDantic implementation with XML support
 - `xml-schema`: XML schema definition
 - `json-schema`: JSON schema definition
 - `shacl`: SHACL shapes definition
