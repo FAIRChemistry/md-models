@@ -301,7 +301,7 @@ mod tests {
         assert_eq!(model.objects.len(), 1);
         assert_eq!(model.enums.len(), 1);
     }
-    
+
     #[test]
     fn test_multiple_keyword() {
         // Arrange
