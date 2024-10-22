@@ -226,13 +226,15 @@ impl FromStr for DataType {
 
     /// Converts a string to a DataType (Boolean, Integer, Float, or String).
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(b) = s.to_lowercase().parse::<bool>() {
+        let lower_s = s.to_lowercase();
+
+        if let Ok(b) = lower_s.parse::<bool>() {
             Ok(DataType::Boolean(b))
-        } else if let Ok(i) = s.to_lowercase().parse::<i64>() {
+        } else if let Ok(i) = lower_s.parse::<i64>() {
             Ok(DataType::Integer(i))
-        } else if let Ok(f) = s.to_lowercase().parse::<f64>() {
+        } else if let Ok(f) = lower_s.parse::<f64>() {
             Ok(DataType::Float(f))
-        } else if let Ok(s) = s.to_lowercase().parse::<String>() {
+        } else if !lower_s.is_empty() {
             Ok(DataType::String(format!("\"{}\"", s)))
         } else {
             Err("Invalid data type".to_string())
