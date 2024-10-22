@@ -8,14 +8,6 @@ on:
       - "Cargo.lock"
       - "templates/**"
       - "types/**"
-  pull_request:
-    paths:
-      - "src/**"
-      - "tests/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "templates/**"
-      - "types/**"
 
 # Make sure CI fails on all warnings, including Clippy lints
 env:
