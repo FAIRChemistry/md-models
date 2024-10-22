@@ -7,3 +7,6 @@ tests/intermediates
 
 # Ignore tarpaulin report
 tarpaulin-report.html
+
+# Ignore IntelliJ IDEA files
+.idea

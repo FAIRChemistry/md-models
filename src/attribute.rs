@@ -1,9 +1,35 @@
+/*
+ * Copyright (c) 2024 Jan Range
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 use crate::xmltype::XMLType;
+#[cfg(feature = "python")]
+use pyo3::pyclass;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
 /// Represents an attribute with various properties and options.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(get_all))]
 pub struct Attribute {
     /// The name of the attribute.
     pub name: String,
@@ -133,6 +159,7 @@ impl Attribute {
 
 /// Represents an option for an attribute.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(get_all))]
 pub struct AttrOption {
     /// The key of the option.
     pub key: String,
@@ -174,6 +201,7 @@ impl AttrOption {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum DataType {
     Boolean(bool),
     Integer(i64),
@@ -198,13 +226,15 @@ impl FromStr for DataType {
 
     /// Converts a string to a DataType (Boolean, Integer, Float, or String).
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(b) = s.to_lowercase().parse::<bool>() {
+        let lower_s = s.to_lowercase();
+
+        if let Ok(b) = lower_s.parse::<bool>() {
             Ok(DataType::Boolean(b))
-        } else if let Ok(i) = s.to_lowercase().parse::<i64>() {
+        } else if let Ok(i) = lower_s.parse::<i64>() {
             Ok(DataType::Integer(i))
-        } else if let Ok(f) = s.to_lowercase().parse::<f64>() {
+        } else if let Ok(f) = lower_s.parse::<f64>() {
             Ok(DataType::Float(f))
-        } else if let Ok(s) = s.to_lowercase().parse::<String>() {
+        } else if !lower_s.is_empty() {
             Ok(DataType::String(format!("\"{}\"", s)))
         } else {
             Err("Invalid data type".to_string())
