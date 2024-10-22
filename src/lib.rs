@@ -24,9 +24,9 @@
 #[cfg(feature = "python")]
 use crate::exporters::Templates;
 #[cfg(feature = "python")]
-use pyo3::prelude::*;
-#[cfg(feature = "python")]
 use crate::python::bindings;
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
 
 pub mod datamodel;
 pub mod exporters;

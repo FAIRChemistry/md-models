@@ -22,10 +22,10 @@
  */
 
 use crate::xmltype::XMLType;
-use serde::{de::Visitor, Deserialize, Serialize};
-use std::{error::Error, fmt, str::FromStr};
 #[cfg(feature = "python")]
 use pyo3::pyclass;
+use serde::{de::Visitor, Deserialize, Serialize};
+use std::{error::Error, fmt, str::FromStr};
 
 /// Represents an attribute with various properties and options.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

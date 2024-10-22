@@ -22,11 +22,11 @@
  */
 
 use crate::attribute::Attribute;
+#[cfg(feature = "python")]
+use pyo3::pyclass;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::collections::BTreeMap;
-#[cfg(feature = "python")]
-use pyo3::pyclass;
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

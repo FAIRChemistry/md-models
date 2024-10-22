@@ -32,7 +32,9 @@ use colored::Colorize;
 use log::error;
 
 // Basic types that are ignored in the validation process
-const BASIC_TYPES: [&str; 7] = ["string", "number", "integer", "boolean", "float", "date", "bytes"];
+const BASIC_TYPES: [&str; 7] = [
+    "string", "number", "integer", "boolean", "float", "date", "bytes",
+];
 
 /// Validator for checking the integrity of a data model.
 pub struct Validator {

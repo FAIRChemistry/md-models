@@ -24,13 +24,13 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use pyo3::prelude::*;
-use pyo3::types::PyType;
 use crate::attribute::Attribute;
 use crate::datamodel;
 use crate::exporters::Templates;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::object::{Enumeration, Object};
+use pyo3::prelude::*;
+use pyo3::types::PyType;
 
 /// A Python class that wraps the `datamodel::DataModel` struct.
 #[pyclass]
@@ -96,9 +96,15 @@ impl DataModel {
     ///
     /// A string that represents the converted `DataModel`.
     #[pyo3(signature = (template, config=None))]
-    fn convert_to(&mut self, template: Templates, config: Option<HashMap<String, String>>) -> String {
+    fn convert_to(
+        &mut self,
+        template: Templates,
+        config: Option<HashMap<String, String>>,
+    ) -> String {
         let config = config.unwrap_or_default();
-        self.model.convert_to(&template, Some(&config)).expect("Failed to convert to template")
+        self.model
+            .convert_to(&template, Some(&config))
+            .expect("Failed to convert to template")
     }
 }
 
