@@ -1,3 +1,0 @@
-# Types
-
-🚧 **Under Construction** 🚧

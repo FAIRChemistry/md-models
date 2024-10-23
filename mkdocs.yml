@@ -34,20 +34,9 @@ theme:
         name: Switch to light mode
 nav:
   - Home: index.md
-  - Syntax:
-      - "Overview": syntax/index.md
-      - "Types": syntax/types.md
-      - "Enumerations": syntax/enumerations.md
-      - "Ontologies": syntax/ontologies.md
-      - "Configuration": syntax/configuration.md
-  - Library:
-      - "Overview": library/index.md
-      - "Validation": library/validation.md
-      - "Conversion": library/conversion.md
-      - "Code Generation": library/code-generation.md
-      - "Continuous integration": library/pipelines.md
+  - Syntax: syntax.md
   - "Data Types":
-      - "Overview": types/index.md
+      - "Overview": types/syntax.md
       - "Equation": types/equation.md
       - "Unit Definition": types/unit-definition.md
 markdown_extensions:

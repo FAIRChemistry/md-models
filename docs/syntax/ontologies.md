@@ -1,3 +1,0 @@
-# Ontologies
-
-🚧 **Under Construction** 🚧
