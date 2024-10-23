@@ -20,15 +20,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+
       - name: Install MD-Models
         run: cargo install --path .
+
       - name: Run the generation pipeline
         run: sh .github/scripts/generate_types.sh
+
       - name: "Update docs"
         shell: "bash"
         run: |
@@ -41,16 +45,15 @@ jobs:
           else
             echo "Nothing changed!"
           fi
+
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
-      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - uses: actions/cache@v4
+
+      - uses: actions/cache@v2
         with:
-          key: mkdocs-material-${{ env.cache_id }}
           path: .cache
-          restore-keys: |
-            mkdocs-material-
+          key: ${{ github.ref }}
 
       - name: Install dependencies
         run: pip install mkdocs-material jupyter nbconvert mkdocs-jupyter
