@@ -32,7 +32,8 @@ We are aware that there are many schema languages out there, and we do not aim t
 Markdown models are defined in a simple markdown format. The format is based on the [CommonMark](https://commonmark.org) specification and can be extended with custom syntax. The concept is simple: Level 3 headings initialize a new type and the following list items define the fields of the type.
 
 === "Person.md"
-```markdown ### Person
+    ```markdown 
+    ### Person
 
     This is a simple data model that describes a person. You can also add
     images, links and other markdown elements to your documentation.
@@ -47,7 +48,7 @@ Markdown models are defined in a simple markdown format. The format is based on 
     ```
 
 === "Person.json"
-`json
+    ```json
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Person",
@@ -65,9 +66,9 @@ Markdown models are defined in a simple markdown format. The format is based on 
       },
       "required": ["name", "age"]
     }
-    `
+    ```
 === "Person.xsd"
-`xml
+    ```xml
     <?xml version="1.0" encoding="UTF-8"?>
     <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
       <xs:element name="person">
@@ -92,7 +93,7 @@ Markdown models are defined in a simple markdown format. The format is based on 
         </xs:complexType>
       </xs:element>
     </xs:schema>
-    `
+    ```
 
 All three formats describe the same data model, but the markdown version offers more readability compared to the JSON and XML versions. In fact, you can even add text/image documentation to any part of your data model and thus communicate the purpose of the data model to other users. The MD-Models library will recognize non-structural elements that are not part of the data model and will not include them in the generated outputs.
 
