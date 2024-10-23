@@ -8,6 +8,66 @@ hide:
 
 This guide outlines how to document a data model schema using MD-Models. The goal is to explain the structure and key components of the data model in clear, non-technical language to make it accessible to users who may not have a background in programming. This documentation will also ensure that the data model is organized, easy to maintain, and compatible with various external systems.
 
+<details><summary>Full example</summary>
+
+```markdown
+---
+repo: https://myrepo.com/datamodel
+prefix: myapp
+prefixes:
+  schema: schema.org
+---
+
+### User (schema:Person)
+
+This type defines a user profile.
+
+- name
+  - Type: string
+  - Description: The full name of the user.
+  - Term: schema:name
+- address
+  - Type: Address
+  - Description: The user's address.
+- orders
+  - Type: Order[]
+  - Description: Complete list of the user's orders.
+
+### Address
+
+This object represents a user's address.
+
+- street
+    - Type: string
+    - Description: The street of a user
+    - Term: schema:streetAddress
+- postal_code
+    - Type: string
+    - Description: The postal code of a user
+    - Term: schema:postalCode
+  
+### Order
+
+This object defines an order.
+
+- product_id
+  - Type: string
+  - Description: The ID of the product that has been ordered
+- status
+  - Type: OrderStatus
+  - Description: The current state of the user's order.
+
+### OrderStatus
+
+This enumeration encodes the possible states an order can be in.
+
+DELIVERED = "delivered"
+IN_TRANSIT = "in_transit"
+OPEN = "open"
+```
+
+</details>
+
 ## YAML Frontmatter: Metadata Definition
 
 At the very beginning of the document, we define what’s called the YAML frontmatter. This section provides important metadata (background information) that gives context to the entire data model. Think of it as the “settings” for your documentation. This metadata helps systems interpret the model correctly, especially if the model needs to work with other systems or tools.
