@@ -21,17 +21,17 @@
  *
  */
 
-use std::{collections::HashSet};
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use crate::{
     attribute::Attribute,
     datamodel::DataModel,
     object::{Enumeration, Object},
 };
 use colored::Colorize;
-use log::{error};
+use log::error;
 use serde::Serialize;
+use std::collections::HashSet;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 // Basic types that are ignored in the validation process
 const BASIC_TYPES: [&str; 7] = [
@@ -108,7 +108,12 @@ impl Display for Validator {
 
 impl Validator {
     /// Creates a new instance of `Validator`.
-    pub fn new() -> Self { Self { is_valid: true, errors: vec![] } }
+    pub fn new() -> Self {
+        Self {
+            is_valid: true,
+            errors: vec![],
+        }
+    }
     pub fn reset(&mut self) {
         self.is_valid = true;
         self.errors.clear();
@@ -144,7 +149,7 @@ impl Validator {
     /// A `Result` which is:
     /// - `Ok(())` if the model is valid.
     /// - `Err(Box<dyn Error>)` if the model is invalid.
-    pub fn validate(&mut self, model: &DataModel)  {
+    pub fn validate(&mut self, model: &DataModel) {
         // If there are errors from a previous validation, reset the validator
         self.reset();
 
@@ -159,7 +164,7 @@ impl Validator {
         // Validate the objects and enums
         for object in &model.objects {
             self.validate_object(object, &types);
-        };
+        }
     }
 
     /// Checks for duplicate object names within the model.
@@ -177,15 +182,13 @@ impl Validator {
 
         if !duplicates.is_empty() {
             for name in duplicates {
-                self.add_error(
-                    ValidationError {
-                        message: format!("Object {} is defined more than once.", name),
-                        object: Some(name.to_string()),
-                        attribute: None,
-                        location: "Global".into(),
-                        error_type: ErrorType::DuplicateError,
-                    }
-                );
+                self.add_error(ValidationError {
+                    message: format!("Object {} is defined more than once.", name),
+                    object: Some(name.to_string()),
+                    attribute: None,
+                    location: "Global".into(),
+                    error_type: ErrorType::DuplicateError,
+                });
             }
         }
     }
@@ -212,15 +215,13 @@ impl Validator {
 
         if !duplicates.is_empty() {
             for name in duplicates {
-                self.add_error(
-                    ValidationError {
-                        message: format!("Enumeration {} is defined more than once.", name),
-                        object: Some(name.to_string()),
-                        attribute: None,
-                        location: "Global".into(),
-                        error_type: ErrorType::DuplicateError,
-                    }
-                );
+                self.add_error(ValidationError {
+                    message: format!("Enumeration {} is defined more than once.", name),
+                    object: Some(name.to_string()),
+                    attribute: None,
+                    location: "Global".into(),
+                    error_type: ErrorType::DuplicateError,
+                });
             }
         }
     }
@@ -260,15 +261,13 @@ impl Validator {
             let duplicates = unique_elements(&get_duplicates(&attr_names));
 
             for name in duplicates {
-                self.add_error(
-                    ValidationError {
-                        message: format!("Property {} is defined more than once.", name),
-                        object: Some(object.name.clone()),
-                        attribute: Some(name.to_string()),
-                        location: "Global".into(),
-                        error_type: ErrorType::DuplicateError,
-                    }
-                );
+                self.add_error(ValidationError {
+                    message: format!("Property {} is defined more than once.", name),
+                    object: Some(object.name.clone()),
+                    attribute: Some(name.to_string()),
+                    location: "Global".into(),
+                    error_type: ErrorType::DuplicateError,
+                });
             }
         }
     }
@@ -280,15 +279,13 @@ impl Validator {
     /// * `object` - A reference to the `Object` to be checked.
     fn check_has_attributes(&mut self, object: &Object) {
         if !object.has_attributes() {
-            self.add_error(
-                ValidationError {
-                    message: format!("Type {} is empty and has no properties.", object.name),
-                    object: Some(object.name.clone()),
-                    attribute: None,
-                    location: "Global".into(),
-                    error_type: ErrorType::TypeError,
-                }
-            );
+            self.add_error(ValidationError {
+                message: format!("Type {} is empty and has no properties.", object.name),
+                object: Some(object.name.clone()),
+                attribute: None,
+                location: "Global".into(),
+                error_type: ErrorType::TypeError,
+            });
         }
     }
 
@@ -307,18 +304,15 @@ impl Validator {
 
         for check in checks {
             if let Err(e) = check(name) {
-                self.add_error(
-                    ValidationError {
-                        message: e,
-                        object: Some(name.to_string()),
-                        attribute: None,
-                        location: "Global".into(),
-                        error_type: ErrorType::NameError,
-                    }
-                );
+                self.add_error(ValidationError {
+                    message: e,
+                    object: Some(name.to_string()),
+                    attribute: None,
+                    location: "Global".into(),
+                    error_type: ErrorType::NameError,
+                });
             }
         }
-
     }
 
     /// Checks if the model has no objects.
@@ -328,15 +322,13 @@ impl Validator {
     /// * `model` - A reference to the `DataModel` to be checked.
     fn check_has_no_objects(&mut self, model: &DataModel) {
         if model.objects.is_empty() {
-            self.add_error(
-                ValidationError {
-                    message: "This model has no definitions.".into(),
-                    object: Some("Model".into()),
-                    attribute: None,
-                    location: "Global".into(),
-                    error_type: ErrorType::GlobalError,
-                }
-            );
+            self.add_error(ValidationError {
+                message: "This model has no definitions.".into(),
+                object: Some("Model".into()),
+                attribute: None,
+                location: "Global".into(),
+                error_type: ErrorType::GlobalError,
+            });
         }
     }
 
@@ -347,24 +339,17 @@ impl Validator {
     /// * `attribute` - A reference to the `Attribute` to be validated.
     /// * `types` - A slice of type names that are valid within the model.
     /// * `obj_name` - The name of the object that contains the attribute.
-    fn validate_attribute(
-        &mut self,
-        attribute: &Attribute,
-        types: &[&str],
-        obj_name: &str
-    ) {
+    fn validate_attribute(&mut self, attribute: &Attribute, types: &[&str], obj_name: &str) {
         self.validate_attribute_name(&attribute.name, obj_name);
 
         if attribute.dtypes.is_empty() {
-            self.add_error(
-                ValidationError {
-                    message: format!("Property {} has no type specified.", attribute.name),
-                    object: Some(obj_name.into()),
-                    attribute: Some(attribute.name.clone()),
-                    location: "Global".into(),
-                    error_type: ErrorType::TypeError,
-                }
-            )
+            self.add_error(ValidationError {
+                message: format!("Property {} has no type specified.", attribute.name),
+                object: Some(obj_name.into()),
+                attribute: Some(attribute.name.clone()),
+                location: "Global".into(),
+                error_type: ErrorType::TypeError,
+            })
         }
 
         for dtype in &attribute.dtypes {
@@ -380,20 +365,24 @@ impl Validator {
     /// * `types` - A slice of type names that are valid within the model.
     /// * `obj_name` - The name of the object that contains the attribute.
     /// * `dtype` - The data type of the attribute to be checked.
-    fn check_attr_dtype(&mut self, attribute: &Attribute, types: &[&str], obj_name: &str, dtype: &&String) {
+    fn check_attr_dtype(
+        &mut self,
+        attribute: &Attribute,
+        types: &[&str],
+        obj_name: &str,
+        dtype: &&String,
+    ) {
         if !types.contains(&dtype.as_str()) && !BASIC_TYPES.contains(&dtype.as_str()) {
-            self.add_error(
-                ValidationError {
-                    message: format!(
-                        "Type {} of property {} not found. Either define the type or use a base type.",
-                        dtype, attribute.name
-                    ),
-                    object: Some(obj_name.into()),
-                    attribute: Some(attribute.name.clone()),
-                    location: "Global".into(),
-                    error_type: ErrorType::TypeError,
-                }
-            )
+            self.add_error(ValidationError {
+                message: format!(
+                    "Type {} of property {} not found. Either define the type or use a base type.",
+                    dtype, attribute.name
+                ),
+                object: Some(obj_name.into()),
+                attribute: Some(attribute.name.clone()),
+                location: "Global".into(),
+                error_type: ErrorType::TypeError,
+            })
         }
     }
 
@@ -403,11 +392,7 @@ impl Validator {
     ///
     /// * `name` - The name of the attribute to be validated.
     /// * `obj_name` - The name of the object that contains the attribute.
-    fn validate_attribute_name(
-        &mut self,
-        name: &str,
-        obj_name: &str
-    ){
+    fn validate_attribute_name(&mut self, name: &str, obj_name: &str) {
         let checks = vec![
             starts_with_character,
             contains_white_space,
@@ -416,15 +401,13 @@ impl Validator {
 
         for check in checks {
             if let Err(e) = check(name) {
-                self.add_error(
-                    ValidationError {
-                        message: e,
-                        object: Some(obj_name.into()),
-                        attribute: Some(name.into()),
-                        location: "Global".into(),
-                        error_type: ErrorType::NameError,
-                    }
-                );
+                self.add_error(ValidationError {
+                    message: e,
+                    object: Some(obj_name.into()),
+                    attribute: Some(name.into()),
+                    location: "Global".into(),
+                    error_type: ErrorType::NameError,
+                });
             }
         }
     }
@@ -443,12 +426,7 @@ impl Validator {
             .objects
             .iter()
             .map(|object| object.name.as_str())
-            .chain(
-                model
-                    .enums
-                    .iter()
-                    .map(|enum_| enum_.name.as_str())
-            )
+            .chain(model.enums.iter().map(|enum_| enum_.name.as_str()))
             .collect::<Vec<&str>>();
         types
     }
@@ -516,7 +494,7 @@ fn get_duplicates<'a>(collection: &'a [&'a str]) -> Vec<&'a str> {
 fn starts_with_character(name: &str) -> Result<(), String> {
     match name.chars().next() {
         Some(c) if c.is_alphabetic() => Ok(()),
-        _ => Err(format!("Name '{}' must start with a letter.", name))
+        _ => Err(format!("Name '{}' must start with a letter.", name)),
     }
 }
 
@@ -532,9 +510,14 @@ fn starts_with_character(name: &str) -> Result<(), String> {
 /// - `Ok(())` if the name does not contain whitespace.
 /// - `Err(String)` if the name contains whitespace.
 fn contains_white_space(name: &str) -> Result<(), String> {
-    name.contains(' ').then(
-        || Err(format!("Name '{}' contains whitespace, which is not valid. Use underscores instead.", name))
-    ).unwrap_or(Ok(()))
+    name.contains(' ')
+        .then(|| {
+            Err(format!(
+                "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
+                name
+            ))
+        })
+        .unwrap_or(Ok(()))
 }
 
 /// Checks if the given name contains special characters, except for underscores.
@@ -567,7 +550,11 @@ fn contains_special_characters(name: &str) -> Result<(), String> {
 /// - `Err(String)` if the name is not in PascalCase.
 fn is_pascal_case(name: &str) -> Result<(), String> {
     let no_snake = name.chars().all(|c| c.is_alphanumeric() || c == '_');
-    let first_uppercase = name.chars().next().map(|c| c.is_uppercase()).unwrap_or(false);
+    let first_uppercase = name
+        .chars()
+        .next()
+        .map(|c| c.is_uppercase())
+        .unwrap_or(false);
 
     if !no_snake || !first_uppercase {
         return Err(

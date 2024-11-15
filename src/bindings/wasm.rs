@@ -21,11 +21,11 @@
  *
  */
 
-use serde_wasm_bindgen::to_value;
-use wasm_bindgen::prelude::*;
 use crate::datamodel::DataModel;
 use crate::exporters::Templates;
 use crate::validation::Validator;
+use serde_wasm_bindgen::to_value;
+use wasm_bindgen::prelude::*;
 
 // Add console.log support for debugging
 #[wasm_bindgen]
@@ -50,8 +50,7 @@ pub fn parse_model(markdown_content: &str) -> Result<JsValue, JsValue> {
     let model = DataModel::from_markdown_string(markdown_content)
         .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {}", e)))?;
 
-    to_value(&model)
-        .map_err(|e| JsValue::from_str(&format!("Error serializing model: {}", e)))
+    to_value(&model).map_err(|e| JsValue::from_str(&format!("Error serializing model: {}", e)))
 }
 
 /// Converts the given markdown content into a specified template format.
@@ -71,7 +70,8 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
     let mut model = DataModel::from_markdown_string(markdown_content)
         .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {}", e)))?;
 
-    model.convert_to(&template, None)
+    model
+        .convert_to(&template, None)
         .map_err(|e| JsValue::from_str(&format!("Error converting markdown content: {}", e)))
 }
 
@@ -88,18 +88,16 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
 /// - `Err(JsValue)` if there is an error during parsing or validation.
 #[wasm_bindgen]
 pub fn validate(markdown_content: &str) -> Result<JsValue, JsValue> {
-    log(&format!("Validating markdown content: {}", markdown_content));
+    log(&format!(
+        "Validating markdown content: {}",
+        markdown_content
+    ));
     let model = DataModel::from_markdown_string(markdown_content);
 
     match model {
-        Ok(_) => {
-            to_value(&Validator::new())
-                .map_err(|e| JsValue::from_str(&format!("Error serializing validator: {}", e)))
-        },
-        Err(res) => {
-            to_value(&res)
-                .map_err(|e| JsValue::from_str(&format!("Error serializing validator: {}", e)))
-        }
+        Ok(_) => to_value(&Validator::new())
+            .map_err(|e| JsValue::from_str(&format!("Error serializing validator: {}", e))),
+        Err(res) => to_value(&res)
+            .map_err(|e| JsValue::from_str(&format!("Error serializing validator: {}", e))),
     }
 }
-

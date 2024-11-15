@@ -35,9 +35,9 @@ use crate::object::{Enumeration, Object};
 use crate::schema;
 use colored::Colorize;
 
+use crate::validation::Validator;
 #[cfg(feature = "python")]
 use pyo3::pyclass;
-use crate::validation::Validator;
 
 // Data model
 //

@@ -22,9 +22,9 @@
  */
 
 #[cfg(feature = "python")]
-use crate::exporters::Templates;
-#[cfg(feature = "python")]
 use crate::bindings::python;
+#[cfg(feature = "python")]
+use crate::exporters::Templates;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 

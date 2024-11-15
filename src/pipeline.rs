@@ -253,11 +253,10 @@ fn build_models(paths: &[PathBuf]) -> Result<DataModel, Box<dyn Error>> {
     let first_path = paths.first().unwrap();
     path_exists(first_path)?;
 
-    let mut model = DataModel::from_markdown(first_path)
-        .map_err(|e| {
-            e.log_result();
-            format!("Error parsing markdown content: {:#?}", e)
-        })?;
+    let mut model = DataModel::from_markdown(first_path).map_err(|e| {
+        e.log_result();
+        format!("Error parsing markdown content: {:#?}", e)
+    })?;
 
     if paths.len() == 1 {
         return Ok(model);
