@@ -338,4 +338,14 @@ mod tests {
         assert_eq!(model.objects[0].attributes.len(), 1);
         assert!(model.objects[0].attributes[0].is_array);
     }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_names() {
+        // Arrange
+        let path = Path::new("tests/data/model_invalid_names.md");
+
+        // Act
+        DataModel::from_markdown(path).expect("Could not parse markdown");
+    }
 }
