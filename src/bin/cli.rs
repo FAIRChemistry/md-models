@@ -143,19 +143,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 ///
 /// # Arguments
 ///
-/// * `args` - Arguments for the validate subcommand.
+/// * `args` - Arguments for the 'validate' subcommand.
 fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
     println!("\n Validating model {} ...", args.input.to_string().bold());
 
     let path = resolve_input_path(&args.input);
-    let model = DataModel::from_markdown(&path);
 
-    match model {
+    match DataModel::from_markdown(&path) {
         Ok(_) => {
             print_validation_result(true);
             Ok(())
         }
-        Err(_) => {
+        Err(result) => {
+            result.log_result();
             print_validation_result(false);
             Err("Model is invalid".into())
         }
