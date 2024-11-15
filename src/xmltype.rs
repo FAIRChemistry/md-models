@@ -21,10 +21,11 @@
  *
  */
 
-#[cfg(feature = "python")]
-use pyo3::pyclass;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+
+#[cfg(feature = "python")]
+use pyo3::pyclass;
 
 /// Represents an XML type, either an attribute or an element.
 #[derive(Debug, PartialEq, Clone)]

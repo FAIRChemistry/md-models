@@ -24,7 +24,7 @@
 #[cfg(feature = "python")]
 use crate::exporters::Templates;
 #[cfg(feature = "python")]
-use crate::python::bindings;
+use crate::bindings::python;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 
@@ -49,16 +49,19 @@ pub(crate) mod markdown {
     pub(crate) mod parser;
 }
 
-#[cfg(feature = "python")]
-pub mod python {
-    pub(crate) mod bindings;
+pub mod bindings {
+    #[cfg(feature = "python")]
+    pub(crate) mod python;
+
+    #[cfg(feature = "wasm")]
+    pub(crate) mod wasm;
 }
 
 #[cfg(feature = "python")]
 #[pymodule]
 fn mdmodels_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add_class::<bindings::DataModel>()?;
+    m.add_class::<python::DataModel>()?;
     m.add_class::<Templates>()?;
     Ok(())
 }
