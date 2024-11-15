@@ -10,3 +10,6 @@ tarpaulin-report.html
 
 # Ignore IntelliJ IDEA files
 .idea
+
+# Ignore wasm-pack output
+pkg
