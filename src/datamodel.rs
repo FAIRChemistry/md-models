@@ -32,11 +32,12 @@ use crate::json::parser::parse_json_schema;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
-use crate::{markdown, schema};
+use crate::schema;
 use colored::Colorize;
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
+use crate::validation::Validator;
 
 // Data model
 //
@@ -68,7 +69,7 @@ pub struct DataModel {
     pub objects: Vec<Object>,
     pub enums: Vec<Enumeration>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub config: Option<markdown::frontmatter::FrontMatter>,
+    pub config: Option<FrontMatter>,
 }
 
 impl DataModel {
@@ -288,8 +289,8 @@ impl DataModel {
     /// ```
     /// # Returns
     /// A data model
-    pub fn from_markdown(path: &Path) -> Result<Self, Box<dyn Error>> {
-        let content = fs::read_to_string(path)?;
+    pub fn from_markdown(path: &Path) -> Result<Self, Validator> {
+        let content = fs::read_to_string(path).expect("Could not read file");
         parse_markdown(&content)
     }
 
@@ -310,7 +311,7 @@ impl DataModel {
     /// ```
     /// # Returns
     /// A data model
-    pub fn from_markdown_string(content: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn from_markdown_string(content: &str) -> Result<Self, Validator> {
         parse_markdown(content)
     }
 

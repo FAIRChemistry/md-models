@@ -24,9 +24,10 @@
 use std::collections::HashMap;
 
 use gray_matter::{engine::YAML, Matter};
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "python")]
 use pyo3::pyclass;
-use serde::{Deserialize, Serialize};
 
 /// Represents the front matter data of a markdown file.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
