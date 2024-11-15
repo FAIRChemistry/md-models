@@ -119,7 +119,7 @@ jobs:
       - uses: mymindstorm/setup-emsdk@v12
         with:
           version: ${{ env.EMSCRIPTEN_VERSION }}
-          actions-cache-folder: emsdk-cache
+          actions-cache-folder: emsdk-cache-${{ github.run_id }} # Adding run_id to ensure unique cache
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
