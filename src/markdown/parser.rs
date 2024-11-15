@@ -69,7 +69,7 @@ enum ParserState {
 /// # Returns
 ///
 /// A `Result` containing a `DataModel` on success or an error on failure.
-pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
+pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     // Remove HTML and links
     let content = clean_content(content);
 
@@ -106,12 +106,16 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Box<dyn Error>> {
     // Add internal types, if used
     add_internal_types(&mut model);
 
-    // Apply inheritance
-    add_parent_types(&mut model)?;
+    // Apply inheritance (THIS NEEDS TO BE SPLIT INTO A SEPARATE FUNCTION)
+    add_parent_types(&mut model).expect("Failed to add parent types");
 
     // Validate the model
     let mut validator = Validator::new();
-    validator.validate(&model)?;
+    validator.validate(&model);
+
+    if !validator.is_valid {
+        return Err(validator);
+    }
 
     Ok(model)
 }
@@ -121,8 +125,8 @@ fn clean_content(content: &str) -> String {
     let re = Regex::new(r"<[^>]*>").unwrap();
     let content = re.replace_all(content, "").to_string();
 
-    // Remove all markdown links
-    let re = Regex::new(r"\[([^\]]+)\]\([^\)]+\)").unwrap();
+    // Remove all Markdown links
+    let re = Regex::new(r"\[([^]]+)]\([^)]+\)").unwrap();
     let content = re.replace_all(content.as_str(), "$1").to_string();
 
     content
@@ -138,7 +142,7 @@ fn clean_content(content: &str) -> String {
 /// * `model` - A mutable reference to the data model.
 fn process_object_event(
     iterator: &mut Parser,
-    objects: &mut Vec<object::Object>,
+    objects: &mut Vec<Object>,
     event: Event,
     model: &mut DataModel,
     state: &mut ParserState,
