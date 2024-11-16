@@ -367,7 +367,7 @@ Object names should be capitalized and written in PascalCase. This means the fir
 
 ### Descriptions for Objects and Attributes
 
-    •	Always include descriptions for both objects and attributes. These descriptions provide valuable context, helping both human readers and systems (like AI tools) understand the meaning and purpose of each object or attribute.
+Always include descriptions for both objects and attributes. These descriptions provide valuable context, helping both human readers and systems (like AI tools) understand the meaning and purpose of each object or attribute.
 
 ✅ Valid Example:
 
