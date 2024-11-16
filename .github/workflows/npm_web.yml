@@ -30,7 +30,7 @@ jobs:
           version: "latest"
 
       - name: Build WASM for npm (bundle)
-        run: wasm-pack build --release --out-name mdmodels-core --target web --features wasm
+        run: wasm-pack build --release --out-name mdmodels-web --target web --features wasm
 
       - uses: actions/setup-node@v4
         with:
