@@ -1,0 +1,1188 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../types/equation/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.44">
+    
+    
+      
+        <title>Syntax - MD-Models</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.0253249f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Open Sans";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#syntax" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MD-Models" class="md-header__button md-logo" aria-label="MD-Models" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MD-Models
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Syntax
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JR-1991/md-models" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+    
+  
+  Syntax
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../types/syntax.md" class="md-tabs__link">
+          
+  
+  Data Types
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MD-Models" class="md-nav__button md-logo" aria-label="MD-Models" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    MD-Models
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JR-1991/md-models" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Syntax
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Syntax
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#yaml-frontmatter-metadata-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      YAML Frontmatter: Metadata Definition
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general-description-of-the-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      General Description of the Data Model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#object-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Object Definitions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Object Definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Attributes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuring attributes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using Types
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enumerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enumerations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namespaces-and-prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namespaces and Prefixes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Full example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#object-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Object Names
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#attribute-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Attribute Names
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#descriptions-for-objects-and-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Descriptions for Objects and Attributes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Data Types
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Data Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../types/syntax.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../types/equation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Equation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../types/unit-definition/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Unit Definition
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#yaml-frontmatter-metadata-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      YAML Frontmatter: Metadata Definition
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general-description-of-the-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      General Description of the Data Model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#object-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Object Definitions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Object Definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Attributes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuring attributes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using Types
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enumerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enumerations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namespaces-and-prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namespaces and Prefixes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Full example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#object-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Object Names
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#attribute-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      Attribute Names
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#descriptions-for-objects-and-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Descriptions for Objects and Attributes
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+    <a href="https://github.com/JR-1991/md-models/edit/main/docs/syntax.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="syntax">Syntax<a class="headerlink" href="#syntax" title="Permanent link">&para;</a></h1>
+<p>This guide outlines how to document a data model schema using MD-Models. The goal is to explain the structure and key components of the data model in clear, non-technical language to make it accessible to users who may not have a background in programming. This documentation will also ensure that the data model is organized, easy to maintain, and compatible with various external systems.</p>
+<details><summary>Full example</summary>
+
+<div class="highlight"><pre><span></span><code>---
+repo: https://myrepo.com/datamodel
+prefix: myapp
+prefixes:
+<span class="gu">  schema: schema.org</span>
+<span class="gu">---</span>
+
+<span class="gu">### User (schema:Person)</span>
+
+This type defines a user profile.
+
+<span class="k">-</span><span class="w"> </span>name
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The full name of the user.
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Term: schema:name
+<span class="k">-</span><span class="w"> </span>address
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: Address
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The user&#39;s address.
+<span class="k">-</span><span class="w"> </span>orders
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: Order[]
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: Complete list of the user&#39;s orders.
+
+<span class="gu">### Address</span>
+
+This object represents a user&#39;s address.
+
+<span class="k">-</span><span class="w"> </span>street
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Description: The street of a user
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Term: schema:streetAddress
+<span class="k">-</span><span class="w"> </span>postal_code
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Description: The postal code of a user
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Term: schema:postalCode
+
+<span class="gu">### Order</span>
+
+This object defines an order.
+
+<span class="k">-</span><span class="w"> </span>product_id
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The ID of the product that has been ordered
+<span class="k">-</span><span class="w"> </span>status
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: OrderStatus
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The current state of the user&#39;s order.
+
+<span class="gu">### OrderStatus</span>
+
+This enumeration encodes the possible states an order can be in.
+
+DELIVERED = &quot;delivered&quot;
+IN_TRANSIT = &quot;in_transit&quot;
+OPEN = &quot;open&quot;
+</code></pre></div>
+
+</details>
+
+<h2 id="yaml-frontmatter-metadata-definition">YAML Frontmatter: Metadata Definition<a class="headerlink" href="#yaml-frontmatter-metadata-definition" title="Permanent link">&para;</a></h2>
+<p>At the very beginning of the document, we define what’s called the YAML frontmatter. This section provides important metadata (background information) that gives context to the entire data model. Think of it as the “settings” for your documentation. This metadata helps systems interpret the model correctly, especially if the model needs to work with other systems or tools.</p>
+<p><strong>Why is the Frontmatter Important?</strong></p>
+<p>The frontmatter provides key information that serves multiple purposes:</p>
+<ul>
+<li>Repository Information: Where is the data model stored? This could be a web address (URL) to a source repository where the model is maintained.</li>
+<li>Prefix for XML Serialization: If your data model is going to be converted into XML format, it’s essential to define a prefix that ensures each part of the model is properly named and understood by machines.</li>
+<li>Other Prefixes: You might need to reference common external vocabularies (like schema.org) to make your model interoperable with other data formats.</li>
+</ul>
+<p>Example of Frontmatter:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">repo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://myrepo.com/datamodel</span>
+<span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myapp</span>
+<span class="nt">prefixes</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema.org</span>
+<span class="nn">---</span>
+</code></pre></div>
+<p>Explanation:</p>
+<ul>
+<li><code>repo</code>: This is a web address (URL) that points to the repository where the data model is stored. In this example, it’s https://myrepo.com/datamodel.</li>
+<li><code>prefix</code>: This is the default prefix (myapp) used when the model is serialized into XML. This prefix ensures the data elements are uniquely named.</li>
+<li><code>prefixes</code>: This section maps additional prefixes to well-known external namespaces, such as schema mapped to schema.org. This helps define standardized data fields like schema:name for names, or schema:address for addresses.</li>
+</ul>
+<h2 id="general-description-of-the-data-model">General Description of the Data Model<a class="headerlink" href="#general-description-of-the-data-model" title="Permanent link">&para;</a></h2>
+<p>This section is defined by a level 1 heading (#) and gives an overall summary of the data model. It explains what the data model is about and why it exists, providing a general overview that someone unfamiliar with the model can understand.</p>
+<p><strong>Why is the General Description Important?</strong></p>
+<p>The general description serves as an introduction to the data model. It should provide a high-level explanation that answers:</p>
+<ul>
+<li>What is the purpose of the data model?</li>
+<li>What kind of data or entities does it represent?</li>
+<li>Who would use this model and for what purpose?</li>
+</ul>
+<p>This section does not need to be too technical. Its 
+purpose is to help everyone, regardless of technical background, understand what the model is designed to do.</p>
+<p>Example of a General Description:</p>
+<div class="highlight"><pre><span></span><code><span class="gh"># My Application Data Model</span>
+
+This data model defines and describes the key entities and relationships within My Application. The model focuses on users, their addresses, and the various statuses that a user account can have. It provides a structured way to organize and manage data, ensuring consistency across the system and compatibility with external systems like XML and schema.org.
+
+Explanation:
+
+<span class="k">-</span><span class="w"> </span>Entities: In this case, the entities are users, addresses, and account statuses.
+<span class="k">-</span><span class="w"> </span>Purpose: The model provides a way to organize and manage data, ensuring that the system operates consistently and integrates easily with other systems.
+</code></pre></div>
+<p>This general description helps someone unfamiliar with the model quickly understand what kind of data is being managed and why.</p>
+<h2 id="object-definitions">Object Definitions<a class="headerlink" href="#object-definitions" title="Permanent link">&para;</a></h2>
+<p>Objects are the building blocks of the data model. They represent the things or entities within the system that you are tracking or managing. For example, objects can represent people, products, locations, or any other type of entity relevant to your application.</p>
+<p><strong>What is an Object?</strong></p>
+<p>An object in the context of a data model is something that you want to store information about. It could be a user, a product, a service, or even something abstract like an event or a status. Objects are usually defined by a name and a set of attributes (properties). Within a markdown data model, an object is defined by a level 3 heading (###).</p>
+<p>Example of an Object:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### User (schema:Person)</span>
+
+<span class="k">-</span><span class="w"> </span>name
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+</code></pre></div>
+<ul>
+<li>Object name: <code>User</code> – This represents an individual who uses the application.</li>
+<li>Namespace reference: <code>schema:Person</code> This maps the object to the standardized <code>Person</code> term from schema.org. By doing this, you ensure that external systems will recognize and understand the object when interacting with your model.</li>
+</ul>
+<p><strong>Best Practices for Object Names</strong></p>
+<ul>
+<li>Object names should be capitalized and written in PascalCase: This means that each word in the object name should start with a capital letter, and there should be no spaces or underscores between words. This makes object names clear and easy to read.</li>
+</ul>
+<h3 id="attributes">Attributes<a class="headerlink" href="#attributes" title="Permanent link">&para;</a></h3>
+<p>Attributes define the characteristics or properties of an object. For example, a <code>User</code> object might have attributes like <code>name</code>, <code>email_address</code>, and <code>age</code> These attributes describe specific information about the user. Within markdown data models, an attribute is defined as a list element (-) and has to appear under the object it belongs to.</p>
+<p>Example of attributes for the <code>User</code> Object:</p>
+<div class="highlight"><pre><span></span><code><span class="k">-</span><span class="w"> </span><span class="gs">**name**</span>
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The full name of the user.
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Term: schema:name
+<span class="k">-</span><span class="w"> </span>age
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: number
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The age of the user in years.
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Term: schema:age
+</code></pre></div>
+<p>Explanation:</p>
+<ul>
+<li><code>name</code>: This attribute stores the user’s name. It is a string (a sequence of characters), and it is mapped to the schema:name term from schema.org. By enclosing the attribute name in double asterisks (**), we make it bold and thus required.</li>
+<li><code>age</code>: This attribute stores the user’s age as a number. It uses the schema:age term, ensuring consistency with other systems that also use this standard.</li>
+</ul>
+<p><strong>Best Practices for attribute names</strong></p>
+<ul>
+<li>Do not use special characters or numbers at the start of attribute names: This ensures that the names are valid and won’t cause errors when interacting with different systems.</li>
+<li>Avoid spaces in attribute names: Instead, use underscores (<code>_</code>) to separate words. This ensures that the names are easy to read and consistent.</li>
+</ul>
+<h3 id="configuring-attributes">Configuring attributes<a class="headerlink" href="#configuring-attributes" title="Permanent link">&para;</a></h3>
+<p>You may have noticed that attributes contain a sub-list of key-value pairs. These are used to define specific details about each attribute. You can insert whatever metadata you'd like to add, but there are two mandatory ones:</p>
+<ul>
+<li><code>Type</code>: The data-type associated with the attribute. This is vital to check if the values given to an attribute are as expected. For example, a user’s age should be a number, not a string.</li>
+<li><code>Description</code>: A short description of what the attribute represents. This helps others understand the purpose of the attribute and how it should be used. In addition, these descriptions are helpful to assist OpenAI-based structured respones to extract metadata from text data.</li>
+</ul>
+<p>Aside of these mandatory optionals, here are some optional ones:</p>
+<ul>
+<li><code>XML</code>: This alias will be used upon XML handling. It can be particularly useful in cases where the JSON snake case notation violates the XML naming conventions.</li>
+<li><code>Term</code>: This is where you can add ontology terms to identify the semantic meaning of an attribute. You can enter a valid URI or make use of prefixed shortforms such as <code>schema:person</code>. When using the latter, make sure that you have defined the prefix within the YAML frontmatter.</li>
+</ul>
+<p>Since markdown data models are a superset of JSON-Schema, you can use any of the JSON-Schema attributes to further define the behavior of your attributes. This includes options like <code>default</code>, <code>minimum</code>, <code>example</code> and more.</p>
+<h3 id="using-types">Using Types<a class="headerlink" href="#using-types" title="Permanent link">&para;</a></h3>
+<p>The <code>Type</code> option of an attribute is a powerful tool to ensure data consistency and accuracy. By specifying the data type of an attribute, you can prevent incorrect values from being entered and ensure that the data is always in the expected format. These are the currently supported base types:</p>
+<ul>
+<li><code>string</code>- Text data, such as names, addresses, and descriptions.</li>
+<li><code>number</code>- Numerical data, such as a length, prices, and quantities. Resolves to <code>float</code></li>
+<li><code>float</code> - Explicit floating point number type.</li>
+<li><code>integer</code> - Whole number type, such as ages, counts or IDs.</li>
+<li><code>boolean</code> - Truth values that can be either <code>true</code>or <code>false</code></li>
+<li><code>bytes</code> - Raw byte data such as files or images.</li>
+</ul>
+<p>In addition to basic types, you can also specify the usage of another object that you have defined within your data model. For instance, if there is an <code>Address</code> object present, you can specify that the <code>address</code> attribute of a <code>User</code> object should be of type <code>Address</code>.</p>
+<p>When dealing with array/list data, you can tranform any type into an array by adding <code>[]</code> to the end of the type. For example, <code>string[]</code> would represent an array of strings. Same applies to complex types (other objects in your model) as well.</p>
+<h2 id="enumerations">Enumerations<a class="headerlink" href="#enumerations" title="Permanent link">&para;</a></h2>
+<p>Enumerations are used when an attribute can only have a specific set of predefined values. These values are usually constant and represent different states or categories. For example, a Status enumeration could represent whether a user’s account is active, inactive, or suspended.</p>
+<p><strong>What are Enumerations?</strong></p>
+<p>An enumeration is a list of possible values that an attribute can take. This is especially useful for fields like account status, where only a limited number of values are valid. By using enumerations, you ensure that the data entered is always within the allowed range, reducing errors and improving consistency.</p>
+<p>Example of an Enumeration:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### Status</span>
+
+Represents the possible states of a user account.
+
+ACTIVE = &quot;active&quot;
+INACTIVE = &quot;inactive&quot;
+SUSPENDED = &quot;suspended&quot;
+</code></pre></div>
+<p>Explanation:</p>
+<ul>
+<li>The Status enumeration defines three possible values that a status attribute can have:</li>
+<li><code>ACTIVE</code>: The account is active and operational.</li>
+<li><code>INACTIVE</code>: The account is inactive, possibly due to inactivity or manual suspension.</li>
+<li><code>SUSPENDED</code>: The account is temporarily or permanently suspended.</li>
+</ul>
+<p>By defining enumerations, you restrict the attribute values to valid options, ensuring that no invalid data is entered.</p>
+<h2 id="namespaces-and-prefixes">Namespaces and Prefixes<a class="headerlink" href="#namespaces-and-prefixes" title="Permanent link">&para;</a></h2>
+<p>Namespaces and prefixes provide a way to align your data model with external standards and ensure that your data is compatible with other systems. A namespace acts as a reference to a specific domain of terms, helping avoid conflicts or confusion when similar terms exist in different systems.</p>
+<p><strong>Why are Namespaces and Prefixes Important?</strong></p>
+<p>When you’re building a data model that may need to interact with other systems, it’s important to reference standardized terms. Namespaces allow you to link the terms in your model to well-known vocabularies (like <code>schema.org</code>) so that external systems can recognize and understand your data. By doing this, you make your data model interoperable.</p>
+<p>Example of prefixes:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">prefixes</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema.org</span>
+</code></pre></div>
+<p>Explanation:</p>
+<ul>
+<li>The schema prefix is mapped to schema.org. This means that any term in your model prefixed with schema (like <code>schema:name</code> or <code>schema:address</code>) is directly linked to a globally recognized vocabulary. This helps standardize your data and makes it easier to integrate with other platforms or services.</li>
+</ul>
+<h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Permanent link">&para;</a></h2>
+<p>In this section you can find a full example that describes a simple data model for a user profile. This model includes the user’s name, email address, age, and status. It also defines an enumeration for the user status attribute.</p>
+<details><summary>Click to show</summary>
+
+<div class="highlight"><pre><span></span><code>---
+repo: https://myrepo.com/datamodel
+prefix: myapp
+prefixes:
+<span class="gu">  schema: schema.org</span>
+<span class="gu">---</span>
+
+<span class="gu">### User (schema:Person)</span>
+
+This type defines a user profile.
+
+<span class="k">-</span><span class="w"> </span>name
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The full name of the user.
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Term: schema:name
+<span class="k">-</span><span class="w"> </span>address
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: Address
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The user&#39;s address.
+<span class="k">-</span><span class="w"> </span>orders
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: Order[]
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: Complete list of the user&#39;s orders.
+
+<span class="gu">### Address</span>
+
+This object represents a user&#39;s address.
+
+<span class="k">-</span><span class="w"> </span>street
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Description: The street of a user
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Term: schema:streetAddress
+<span class="k">-</span><span class="w"> </span>postal_code
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Description: The postal code of a user
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Term: schema:postalCode
+
+<span class="gu">### Order</span>
+
+This object defines an order.
+
+<span class="k">-</span><span class="w"> </span>product_id
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The ID of the product that has been ordered
+<span class="k">-</span><span class="w"> </span>status
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: OrderStatus
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The current state of the user&#39;s order.
+
+<span class="gu">### OrderStatus</span>
+
+This enumeration encodes the possible states an order can be in.
+
+DELIVERED = &quot;delivered&quot;
+IN_TRANSIT = &quot;in_transit&quot;
+OPEN = &quot;open&quot;
+</code></pre></div>
+
+</details>
+
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<p>To ensure your data model is clear, well-organized, and compatible with different systems, follow these best practices.</p>
+<h3 id="object-names">Object Names<a class="headerlink" href="#object-names" title="Permanent link">&para;</a></h3>
+<p>Object names should be capitalized and written in PascalCase. This means the first letter of each word is capitalized, and there are no spaces between words. This naming convention improves readability and keeps the documentation consistent. Names should also not start with numbers or special characters.</p>
+<p>✅ Valid Example:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### UserOrder</span>
+</code></pre></div>
+<p>⛔️ Invalid Examples:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### User Order</span>
+
+<span class="gu">### 0UserOrder</span>
+</code></pre></div>
+<h3 id="attribute-names">Attribute Names<a class="headerlink" href="#attribute-names" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Attribute names must not start with numbers or special characters. This ensures compatibility with programming languages and data serialization formats.</li>
+<li>Avoid spaces in attribute names. Instead, use underscores (<code>_</code>) to separate words.</li>
+</ul>
+<p>✅ Valid Example:</p>
+<div class="highlight"><pre><span></span><code><span class="k">-</span><span class="w"> </span>total_price
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: number
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The total price of the order.
+</code></pre></div>
+<p>⛔️ Invalid Examples:</p>
+<div class="highlight"><pre><span></span><code><span class="k">-</span><span class="w"> </span>total price
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: number
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The total price of the order.
+<span class="k">-</span><span class="w"> </span>3total price
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: number
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The total price of the order.
+</code></pre></div>
+<h3 id="descriptions-for-objects-and-attributes">Descriptions for Objects and Attributes<a class="headerlink" href="#descriptions-for-objects-and-attributes" title="Permanent link">&para;</a></h3>
+<p>Always include descriptions for both objects and attributes. These descriptions provide valuable context, helping both human readers and systems (like AI tools) understand the meaning and purpose of each object or attribute.</p>
+<p>✅ Valid Example:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### Product (schema:Product)</span>
+
+Represents an item that is available for purchase in the system.
+
+<span class="k">-</span><span class="w"> </span>name
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Description: The name of the product.
+</code></pre></div>
+<p>⚠️ Bad Practice Example:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### Product</span>
+
+<span class="k">-</span><span class="w"> </span>name
+<span class="w">  </span><span class="k">-</span><span class="w"> </span>Type: string
+</code></pre></div>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.path", "navigation.top", "navigation.tracking", "toc.follow", "search.suggest", "content.action.edit", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+    
+  </body>
+</html>
