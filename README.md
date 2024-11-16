@@ -1,8 +1,44 @@
-# Markdown Models
+
+# MD-Models
 
 ![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)
 
-This is a markdown parser and converter for Rust that can be used to parse markdown data model files and convert them to various formats, schemes and programming languages.
+Welcome to Markdown Models (MD-Models), a powerful framework for research data management that prioritizes flexibility and efficiency.
+
+With an adaptable markdown-based schema language, MD-Models automatically generates schemas and programming language representations. This markdown schema forms the foundation for object-oriented models, enabling seamless cross-format compatibility and simplifying modifications to data structures.
+
+Check out the [documentation](https://fairchemistry.github.io/md-models/) for more information.
+
+### Example
+
+The schema syntax uses Markdown to define data models in a clear and structured way. Each object is introduced with a header, followed by its attributes. Attributes are described with their type, a brief explanation, and optional metadata like terms. Nested or related objects are represented using array types or references to other objects.
+
+```markdown
+---
+prefixes:
+  schema: http://schema.org/
+---
+
+### Person
+
+- **name**
+  - Type: string
+  - Description: The name of the person
+  - Term: schema:name
+- age
+  - Type: integer
+  - Description: The age of the person
+  - Term: schema:age
+- addresses
+  - Type: Address[]
+  - Description: The address of the person
+
+### Address
+
+- street
+  - Type: string
+  - Description: The street of the address
+```
 
 ## Installation
 
