@@ -26,8 +26,6 @@ jobs:
           - runner: ubuntu-latest
             target: armv7
           - runner: ubuntu-latest
-            target: s390x
-          - runner: ubuntu-latest
             target: ppc64le
     steps:
       - uses: actions/checkout@v4
@@ -38,9 +36,23 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --zig
+          args: --release --out dist --find-interpreter --features python
           sccache: "true"
           manylinux: auto
+          before-script-linux: |
+            # If we're running on rhel centos, install needed packages.
+            if command -v yum &> /dev/null; then
+                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
+
+                # If we're running on i686 we need to symlink libatomic
+                # in order to build openssl with -latomic flag.
+                if [[ ! -d "/usr/lib64" ]]; then
+                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+                fi
+            else
+                # If we're running on debian-based system.
+                apt update -y && apt-get install -y libssl-dev openssl pkg-config
+            fi
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -66,7 +78,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist --find-interpreter --features python
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -92,7 +104,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist --find-interpreter --features python
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -128,7 +140,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i ${{ env.PYTHON_VERSION }}
+          args: --release --out dist -i ${{ env.PYTHON_VERSION }} --features python
           sccache: "true"
           rust-toolchain: nightly
       - name: Upload wheels
