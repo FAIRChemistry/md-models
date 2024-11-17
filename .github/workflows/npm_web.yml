@@ -2,6 +2,7 @@ name: Publish to NPM (Web CDN)
 
 on:
   release:
+    types: [ published ]
 
 permissions:
   contents: write
