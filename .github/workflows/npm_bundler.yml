@@ -2,8 +2,6 @@ name: Publish to NPM (Bundler)
 
 on:
   release:
-    types:
-      - published
 
 permissions:
   contents: write

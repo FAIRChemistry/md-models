@@ -7,8 +7,6 @@ name: Publish to PyPI
 
 on:
   release:
-    types:
-      - published
 
 permissions:
   contents: read
