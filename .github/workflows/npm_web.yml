@@ -1,9 +1,9 @@
 name: Publish to NPM (Web CDN)
 
 on:
-  push:
-    tags:
-      - "v?[0-9]+.[0-9]+.[0-9]+"
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
@@ -17,10 +17,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Get the release version from the tag
-        shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -46,7 +42,6 @@ jobs:
           cd pkg/
           npm install --package-lock-only
           npm ci
-          npm version $VERSION
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
