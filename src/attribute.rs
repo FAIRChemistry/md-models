@@ -27,6 +27,7 @@ use std::{error::Error, fmt, str::FromStr};
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
+use pyo3::pymethods;
 
 /// Represents an attribute with various properties and options.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -208,6 +209,57 @@ pub enum DataType {
     Integer(i64),
     Float(f64),
     String(String),
+}
+
+#[cfg_attr(feature = "python", pymethods)]
+impl DataType {
+    pub fn is_boolean(&self) -> bool {
+        matches!(self, DataType::Boolean(_))
+    }
+
+    pub fn is_integer(&self) -> bool {
+        matches!(self, DataType::Integer(_))
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self, DataType::Float(_))
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self, DataType::String(_))
+    }
+
+    pub fn as_boolean(&self) -> Option<bool> {
+        if let DataType::Boolean(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_integer(&self) -> Option<i64> {
+        if let DataType::Integer(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_float(&self) -> Option<f64> {
+        if let DataType::Float(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_string(&self) -> Option<String> {
+        if let DataType::String(value) = self {
+            Some(value.clone())
+        } else {
+            None
+        }
+    }
 }
 
 impl PartialEq for DataType {
