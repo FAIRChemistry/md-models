@@ -26,7 +26,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
 #[cfg(feature = "python")]
-use pyo3::pyclass;
+use pyo3::{pyclass, pymethods};
 
 /// Represents an attribute with various properties and options.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -208,6 +208,57 @@ pub enum DataType {
     Integer(i64),
     Float(f64),
     String(String),
+}
+
+#[cfg_attr(feature = "python", pymethods)]
+impl DataType {
+    pub fn is_boolean(&self) -> bool {
+        matches!(self, DataType::Boolean(_))
+    }
+
+    pub fn is_integer(&self) -> bool {
+        matches!(self, DataType::Integer(_))
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self, DataType::Float(_))
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self, DataType::String(_))
+    }
+
+    pub fn as_boolean(&self) -> Option<bool> {
+        if let DataType::Boolean(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_integer(&self) -> Option<i64> {
+        if let DataType::Integer(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_float(&self) -> Option<f64> {
+        if let DataType::Float(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_string(&self) -> Option<String> {
+        if let DataType::String(value) = self {
+            Some(value.clone())
+        } else {
+            None
+        }
+    }
 }
 
 impl PartialEq for DataType {
@@ -459,5 +510,131 @@ mod tests {
         let deserialized: DataType =
             serde_json::from_str("true").expect("Failed to deserialize bool DataType");
         assert_eq!(deserialized, DataType::Boolean(true));
+    }
+
+    #[test]
+    fn is_boolean_returns_true_for_boolean() {
+        let dt = DataType::Boolean(true);
+        assert!(dt.is_boolean());
+    }
+
+    #[test]
+    fn is_boolean_returns_false_for_non_boolean() {
+        let dt = DataType::Integer(1);
+        assert!(!dt.is_boolean());
+    }
+
+    #[test]
+    fn is_integer_returns_true_for_integer() {
+        let dt = DataType::Integer(1);
+        assert!(dt.is_integer());
+    }
+
+    #[test]
+    fn is_integer_returns_false_for_non_integer() {
+        let dt = DataType::Boolean(true);
+        assert!(!dt.is_integer());
+    }
+
+    #[test]
+    fn is_float_returns_true_for_float() {
+        let dt = DataType::Float(1.0);
+        assert!(dt.is_float());
+    }
+
+    #[test]
+    fn is_float_returns_false_for_non_float() {
+        let dt = DataType::String("string".to_string());
+        assert!(!dt.is_float());
+    }
+
+    #[test]
+    fn is_string_returns_true_for_string() {
+        let dt = DataType::String("string".to_string());
+        assert!(dt.is_string());
+    }
+
+    #[test]
+    fn is_string_returns_false_for_non_string() {
+        let dt = DataType::Float(1.0);
+        assert!(!dt.is_string());
+    }
+
+    #[test]
+    fn as_boolean_returns_some_for_boolean() {
+        let dt = DataType::Boolean(true);
+        assert_eq!(dt.as_boolean(), Some(true));
+    }
+
+    #[test]
+    fn as_boolean_returns_none_for_non_boolean() {
+        let dt = DataType::Integer(1);
+        assert_eq!(dt.as_boolean(), None);
+    }
+
+    #[test]
+    fn as_integer_returns_some_for_integer() {
+        let dt = DataType::Integer(1);
+        assert_eq!(dt.as_integer(), Some(1));
+    }
+
+    #[test]
+    fn as_integer_returns_none_for_non_integer() {
+        let dt = DataType::Boolean(true);
+        assert_eq!(dt.as_integer(), None);
+    }
+
+    #[test]
+    fn as_float_returns_some_for_float() {
+        let dt = DataType::Float(1.0);
+        assert_eq!(dt.as_float(), Some(1.0));
+    }
+
+    #[test]
+    fn as_float_returns_none_for_non_float() {
+        let dt = DataType::String("string".to_string());
+        assert_eq!(dt.as_float(), None);
+    }
+
+    #[test]
+    fn as_string_returns_some_for_string() {
+        let dt = DataType::String("string".to_string());
+        assert_eq!(dt.as_string(), Some("string".to_string()));
+    }
+
+    #[test]
+    fn as_string_returns_none_for_non_string() {
+        let dt = DataType::Float(1.0);
+        assert_eq!(dt.as_string(), None);
+    }
+
+    #[test]
+    fn from_str_parses_boolean() {
+        let dt = DataType::from_str("true").unwrap();
+        assert_eq!(dt, DataType::Boolean(true));
+    }
+
+    #[test]
+    fn from_str_parses_integer() {
+        let dt = DataType::from_str("42").unwrap();
+        assert_eq!(dt, DataType::Integer(42));
+    }
+
+    #[test]
+    fn from_str_parses_float() {
+        let dt = DataType::from_str("3.5").unwrap();
+        assert_eq!(dt, DataType::Float(3.5));
+    }
+
+    #[test]
+    fn from_str_parses_string() {
+        let dt = DataType::from_str("hello").unwrap();
+        assert_eq!(dt, DataType::String("\"hello\"".to_string()));
+    }
+
+    #[test]
+    fn from_str_returns_error_for_invalid_data_type() {
+        let dt = DataType::from_str("");
+        assert!(dt.is_err());
     }
 }
