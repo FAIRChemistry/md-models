@@ -622,8 +622,8 @@ mod tests {
 
     #[test]
     fn from_str_parses_float() {
-        let dt = DataType::from_str("3.14").unwrap();
-        assert_eq!(dt, DataType::Float(3.14));
+        let dt = DataType::from_str("3.5").unwrap();
+        assert_eq!(dt, DataType::Float(3.5));
     }
 
     #[test]
