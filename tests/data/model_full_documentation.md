@@ -20,6 +20,12 @@ This schema is used to test the generation of documentation. It includes a prima
   - please ignore
   - this section
 
+```mermaid
+classDiagram
+  Test2 --> Test
+  Ontology --> Test
+```
+
 ### Test
 
 The `Test` schema defines the primary structure for the test entity. It contains multiple properties that capture various attributes of a test, including its name, numerical identifier, a nested array of test2 objects, and an ontology reference.
