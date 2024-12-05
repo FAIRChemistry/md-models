@@ -425,8 +425,11 @@ pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, e
             let event = iterator.next().unwrap();
             if let Event::Text(text) = event {
                 let mappings = text.to_string();
-                let enum_obj = enums.last_mut().unwrap();
-                process_enum_mappings(enum_obj, mappings);
+
+                if enums.last_mut().is_some() {
+                    let enum_obj = enums.last_mut().unwrap();
+                    process_enum_mappings(enum_obj, mappings);
+                }
             }
         }
         _ => {}
