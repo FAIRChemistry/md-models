@@ -309,6 +309,7 @@ impl Serialize for DataType {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'de> Deserialize<'de> for DataType {
     /// Deserializes a DataType from a string.
     fn deserialize<D>(deserializer: D) -> Result<DataType, D::Error>

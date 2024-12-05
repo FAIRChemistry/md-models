@@ -79,7 +79,7 @@ impl FromStr for DataType {
 impl DataType {
     pub fn from_object(value: &serde_json::Value) -> Self {
         if let Some(reference) = value.get("$ref") {
-            return DataType::Reference {
+            DataType::Reference {
                 reference: reference
                     .as_str()
                     .unwrap()
@@ -87,7 +87,7 @@ impl DataType {
                     .last()
                     .unwrap()
                     .to_string(),
-            };
+            }
         } else if let Some(values) = value.get("enum") {
             let values = values
                 .as_array()
