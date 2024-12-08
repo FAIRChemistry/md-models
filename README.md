@@ -84,3 +84,14 @@ This project uses GitHub Actions for continuous integration. The tests can be ru
 cargo test
 cargo clippy
 ```
+
+### Using pre-commit hooks
+
+This project uses [pre-commit](https://pre-commit.com/) to run the `rustfmt` and `clippy` commands on every commit. To install the pre-commit hooks, you can use the following command:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Once the pre-commit hooks are installed, they will run on every commit. This will ensure that the code is formatted and linted correctly. And the clippy CI will not complain about warnings.

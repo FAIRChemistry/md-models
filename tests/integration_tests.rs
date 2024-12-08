@@ -348,4 +348,29 @@ mod tests {
         // Act
         DataModel::from_markdown(path).expect("Could not parse markdown");
     }
+
+    #[test]
+    #[should_panic]
+    fn test_multiple_types_invalid() {
+        let path = Path::new("tests/data/model_multiple_types_invalid.md");
+        DataModel::from_markdown(path).expect("Could not parse markdown");
+    }
+
+    #[test]
+    fn test_multiple_types() {
+        let path = Path::new("tests/data/model_multiple_types.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        for object in model.objects {
+            if object.name == "Test" {
+                for attribute in object.attributes {
+                    assert!(attribute.dtypes.len() > 1);
+
+                    if attribute.name == "array" {
+                        assert!(attribute.is_array);
+                    }
+                }
+            }
+        }
+    }
 }
