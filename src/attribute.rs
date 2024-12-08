@@ -29,7 +29,7 @@ use std::{error::Error, fmt, str::FromStr};
 use pyo3::{pyclass, pymethods};
 
 /// Represents an attribute with various properties and options.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
 pub struct Attribute {
     /// The name of the attribute.
@@ -94,14 +94,16 @@ impl Attribute {
     ///
     /// * `option` - The option to add.
     pub fn add_option(&mut self, option: AttrOption) -> Result<(), Box<dyn Error>> {
-        match option.key.to_lowercase().as_str() {
-            "type" => self.set_dtype(option.value),
-            "term" => self.term = Some(option.value),
-            "description" => self.docstring = option.value,
-            "xml" => self.set_xml(XMLType::from_str(&option.value).expect("Invalid XML type")),
-            "default" => self.default = Some(DataType::from_str(&option.value)?),
-            "multiple" => self.is_array = option.value.to_lowercase() == "true",
-            _ => self.options.push(option),
+        match OptionKey::from_str(option.key.as_str()) {
+            OptionKey::Type => self.set_dtype(option.value)?,
+            OptionKey::Term => self.term = Some(option.value),
+            OptionKey::Description => self.docstring = option.value,
+            OptionKey::Default => self.default = Some(DataType::from_str(&option.value)?),
+            OptionKey::Multiple => self.is_array = option.value.to_lowercase() == "true",
+            OptionKey::Other => self.options.push(option),
+            OptionKey::Xml => {
+                self.set_xml(XMLType::from_str(&option.value).expect("Invalid XML type"))
+            }
         }
 
         Ok(())
@@ -112,22 +114,91 @@ impl Attribute {
     /// # Arguments
     ///
     /// * `dtype` - The data type to set.
-    fn set_dtype(&mut self, dtype: String) {
-        let mut dtype = dtype;
-        // Handle special case for identifiers
-        if dtype.to_lowercase().starts_with("identifier") {
-            self.is_id = true;
-            // Regex replace identifier or Identifier with string
-            let pattern = regex::Regex::new(r"[I|i]dentifier").unwrap();
-            dtype = pattern.replace_all(&dtype, "string").to_string();
+    fn set_dtype(&mut self, dtype: String) -> Result<(), Box<dyn Error>> {
+        let mut dtypes = self.break_up_dtypes(&dtype);
+
+        self.validate_dtypes(&dtypes)?;
+
+        for dtype in dtypes.iter_mut() {
+            *dtype = dtype.trim().to_string();
+            if self.is_identifier(&dtype) {
+                *dtype = self.process_identifier(&dtype);
+            }
+
+            if dtype.ends_with("[]") {
+                self.is_array = true;
+            }
+
+            self.dtypes.push(dtype.trim_end_matches("[]").to_string());
         }
 
-        // Handle special case for arrays
-        if dtype.ends_with("[]") {
-            self.is_array = true;
+        Ok(())
+    }
+
+    /// Splits a data type string into a vector of strings based on commas.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype` - A string representing the data types, separated by commas.
+    ///
+    /// # Returns
+    ///
+    /// A vector of strings, each representing a separate data type.
+    fn break_up_dtypes(&self, dtype: &str) -> Vec<String> {
+        dtype.split(",").map(|s| s.to_string()).collect()
+    }
+
+    /// Validates a vector of data type strings to ensure consistency in array notation.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtypes` - A reference to a vector of strings representing data types.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating success or an error if the validation fails.
+    fn validate_dtypes(&self, dtypes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        let has_multiple_dtypes = dtypes.len() > 1;
+        let contains_array_dtype = dtypes.iter().any(|dtype| dtype.ends_with("[]"));
+
+        if has_multiple_dtypes && contains_array_dtype {
+            return Err(
+                "If more than one dtype is provided, none can be array valued by []. \
+                Use the keyword 'Multiple' instead."
+                    .into(),
+            );
         }
 
-        self.dtypes.push(dtype.trim_end_matches("[]").to_string());
+        Ok(())
+    }
+
+    /// Checks if a data type string represents an identifier.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype` - A string representing a data type.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the data type is an identifier, `false` otherwise.
+    fn is_identifier(&self, dtype: &str) -> bool {
+        dtype.to_lowercase().starts_with("identifier")
+    }
+
+    /// Processes a data type string to replace 'identifier' with 'string'.
+    ///
+    /// # Arguments
+    ///
+    /// * `dtype` - A string representing a data type.
+    ///
+    /// # Returns
+    ///
+    /// A new string with 'identifier' replaced by 'string'.
+    fn process_identifier(&mut self, dtype: &str) -> String {
+        self.is_id = true;
+        // Regex replace identifier or Identifier with string
+        let pattern = regex::Regex::new(r"[I|i]dentifier").unwrap();
+        pattern.replace_all(&dtype, "string").to_string()
     }
 
     /// Converts the attribute to a JSON schema.
@@ -349,6 +420,47 @@ impl<'de> Deserialize<'de> for DataType {
     }
 }
 
+/// Represents the different keys that can be used for attribute options.
+enum OptionKey {
+    /// Represents the data type of the attribute.
+    Type,
+    /// Represents the term associated with the attribute.
+    Term,
+    /// Represents the description of the attribute.
+    Description,
+    /// Represents the XML type information for the attribute.
+    Xml,
+    /// Represents the default value for the attribute.
+    Default,
+    /// Indicates if the attribute can have multiple values.
+    Multiple,
+    /// Represents any other option not covered by the predefined keys.
+    Other,
+}
+
+impl OptionKey {
+    /// Converts a string to an `OptionKey`.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The string representation of the key.
+    ///
+    /// # Returns
+    ///
+    /// An `OptionKey` corresponding to the given string.
+    fn from_str(key: &str) -> Self {
+        match key.to_lowercase().as_str() {
+            "type" => OptionKey::Type,
+            "term" => OptionKey::Term,
+            "description" => OptionKey::Description,
+            "xml" => OptionKey::Xml,
+            "default" => OptionKey::Default,
+            "multiple" => OptionKey::Multiple,
+            _ => OptionKey::Other,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::xmltype::XMLType;
@@ -410,7 +522,8 @@ mod tests {
     #[test]
     fn test_attribute_set_dtype() {
         let mut attr = Attribute::new("name".to_string(), false);
-        attr.set_dtype("string".to_string());
+        attr.set_dtype("string".to_string())
+            .expect("Failed to set dtype");
         assert_eq!(attr.dtypes.len(), 1);
         assert_eq!(attr.dtypes[0], "string");
         assert_eq!(attr.is_array, false);
@@ -419,7 +532,8 @@ mod tests {
     #[test]
     fn test_attribute_set_array_dtype() {
         let mut attr = Attribute::new("name".to_string(), false);
-        attr.set_dtype("string[]".to_string());
+        attr.set_dtype("string[]".to_string())
+            .expect("Failed to set dtype");
         assert_eq!(attr.dtypes.len(), 1);
         assert_eq!(attr.dtypes[0], "string");
         assert_eq!(attr.is_array, true);
