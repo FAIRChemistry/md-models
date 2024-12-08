@@ -121,8 +121,8 @@ impl Attribute {
 
         for dtype in dtypes.iter_mut() {
             *dtype = dtype.trim().to_string();
-            if self.is_identifier(&dtype) {
-                *dtype = self.process_identifier(&dtype);
+            if self.is_identifier(dtype) {
+                *dtype = self.process_identifier(dtype);
             }
 
             if dtype.ends_with("[]") {
@@ -157,7 +157,7 @@ impl Attribute {
     /// # Returns
     ///
     /// A `Result` indicating success or an error if the validation fails.
-    fn validate_dtypes(&self, dtypes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    fn validate_dtypes(&self, dtypes: &[String]) -> Result<(), Box<dyn Error>> {
         let has_multiple_dtypes = dtypes.len() > 1;
         let contains_array_dtype = dtypes.iter().any(|dtype| dtype.ends_with("[]"));
 
@@ -198,7 +198,7 @@ impl Attribute {
         self.is_id = true;
         // Regex replace identifier or Identifier with string
         let pattern = regex::Regex::new(r"[I|i]dentifier").unwrap();
-        pattern.replace_all(&dtype, "string").to_string()
+        pattern.replace_all(dtype, "string").to_string()
     }
 
     /// Converts the attribute to a JSON schema.
