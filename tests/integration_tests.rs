@@ -132,62 +132,45 @@ mod tests {
     }
 
     #[test]
-    fn test_json_schema_known_obj() {
-        // Arrange
-        let path = Path::new("tests/data/model.md");
-        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
-
-        // Act
-        let schema = model.json_schema(Some("Test".to_string()));
-        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
-
-        // Assert
-        let expected_schema =
-            std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
-        // Parse with serde_json
-        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
-
-        assert_eq!(schema, expected_schema);
-    }
-
-    #[test]
-    fn test_json_schema_unknown_obj() {
-        // Arrange
-        let path = Path::new("tests/data/model.md");
-        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
-
-        // Act
-        let schema = model.json_schema(None);
-        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
-
-        // Assert
-        let expected_schema =
-            std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
-        // Parse with serde_json
-        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
-
-        assert_eq!(schema, expected_schema);
-    }
-
-    #[test]
     #[should_panic]
     fn test_json_schema_no_objects() {
         // Arrange
         let model = mdmodels::datamodel::DataModel::new(None, None);
 
         // Act
-        model.json_schema(Some("Test".to_string()));
+        model
+            .json_schema(Some("Test".to_string()))
+            .expect("Could not generate JSON schema");
+    }
+
+    #[test]
+    fn test_json_schema() {
+        // Arrange
+        let path = Path::new("tests/data/model_json_schema.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Act
+        let schema = model
+            .json_schema(None)
+            .expect("Could not generate JSON schema");
+
+        // Assert
+        let expected = std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
+
+        assert_eq!(schema, expected);
     }
 
     #[test]
     #[should_panic]
-    fn test_json_schema_no_object() {
+    fn test_json_schema_object_not_found() {
         // Arrange
         let path = Path::new("tests/data/model.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
-        model.json_schema(Some("Test3".to_string()));
+        model
+            .json_schema(Some("Test3".to_string()))
+            .expect("Could not generate JSON schema");
     }
 
     #[test]
@@ -216,32 +199,6 @@ mod tests {
 
         // Act
         model.sdrdm_schema();
-    }
-
-    #[test]
-    fn test_json_schema_all() {
-        // Arrange
-        let path = Path::new("tests/data/model.md");
-        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
-
-        // Act
-        model.json_schema_all("tests/intermediates/".to_string());
-
-        // Assert
-        let filenames = vec!["Test.json", "Test2.json"];
-        for filename in filenames {
-            let obj_name = filename.replace(".json", "");
-            let expected_schema =
-                std::fs::read_to_string(format!("tests/intermediates/{}", filename)).unwrap();
-            let schema = model.json_schema(Some(obj_name));
-
-            assert_eq!(
-                serde_json::from_str::<serde_json::Value>(schema.as_str())
-                    .expect("Could not parse generated schema"),
-                serde_json::from_str::<serde_json::Value>(expected_schema.as_str())
-                    .expect("Could not parse expected schema")
-            );
-        }
     }
 
     #[test]

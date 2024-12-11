@@ -1,32 +1,61 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.github.com/my/repo/",
   "title": "Test",
   "type": "object",
   "properties": {
+    "array_valued": {
+      "title": "array_valued",
+      "type": "array",
+      "$term": "http://schema.org/something",
+      "items": {
+        "$ref": "#/$defs/Test2"
+      }
+    },
+    "multiple_types": {
+      "title": "multiple_types",
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/Test2"
+        }
+      ]
+    },
+    "multiple_types_array": {
+      "title": "multiple_types_array",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "$ref": "#/$defs/Test2"
+          }
+        ]
+      }
+    },
     "name": {
       "title": "name",
-      "term": "schema:hello",
-      "type": "string",
-      "description": "The name of the test."
+      "description": "A test description",
+      "$term": "http://schema.org/hello"
     },
     "number": {
       "title": "number",
-      "term": "schema:one",
-      "type": "number"
-    },
-    "test2": {
-      "term": "schema:something",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Test2"
-      }
+      "$term": "http://schema.org/one"
     },
     "ontology": {
       "title": "ontology",
-      "$ref": "#/definitions/Ontology"
+      "$ref": "#/$defs/Ontology"
+    },
+    "single_valued": {
+      "title": "single_valued",
+      "$ref": "#/$defs/Test2"
     }
   },
-  "definitions": {
+  "$defs": {
     "Ontology": {
       "title": "Ontology",
       "type": "string",
@@ -42,19 +71,24 @@
       "properties": {
         "names": {
           "title": "names",
-          "term": "schema:hello",
           "type": "array",
+          "$term": "schema:hello",
           "items": {
             "type": "string"
           }
         },
         "number": {
           "title": "number",
-          "term": "schema:one",
-          "type": "number",
+          "$term": "schema:one",
           "minimum": 0.0
         }
-      }
+      },
+      "required": [],
+      "additionalProperties": false
     }
-  }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false
 }
