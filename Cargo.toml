@@ -31,10 +31,13 @@ textwrap = "0.16.1"
 pyo3 = { version = "0.23.2", features = ["extension-module"], optional = true }
 wasm-bindgen = { version = "0.2.95", optional = true }
 serde-wasm-bindgen = { version = "0.6.5", optional = true }
+tokio = { version = "1.42.0", features = ["rt"] }
+openai-api-rs = { version = "5.2.3", optional = true }
 
 [features]
 python = ["pyo3"]
 wasm = ["wasm-bindgen", "serde-wasm-bindgen"]
+openai = ["openai-api-rs"]
 
 [build-dependencies]
 minijinja-embed = "2.0.1"
@@ -42,6 +45,7 @@ minijinja-embed = "2.0.1"
 [[bin]]
 name = "md-models"
 path = "src/bin/cli.rs"
+required-features = ["openai"]
 
 [dev-dependencies]
 assert_cmd = "2.0.14"
