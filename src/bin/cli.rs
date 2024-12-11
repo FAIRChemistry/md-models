@@ -26,6 +26,7 @@ use colored::Colorize;
 use mdmodels::{
     datamodel::DataModel,
     exporters::{render_jinja_template, Templates},
+    llm::extraction::query_openai,
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
@@ -50,6 +51,8 @@ enum Commands {
     Validate(ValidateArgs),
     /// Pipeline for generating multiple files.
     Pipeline(PipelineArgs),
+    /// Large Language Model Extraction
+    Extract(ExtractArgs),
 }
 
 /// Arguments for the validate subcommand.
@@ -90,6 +93,52 @@ struct PipelineArgs {
     /// Path to the pipeline configuration file.
     #[arg(short, long, help = "Path to the pipeline configuration YAML file")]
     input: PathBuf,
+}
+
+/// Arguments for the extract subcommand.
+#[derive(Parser, Debug)]
+struct ExtractArgs {
+    /// Path or URL to the markdown model.
+    #[arg(short, long, help = "Path or URL to the markdown model")]
+    model: InputType,
+
+    /// Prompt to use for extraction.
+    #[arg(short, long, help = "Path to the file to parse")]
+    input: PathBuf,
+
+    /// Pre-prompt to use for extraction.
+    #[arg(
+        short,
+        long,
+        default_value = "You are a helpful assistant that extracts data from text input.",
+        help = "Pre-prompt to use for extraction"
+    )]
+    pre_prompt: String,
+
+    /// OpenAI model to use for extraction.
+    #[arg(
+        short,
+        long,
+        default_value = "gpt-4o",
+        help = "OpenAI model to use for extraction. Defaults to 'gpt-4o'."
+    )]
+    llm_model: String,
+
+    /// Root object to parse into. Defaults to the first entity in the model.
+    #[arg(
+        short,
+        long,
+        help = "Root object to parse into. Defaults to the first entity in the model."
+    )]
+    root: Option<String>,
+
+    /// Output file to write the extracted data to.
+    #[arg(short, long, help = "Output file to write the extracted data to")]
+    output: Option<PathBuf>,
+
+    /// Whether to extract multiple objects.
+    #[arg(long, help = "Whether to extract multiple objects")]
+    multiple: bool,
 }
 
 /// Represents the input type, either remote URL or local file path.
@@ -136,6 +185,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Validate(args) => validate(args),
         Commands::Convert(args) => convert(args),
         Commands::Pipeline(args) => process_pipeline(&args.input),
+        Commands::Extract(args) => query_llm(args),
     }
 }
 
@@ -176,6 +226,46 @@ fn print_validation_result(result: bool) {
     println!(" └── {}\n", message);
 }
 
+fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
+    let path = resolve_input_path(&args.model);
+    let model = DataModel::from_markdown(&path)?;
+    let prompt = std::fs::read_to_string(&args.input)?;
+    let pre_prompt = args.pre_prompt;
+    let llm_model = args.llm_model;
+    let root = match args.root {
+        Some(root) => root,
+        None => model
+            .objects
+            .first()
+            .ok_or("No objects found in model".to_string())?
+            .name
+            .clone(),
+    };
+
+    let response = tokio::runtime::Runtime::new()?.block_on(query_openai(
+        &prompt,
+        &pre_prompt,
+        &model,
+        &root,
+        &llm_model,
+        args.multiple,
+        None,
+    ))?;
+
+    match args.output {
+        Some(ref output) => {
+            let json_string = serde_json::to_string_pretty(&response)?;
+            std::fs::write(output, json_string).expect("Failed to write output");
+        }
+        None => {
+            let json_string = serde_json::to_string_pretty(&response)?;
+            println!("{}", json_string);
+        }
+    }
+
+    Ok(())
+}
+
 /// Converts the markdown model specified in the arguments to another format.
 ///
 /// # Arguments
@@ -194,7 +284,7 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
 
     // Render the template.
     let rendered = match args.template {
-        Templates::JsonSchema => model.json_schema(args.root),
+        Templates::JsonSchema => model.json_schema(args.root)?,
         _ => render_jinja_template(&args.template, &mut model, None)?,
     };
 
@@ -246,11 +336,10 @@ fn render_all_json_schemes(
     model: &DataModel,
     outdir: &Option<PathBuf>,
 ) -> Result<(), Box<dyn Error>> {
-    if outdir.is_none() {
-        panic!("Output directory is required for JSON Schema all");
-    }
-
-    let outdir = outdir.as_ref().unwrap();
+    let outdir = match outdir {
+        Some(outdir) => outdir,
+        None => panic!("Output directory is required for JSON Schema all"),
+    };
 
     // Check if the output is a directory
     if !outdir.is_dir() && outdir.exists() {
@@ -261,7 +350,7 @@ fn render_all_json_schemes(
     fs::create_dir_all(outdir)?;
 
     // Render the JSON Schema for each entity
-    model.json_schema_all(outdir.to_str().unwrap().to_string());
+    model.json_schema_all(outdir.to_path_buf())?;
 
     Ok(())
 }
