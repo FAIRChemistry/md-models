@@ -18,7 +18,8 @@
           "xml": {
             "is_attr": true,
             "name": "id"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "name",
@@ -34,7 +35,8 @@
           "xml": {
             "is_attr": true,
             "name": "name"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "base_units",
@@ -50,7 +52,8 @@
           "xml": {
             "is_attr": false,
             "name": "base_units"
-          }
+          },
+          "is_enum": false
         }
       ],
       "docstring": "Represents a unit definition that is based on the SI unit system."
@@ -72,7 +75,8 @@
           "xml": {
             "is_attr": true,
             "name": "kind"
-          }
+          },
+          "is_enum": true
         },
         {
           "name": "exponent",
@@ -88,7 +92,8 @@
           "xml": {
             "is_attr": true,
             "name": "exponent"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "multiplier",
@@ -104,7 +109,8 @@
           "xml": {
             "is_attr": true,
             "name": "multiplier"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "scale",
@@ -120,7 +126,8 @@
           "xml": {
             "is_attr": true,
             "name": "scale"
-          }
+          },
+          "is_enum": false
         }
       ],
       "docstring": "Represents a base unit in the unit definition."
