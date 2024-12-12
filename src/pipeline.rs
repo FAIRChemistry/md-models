@@ -312,7 +312,7 @@ fn serialize_to_json_schema(
 
     match root {
         Some(root) => {
-            let schema = model.json_schema(Some(root));
+            let schema = model.json_schema(Some(root))?;
             save_to_file(out, &schema)?;
             print_render_msg(out, &Templates::JsonSchema);
             Ok(())
@@ -376,7 +376,7 @@ fn serialize_all_json_schemes(
     match merge_state {
         MergeState::Merge => {
             let model = build_models(specs)?;
-            model.json_schema_all(out.to_str().unwrap().to_string());
+            model.json_schema_all(out.to_path_buf())?;
             print_render_msg(out, &Templates::JsonSchemaAll);
             Ok(())
         }
@@ -384,7 +384,7 @@ fn serialize_all_json_schemes(
             for spec in specs {
                 let model = DataModel::from_markdown(spec)?;
                 let path = out.join(get_file_name(spec));
-                model.json_schema_all(path.to_str().unwrap().to_string());
+                model.json_schema_all(path.to_path_buf())?;
                 print_render_msg(&path, &Templates::JsonSchemaAll);
             }
             Ok(())
