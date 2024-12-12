@@ -22,17 +22,17 @@
  */
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::{error::Error, fs, path::Path};
 
 use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::exporters::{render_jinja_template, Templates};
-use crate::json::parser::parse_json_schema;
+use crate::json::export::to_json_schema;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
-use crate::schema;
 use colored::Colorize;
 
 use crate::validation::Validator;
@@ -102,7 +102,7 @@ impl DataModel {
     // # Returns
     //
     // A JSON schema string
-    pub fn json_schema(&self, obj_name: Option<String>) -> String {
+    pub fn json_schema(&self, obj_name: Option<String>) -> Result<String, Box<dyn Error>> {
         if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
@@ -112,9 +112,12 @@ impl DataModel {
                 if self.objects.iter().all(|o| o.name != name) {
                     panic!("Object '{}' not found in the markdown file", name);
                 }
-                schema::to_json_schema(&name, self)
+                Ok(serde_json::to_string_pretty(&to_json_schema(self, &name)?)?)
             }
-            None => schema::to_json_schema(&self.objects[0].name, self),
+            None => Ok(serde_json::to_string_pretty(&to_json_schema(
+                self,
+                &self.objects[0].name,
+            )?)?),
         }
     }
 
@@ -134,7 +137,7 @@ impl DataModel {
     // model.parse("path/to/file.md".to_string());
     // model.json_schema_all("path/to/directory".to_string());
     // ```
-    pub fn json_schema_all(&self, path: String) {
+    pub fn json_schema_all(&self, path: PathBuf) -> Result<(), Box<dyn Error>> {
         if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
@@ -144,11 +147,15 @@ impl DataModel {
             fs::create_dir_all(&path).expect("Could not create directory");
         }
 
+        let base_path = path.to_str().ok_or("Failed to convert path to string")?;
         for object in &self.objects {
-            let schema = schema::to_json_schema(&object.name, self);
-            let file_name = format!("{}/{}.json", path, object.name);
-            fs::write(file_name, schema).expect("Could not write file");
+            let schema = to_json_schema(self, &object.name)?;
+            let file_name = format!("{}/{}.json", base_path, object.name);
+            fs::write(file_name, serde_json::to_string_pretty(&schema)?)
+                .expect("Could not write file");
         }
+
+        Ok(())
     }
 
     // Get the SDRDM schema for the markdown file
@@ -314,13 +321,6 @@ impl DataModel {
     pub fn from_markdown_string(content: &str) -> Result<Self, Validator> {
         parse_markdown(content)
     }
-
-    /// Parse a JSON schema and create a data model
-    ///
-    /// * `path` - Path to the JSON schema file
-    pub fn from_json_schema(path: &Path) -> Result<Self, Box<dyn Error>> {
-        parse_json_schema(path)
-    }
 }
 
 #[cfg(test)]
@@ -350,6 +350,7 @@ mod tests {
             required: false,
             xml: None,
             default: None,
+            is_enum: false,
         });
 
         let mut obj2 = Object::new("Object2".to_string(), None);
@@ -364,6 +365,7 @@ mod tests {
             required: false,
             xml: None,
             default: None,
+            is_enum: false,
         });
 
         let enm1 = Enumeration {
@@ -411,6 +413,7 @@ mod tests {
             required: false,
             xml: None,
             default: Some(DataType::String("".to_string())),
+            is_enum: false,
         });
 
         obj.add_attribute(crate::attribute::Attribute {
@@ -424,6 +427,7 @@ mod tests {
             required: true,
             xml: None,
             default: None,
+            is_enum: false,
         });
 
         model.objects.push(obj);
@@ -447,18 +451,6 @@ mod tests {
         // Assert
         assert_eq!(model.objects.len(), 2);
         assert_eq!(model.enums.len(), 1);
-    }
-
-    #[test]
-    fn test_from_json_schema() {
-        // Arrange
-        let path = Path::new("tests/data/expected_json_schema.json");
-
-        // Act
-        let model = DataModel::from_json_schema(path).expect("Failed to parse JSON schema");
-
-        // Assert
-        assert_eq!(model.objects.len(), 2);
     }
 
     #[test]
