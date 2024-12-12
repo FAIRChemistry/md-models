@@ -103,6 +103,9 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
     model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
 
+    // Set 'is_enum' for all attributes using an enumeration
+    set_enum_attributes(&mut model);
+
     // Add internal types, if used
     add_internal_types(&mut model);
 
@@ -550,6 +553,38 @@ fn add_internal_types(model: &mut DataModel) {
                 &serde_json::from_str::<DataModel>(content)
                     .expect("Failed to parse internal data type"),
             )
+        }
+    }
+}
+
+/// Sets the `is_enum` flag for attributes that are enumerations.
+///
+/// This function iterates through all objects and their attributes in the data model.
+/// If an attribute's data types match any of the enumeration names, the `is_enum` flag
+/// is set to `true`. If an attribute has data types that do not match any enumeration,
+/// an error is returned.
+///
+/// # Arguments
+///
+/// * `model` - A mutable reference to the data model.
+fn set_enum_attributes(model: &mut DataModel) {
+    let enums = model
+        .enums
+        .iter()
+        .map(|e| e.name.clone())
+        .collect::<Vec<String>>();
+
+    for object in model.objects.iter_mut() {
+        for attr in object.attributes.iter_mut() {
+            let enum_dtypes: Vec<String> = attr
+                .dtypes
+                .iter()
+                .filter(|dtype| enums.contains(dtype))
+                .cloned()
+                .collect();
+            if !enum_dtypes.is_empty() && enum_dtypes.len() == attr.dtypes.len() {
+                attr.is_enum = true;
+            }
         }
     }
 }
