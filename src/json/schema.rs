@@ -90,8 +90,8 @@ pub struct Property {
     pub options: HashMap<String, PrimitiveType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Item>,
-    #[serde(rename = "anyOf", skip_serializing_if = "skip_empty")]
-    pub any_of: Option<Vec<Item>>,
+    #[serde(rename = "oneOf", skip_serializing_if = "skip_empty")]
+    pub one_of: Option<Vec<Item>>,
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
     pub enum_values: Option<Vec<String>>,
 }
@@ -100,7 +100,7 @@ pub struct Property {
 #[serde(untagged)]
 pub enum Item {
     ReferenceItem(ReferenceItemType),
-    AnyOfItem(AnyOfItemType),
+    OneOfItem(OneOfItemType),
     DataTypeItem(DataTypeItemType),
 }
 
@@ -111,7 +111,7 @@ impl Serialize for Item {
     {
         match self {
             Item::ReferenceItem(ref_item) => ref_item.serialize(serializer),
-            Item::AnyOfItem(any_of_item) => any_of_item.serialize(serializer),
+            Item::OneOfItem(one_of_item) => one_of_item.serialize(serializer),
             Item::DataTypeItem(data_type_item) => data_type_item.serialize(serializer),
         }
     }
@@ -124,9 +124,9 @@ pub struct ReferenceItemType {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct AnyOfItemType {
-    #[serde(rename = "anyOf")]
-    pub any_of: Vec<Item>,
+pub struct OneOfItemType {
+    #[serde(rename = "oneOf")]
+    pub one_of: Vec<Item>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

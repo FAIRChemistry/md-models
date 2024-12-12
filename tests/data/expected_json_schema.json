@@ -14,7 +14,7 @@
     },
     "multiple_types": {
       "title": "multiple_types",
-      "anyOf": [
+      "oneOf": [
         {
           "type": "number"
         },
@@ -25,9 +25,8 @@
     },
     "multiple_types_array": {
       "title": "multiple_types_array",
-      "type": "array",
       "items": {
-        "anyOf": [
+        "oneOf": [
           {
             "type": "number"
           },
@@ -39,11 +38,13 @@
     },
     "name": {
       "title": "name",
+      "type": "string",
       "description": "A test description",
       "$term": "http://schema.org/hello"
     },
     "number": {
       "title": "number",
+      "type": "number",
       "$term": "http://schema.org/one"
     },
     "ontology": {
@@ -52,6 +53,7 @@
     },
     "single_valued": {
       "title": "single_valued",
+      "type": "object",
       "$ref": "#/$defs/Test2"
     }
   },
@@ -79,6 +81,7 @@
         },
         "number": {
           "title": "number",
+          "type": "number",
           "$term": "schema:one",
           "minimum": 0.0
         }

@@ -332,11 +332,12 @@ impl TryFrom<&Attribute> for schema::Property {
             };
 
         let items: Option<schema::Item> = attr.into();
-        let any_of = (!attr.is_array).then(|| attr.into());
+        let one_of = (!attr.is_array).then(|| attr.into());
         let description = (!attr.docstring.is_empty()).then(|| attr.docstring.clone());
         let enum_values = if attr.is_enum { Some(Vec::new()) } else { None };
 
-        if any_of.is_some() {
+        if attr.dtypes.len() > 1 {
+            // If there are multiple types, we need to use the AnyOf case
             dtype = None;
         }
 
@@ -347,7 +348,7 @@ impl TryFrom<&Attribute> for schema::Property {
             term: attr.term.clone(),
             reference,
             options,
-            any_of,
+            one_of,
             items,
             enum_values,
         })
@@ -401,14 +402,14 @@ impl From<&Attribute> for Option<schema::Item> {
             return None;
         }
 
-        // Check if it is an AnyOf case
-        let any_of: Vec<schema::Item> = attr.into();
+        // Check if it is an OneOf case
+        let one_of: Vec<schema::Item> = attr.into();
 
-        if any_of.is_empty() {
+        if one_of.is_empty() {
             // There is just a single type
             Some(process_dtype(&attr.dtypes[0]))
         } else {
-            Some(schema::Item::AnyOfItem(schema::AnyOfItemType { any_of }))
+            Some(schema::Item::OneOfItem(schema::OneOfItemType { one_of }))
         }
     }
 }
