@@ -34,7 +34,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 // Basic types that are ignored in the validation process
-const BASIC_TYPES: [&str; 7] = [
+pub(crate) const BASIC_TYPES: [&str; 7] = [
     "string", "number", "integer", "boolean", "float", "date", "bytes",
 ];
 
@@ -299,7 +299,6 @@ impl Validator {
             starts_with_character,
             contains_white_space,
             contains_special_characters,
-            is_pascal_case,
         ];
 
         for check in checks {
@@ -535,32 +534,4 @@ fn contains_special_characters(name: &str) -> Result<(), String> {
     name.chars().any(|c| !c.is_alphanumeric() && c != '_' && c != ' ').then(
         || Err(format!("Name '{}' contains special characters, which are not valid except for underscores.", name))
     ).unwrap_or(Ok(()))
-}
-
-/// Checks if the given name is in PascalCase.
-///
-/// # Arguments
-///
-/// * `name` - A string slice that holds the name to be checked.
-///
-/// # Returns
-///
-/// A `Result` which is:
-/// - `Ok(())` if the name is in PascalCase.
-/// - `Err(String)` if the name is not in PascalCase.
-fn is_pascal_case(name: &str) -> Result<(), String> {
-    let no_snake = name.chars().all(|c| c.is_alphanumeric() || c == '_');
-    let first_uppercase = name
-        .chars()
-        .next()
-        .map(|c| c.is_uppercase())
-        .unwrap_or(false);
-
-    if !no_snake || !first_uppercase {
-        return Err(
-            format!("Name '{}' is not in PascalCase. Names must be in PascalCase and not contain underscores", name)
-        );
-    }
-
-    Ok(())
 }
