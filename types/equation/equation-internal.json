@@ -18,7 +18,8 @@
           "xml": {
             "is_attr": false,
             "name": "equation"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "variables",
@@ -34,7 +35,8 @@
           "xml": {
             "is_attr": false,
             "name": "list_of_variables"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "parameters",
@@ -50,7 +52,8 @@
           "xml": {
             "is_attr": false,
             "name": "list_of_parameters"
-          }
+          },
+          "is_enum": false
         }
       ],
       "docstring": "Represents an equation that can be used in a data model."
@@ -72,7 +75,8 @@
           "xml": {
             "is_attr": true,
             "name": "id"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "name",
@@ -88,7 +92,8 @@
           "xml": {
             "is_attr": true,
             "name": "name"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "symbol",
@@ -104,7 +109,8 @@
           "xml": {
             "is_attr": true,
             "name": "symbol"
-          }
+          },
+          "is_enum": false
         }
       ],
       "docstring": "Represents a variable that is used in the equation."
@@ -126,7 +132,8 @@
           "xml": {
             "is_attr": true,
             "name": "id"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "name",
@@ -142,7 +149,8 @@
           "xml": {
             "is_attr": true,
             "name": "name"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "symbol",
@@ -158,7 +166,8 @@
           "xml": {
             "is_attr": true,
             "name": "symbol"
-          }
+          },
+          "is_enum": false
         },
         {
           "name": "value",
@@ -174,7 +183,8 @@
           "xml": {
             "is_attr": true,
             "name": "value"
-          }
+          },
+          "is_enum": false
         }
       ],
       "docstring": "Represents a parameter that is used in the equation."

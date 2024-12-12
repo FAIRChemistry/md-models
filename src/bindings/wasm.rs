@@ -23,6 +23,7 @@
 
 use crate::datamodel::DataModel;
 use crate::exporters::Templates;
+use crate::json::export::to_json_schema;
 use crate::validation::Validator;
 use serde_wasm_bindgen::to_value;
 use wasm_bindgen::prelude::*;
@@ -73,6 +74,40 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
     model
         .convert_to(&template, None)
         .map_err(|e| JsValue::from_str(&format!("Error converting markdown content: {}", e)))
+}
+
+/// Returns the JSON schema for the given markdown content.
+///
+/// # Arguments
+///
+/// * `markdown_content` - A string slice that holds the markdown content to be converted.
+/// * `root` - The root object to use for the schema.
+///
+/// # Returns
+///
+/// A `Result` which is:
+/// - `Ok(JsValue)` if the conversion is successful.
+/// - `Err(JsValue)` if there is an error during parsing or conversion.
+#[wasm_bindgen]
+pub fn json_schema(markdown_content: &str, root: Option<String>) -> Result<String, JsValue> {
+    let model = DataModel::from_markdown_string(markdown_content)
+        .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {}", e)))?;
+
+    let root = match root {
+        Some(root) => root,
+        None => model
+            .objects
+            .first()
+            .ok_or(JsValue::from_str("No objects found in model"))?
+            .name
+            .clone(),
+    };
+
+    let json_schema = to_json_schema(&model, &root)
+        .map_err(|e| JsValue::from_str(&format!("Error serializing schema: {}", e)))?;
+
+    // Directly return the JSON schema object instead of converting it to a JsValue
+    Ok(serde_json::to_string(&json_schema).unwrap())
 }
 
 /// Validates the given markdown content and returns the validation result as a `JsValue`.

@@ -35,18 +35,23 @@ pub mod validation;
 
 pub(crate) mod attribute;
 pub(crate) mod object;
-pub(crate) mod primitives;
-pub(crate) mod schema;
 pub(crate) mod xmltype;
 
-pub(crate) mod json {
+pub mod json {
     mod datatype;
-    pub(crate) mod parser;
+    pub mod export;
+    pub mod schema;
 }
 
 pub(crate) mod markdown {
     pub(crate) mod frontmatter;
     pub(crate) mod parser;
+}
+
+#[cfg(feature = "openai")]
+pub mod llm {
+    pub mod extraction;
+    pub mod input;
 }
 
 pub mod bindings {

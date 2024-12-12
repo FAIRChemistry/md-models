@@ -45,7 +45,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --verbose --release --target ${{ matrix.target }}
+        run: cargo build --features openai --verbose --release --target ${{ matrix.target }}
 
       - name: Build binary
         shell: bash

@@ -55,6 +55,8 @@ pub struct Attribute {
     /// XML type information for the attribute.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub xml: Option<XMLType>,
+    /// Is an enumeration or not
+    pub is_enum: bool,
 }
 
 impl Attribute {
@@ -76,6 +78,7 @@ impl Attribute {
             required,
             xml: Some(XMLType::from_str(name.as_str()).unwrap()),
             default: None,
+            is_enum: false,
         }
     }
 
