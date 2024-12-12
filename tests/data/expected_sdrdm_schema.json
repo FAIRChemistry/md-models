@@ -7,11 +7,14 @@
           "name": "name",
           "multiple": false,
           "is_id": true,
-          "dtypes": ["string"],
+          "dtypes": [
+            "string"
+          ],
           "docstring": "The name of the test.",
           "options": [],
           "term": "schema:hello",
           "required": true,
+          "is_enum": false,
           "xml": {
             "is_attr": true,
             "name": "name"
@@ -21,12 +24,15 @@
           "name": "number",
           "multiple": false,
           "is_id": false,
-          "dtypes": ["float"],
+          "dtypes": [
+            "float"
+          ],
           "docstring": "",
           "options": [],
           "term": "schema:one",
           "required": false,
           "default": 1.0,
+          "is_enum": false,
           "xml": {
             "is_attr": true,
             "name": "number"
@@ -36,11 +42,14 @@
           "name": "test2",
           "multiple": true,
           "is_id": false,
-          "dtypes": ["Test2"],
+          "dtypes": [
+            "Test2"
+          ],
           "docstring": "",
           "options": [],
           "term": "schema:something",
           "required": false,
+          "is_enum": false,
           "xml": {
             "is_attr": false,
             "name": "SomeTest2"
@@ -50,11 +59,14 @@
           "name": "ontology",
           "multiple": false,
           "is_id": false,
-          "dtypes": ["Ontology"],
+          "dtypes": [
+            "Ontology"
+          ],
           "docstring": "",
           "options": [],
           "term": null,
           "required": false,
+          "is_enum": true,
           "xml": {
             "is_attr": false,
             "name": "ontology"
@@ -70,11 +82,14 @@
           "name": "names",
           "multiple": true,
           "is_id": false,
-          "dtypes": ["string"],
+          "dtypes": [
+            "string"
+          ],
           "docstring": "",
           "options": [],
           "term": "schema:hello",
           "required": false,
+          "is_enum": false,
           "xml": {
             "is_attr": false,
             "name": "name"
@@ -84,7 +99,9 @@
           "name": "number",
           "multiple": false,
           "is_id": false,
-          "dtypes": ["float"],
+          "dtypes": [
+            "float"
+          ],
           "docstring": "",
           "options": [
             {
@@ -94,6 +111,7 @@
           ],
           "term": "schema:one",
           "required": false,
+          "is_enum": false,
           "xml": {
             "is_attr": true,
             "name": "number"
