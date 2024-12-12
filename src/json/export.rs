@@ -336,7 +336,7 @@ impl TryFrom<&Attribute> for schema::Property {
         let description = (!attr.docstring.is_empty()).then(|| attr.docstring.clone());
         let enum_values = if attr.is_enum { Some(Vec::new()) } else { None };
 
-        if attr.dtypes.len() > 1 {
+        if attr.dtypes.len() > 1 && !attr.is_array {
             // If there are multiple types, we need to use the AnyOf case
             dtype = None;
         }
@@ -489,7 +489,7 @@ mod tests {
 
         let expected_json = json!({
             "title": "test_attribute",
-            "anyOf": [
+            "oneOf": [
                 {"type": "string"},
                 {"$ref": "#/$defs/RefType"},
             ]
@@ -523,7 +523,7 @@ mod tests {
             "title": "test_attribute",
             "type": "array",
             "items": {
-                "anyOf": [
+                "oneOf": [
                     {"type": "string"},
                     {"$ref": "#/$defs/RefType"}
                 ]

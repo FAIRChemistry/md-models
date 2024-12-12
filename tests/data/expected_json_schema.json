@@ -25,6 +25,7 @@
     },
     "multiple_types_array": {
       "title": "multiple_types_array",
+      "type": "array",
       "items": {
         "oneOf": [
           {
