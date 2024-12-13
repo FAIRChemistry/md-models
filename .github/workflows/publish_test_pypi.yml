@@ -8,9 +8,9 @@ name: Publish to Test PyPI
 on:
   workflow_dispatch:
     inputs:
-        version:
-            description: 'The version to publish'
-            required: true
+      version:
+        description: "The version to publish"
+        required: true
 
 permissions:
   contents: read

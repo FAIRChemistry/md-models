@@ -2,7 +2,7 @@ name: Publish to NPM (Bundler)
 
 on:
   release:
-    types: [ published ]
+    types: [published]
 
 permissions:
   contents: write
@@ -25,7 +25,7 @@ jobs:
           version: "latest"
 
       - name: Build WASM for npm (bundle)
-        run: wasm-pack build --out-name mdmodels-core --release --features wasm
+        run: wasm-pack build --out-name mdmodels-core --release --features wasm --no-default-features
 
       - uses: actions/setup-node@v4
         with:
