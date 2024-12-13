@@ -142,7 +142,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i ${{ env.PYTHON_VERSION }} --features python
+          args: --release --out dist -i ${{ env.PYTHON_VERSION }} --features python --no-default-features
           sccache: "true"
           rust-toolchain: nightly
       - name: Upload wheels
