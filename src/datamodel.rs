@@ -102,7 +102,11 @@ impl DataModel {
     // # Returns
     //
     // A JSON schema string
-    pub fn json_schema(&self, obj_name: Option<String>) -> Result<String, Box<dyn Error>> {
+    pub fn json_schema(
+        &self,
+        obj_name: Option<String>,
+        openai: bool,
+    ) -> Result<String, Box<dyn Error>> {
         if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
@@ -112,11 +116,14 @@ impl DataModel {
                 if self.objects.iter().all(|o| o.name != name) {
                     panic!("Object '{}' not found in the markdown file", name);
                 }
-                Ok(serde_json::to_string_pretty(&to_json_schema(self, &name)?)?)
+                Ok(serde_json::to_string_pretty(&to_json_schema(
+                    self, &name, openai,
+                )?)?)
             }
             None => Ok(serde_json::to_string_pretty(&to_json_schema(
                 self,
                 &self.objects[0].name,
+                openai,
             )?)?),
         }
     }
@@ -125,6 +132,7 @@ impl DataModel {
     // and write them to a file
     //
     // * `path` - Path to the directory where the JSON schema files will be written
+    // * `openai` - Whether to remove options from the schema properties. OpenAI does not support options.
     //
     // # Panics
     //
@@ -137,7 +145,7 @@ impl DataModel {
     // model.parse("path/to/file.md".to_string());
     // model.json_schema_all("path/to/directory".to_string());
     // ```
-    pub fn json_schema_all(&self, path: PathBuf) -> Result<(), Box<dyn Error>> {
+    pub fn json_schema_all(&self, path: PathBuf, openai: bool) -> Result<(), Box<dyn Error>> {
         if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
@@ -149,7 +157,7 @@ impl DataModel {
 
         let base_path = path.to_str().ok_or("Failed to convert path to string")?;
         for object in &self.objects {
-            let schema = to_json_schema(self, &object.name)?;
+            let schema = to_json_schema(self, &object.name, openai)?;
             let file_name = format!("{}/{}.json", base_path, object.name);
             fs::write(file_name, serde_json::to_string_pretty(&schema)?)
                 .expect("Could not write file");

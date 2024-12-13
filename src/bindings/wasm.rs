@@ -82,6 +82,7 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
 ///
 /// * `markdown_content` - A string slice that holds the markdown content to be converted.
 /// * `root` - The root object to use for the schema.
+/// * `openai` - Whether to remove options from the schema properties. OpenAI does not support options.
 ///
 /// # Returns
 ///
@@ -89,7 +90,11 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
 /// - `Ok(JsValue)` if the conversion is successful.
 /// - `Err(JsValue)` if there is an error during parsing or conversion.
 #[wasm_bindgen]
-pub fn json_schema(markdown_content: &str, root: Option<String>) -> Result<String, JsValue> {
+pub fn json_schema(
+    markdown_content: &str,
+    root: Option<String>,
+    openai: bool,
+) -> Result<String, JsValue> {
     let model = DataModel::from_markdown_string(markdown_content)
         .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {}", e)))?;
 
@@ -103,7 +108,7 @@ pub fn json_schema(markdown_content: &str, root: Option<String>) -> Result<Strin
             .clone(),
     };
 
-    let json_schema = to_json_schema(&model, &root)
+    let json_schema = to_json_schema(&model, &root, openai)
         .map_err(|e| JsValue::from_str(&format!("Error serializing schema: {}", e)))?;
 
     // Directly return the JSON schema object instead of converting it to a JsValue

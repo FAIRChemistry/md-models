@@ -139,7 +139,7 @@ mod tests {
 
         // Act
         model
-            .json_schema(Some("Test".to_string()))
+            .json_schema(Some("Test".to_string()), false)
             .expect("Could not generate JSON schema");
     }
 
@@ -151,11 +151,29 @@ mod tests {
 
         // Act
         let schema = model
-            .json_schema(None)
+            .json_schema(None, false)
             .expect("Could not generate JSON schema");
 
         // Assert
         let expected = std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
+
+        assert_eq!(schema, expected);
+    }
+
+    #[test]
+    fn test_json_schema_openai() {
+        // Arrange
+        let path = Path::new("tests/data/model_json_schema.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        // Act
+        let schema = model
+            .json_schema(None, true)
+            .expect("Could not generate JSON schema");
+
+        // Assert
+        let expected =
+            std::fs::read_to_string("tests/data/expected_json_schema_openai.json").unwrap();
 
         assert_eq!(schema, expected);
     }
@@ -169,7 +187,7 @@ mod tests {
 
         // Act
         model
-            .json_schema(Some("Test3".to_string()))
+            .json_schema(Some("Test3".to_string()), false)
             .expect("Could not generate JSON schema");
     }
 

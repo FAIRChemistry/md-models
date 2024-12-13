@@ -83,8 +83,7 @@
         "number": {
           "title": "number",
           "type": "number",
-          "$term": "http://schema.org/one",
-          "minimum": 0.0
+          "$term": "http://schema.org/one"
         }
       },
       "required": [],

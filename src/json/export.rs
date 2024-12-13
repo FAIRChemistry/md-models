@@ -29,6 +29,7 @@ use std::{
 use crate::{
     attribute::Attribute,
     datamodel::DataModel,
+    markdown::frontmatter::FrontMatter,
     object::{Enumeration, Object},
     validation::BASIC_TYPES,
 };
@@ -47,7 +48,11 @@ const SCHEMA: &str = "https://json-schema.org/draft/2020-12/schema";
 /// # Returns
 ///
 /// A `Result` containing the `SchemaObject` or an error message.
-pub fn to_json_schema(model: &DataModel, root: &str) -> Result<schema::SchemaObject, String> {
+pub fn to_json_schema(
+    model: &DataModel,
+    root: &str,
+    openai: bool,
+) -> Result<schema::SchemaObject, String> {
     let root_object = retrieve_object(model, root)?;
 
     let mut schema_object = schema::SchemaObject::try_from(root_object)?;
@@ -62,10 +67,7 @@ pub fn to_json_schema(model: &DataModel, root: &str) -> Result<schema::SchemaObj
     schema_object.definitions = definitions;
 
     if let Some(config) = model.config.clone() {
-        schema_object.id = Some(config.repo.clone());
-        if let Some(prefixes) = config.prefixes {
-            resolve_prefixes(&mut schema_object, &prefixes);
-        }
+        post_process_schema(&mut schema_object, &config, openai);
     }
 
     Ok(schema_object)
@@ -182,12 +184,61 @@ fn collect_definitions(
     Ok(())
 }
 
+/// Resolves prefixes in the schema properties using the provided prefixes map.
+///
+/// # Arguments
+///
+/// * `schema` - A mutable reference to the `SchemaObject`.
+/// * `prefixes` - A reference to a map containing prefix-to-URI mappings.
 fn resolve_prefixes(schema: &mut schema::SchemaObject, prefixes: &HashMap<String, String>) {
     for (_, property) in schema.properties.iter_mut() {
         if let Some(reference) = property.term.clone() {
             let (prefix, term) = reference.split_once(":").unwrap_or(("", ""));
             if let Some(prefix) = prefixes.get(prefix) {
                 property.term = Some(format!("{}{}", prefix, term));
+            }
+        }
+    }
+}
+
+/// Removes options from the schema properties.
+///
+/// # Arguments
+///
+/// * `schema` - A mutable reference to the `SchemaObject`.
+fn remove_options(schema: &mut schema::SchemaObject) {
+    for (_, property) in schema.properties.iter_mut() {
+        property.options = HashMap::new();
+    }
+}
+
+/// Post-processes the schema object by setting its ID, resolving prefixes, and optionally removing options.
+///
+/// # Arguments
+///
+/// * `schema_object` - A mutable reference to the `SchemaObject` to be post-processed.
+/// * `config` - A reference to the `FrontMatter` configuration containing repository and prefix information.
+/// * `no_options` - A boolean flag indicating whether to remove options from the schema properties.
+fn post_process_schema(
+    schema_object: &mut schema::SchemaObject,
+    config: &FrontMatter,
+    openai: bool,
+) {
+    schema_object.id = Some(config.repo.clone());
+    if let Some(prefixes) = &config.prefixes {
+        resolve_prefixes(schema_object, prefixes);
+
+        if openai {
+            remove_options(schema_object);
+        }
+
+        for (_, definition) in schema_object.definitions.iter_mut() {
+            if let schema::SchemaType::Object(schema_object) = definition {
+                resolve_prefixes(schema_object, prefixes);
+
+                if openai {
+                    remove_options(schema_object);
+                }
             }
         }
     }

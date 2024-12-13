@@ -284,7 +284,7 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
 
     // Render the template.
     let rendered = match args.template {
-        Templates::JsonSchema => model.json_schema(args.root)?,
+        Templates::JsonSchema => model.json_schema(args.root, false)?,
         _ => render_jinja_template(&args.template, &mut model, None)?,
     };
 
@@ -350,7 +350,7 @@ fn render_all_json_schemes(
     fs::create_dir_all(outdir)?;
 
     // Render the JSON Schema for each entity
-    model.json_schema_all(outdir.to_path_buf())?;
+    model.json_schema_all(outdir.to_path_buf(), false)?;
 
     Ok(())
 }

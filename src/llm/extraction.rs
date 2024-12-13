@@ -50,7 +50,7 @@ fn prepare_response_format(
     root: &str,
     multiple: bool,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    let schema = to_json_schema(model, root)?;
+    let schema = to_json_schema(model, root, true)?;
 
     if multiple {
         Ok(json!(
