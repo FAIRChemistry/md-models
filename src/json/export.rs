@@ -44,6 +44,7 @@ const SCHEMA: &str = "https://json-schema.org/draft/2020-12/schema";
 ///
 /// * `model` - A reference to the `DataModel` to be converted.
 /// * `root` - The root object name in the model.
+/// * `openai` - A boolean flag indicating whether to use the OpenAI schema.
 ///
 /// # Returns
 ///
@@ -225,22 +226,21 @@ fn post_process_schema(
     openai: bool,
 ) {
     schema_object.id = Some(config.repo.clone());
+    post_process_object(schema_object, config, openai);
+
+    for (_, definition) in schema_object.definitions.iter_mut() {
+        if let schema::SchemaType::Object(definition) = definition {
+            post_process_object(definition, config, openai);
+        }
+    }
+}
+
+fn post_process_object(object: &mut schema::SchemaObject, config: &FrontMatter, openai: bool) {
     if let Some(prefixes) = &config.prefixes {
-        resolve_prefixes(schema_object, prefixes);
-
-        if openai {
-            remove_options(schema_object);
-        }
-
-        for (_, definition) in schema_object.definitions.iter_mut() {
-            if let schema::SchemaType::Object(schema_object) = definition {
-                resolve_prefixes(schema_object, prefixes);
-
-                if openai {
-                    remove_options(schema_object);
-                }
-            }
-        }
+        resolve_prefixes(object, prefixes);
+    }
+    if openai {
+        remove_options(object);
     }
 }
 

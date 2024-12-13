@@ -7,7 +7,6 @@
     "array_valued": {
       "title": "array_valued",
       "type": "array",
-      "$term": "http://schema.org/something",
       "items": {
         "$ref": "#/$defs/Test2"
       }
@@ -40,13 +39,11 @@
     "name": {
       "title": "name",
       "type": "string",
-      "description": "A test description",
-      "$term": "http://schema.org/hello"
+      "description": "A test description"
     },
     "number": {
       "title": "number",
-      "type": "number",
-      "$term": "http://schema.org/one"
+      "type": "number"
     },
     "ontology": {
       "title": "ontology",
@@ -75,15 +72,13 @@
         "names": {
           "title": "names",
           "type": "array",
-          "$term": "http://schema.org/hello",
           "items": {
             "type": "string"
           }
         },
         "number": {
           "title": "number",
-          "type": "number",
-          "$term": "http://schema.org/one"
+          "type": "number"
         }
       },
       "required": [],

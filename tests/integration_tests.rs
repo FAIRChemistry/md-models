@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn test_json_schema_openai() {
         // Arrange
-        let path = Path::new("tests/data/model_json_schema.md");
+        let path = Path::new("tests/data/model_json_schema_openai.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
