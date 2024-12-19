@@ -24,12 +24,13 @@
 use crate::{
     attribute::Attribute,
     datamodel::DataModel,
+    markdown::parser::Position,
     object::{Enumeration, Object},
 };
 use colored::Colorize;
 use log::error;
 use serde::Serialize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
@@ -39,35 +40,52 @@ pub(crate) const BASIC_TYPES: [&str; 7] = [
 ];
 
 /// Represents a validation error in the data model.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ValidationError {
     pub message: String,
     pub object: Option<String>,
     pub attribute: Option<String>,
     pub location: String,
     pub error_type: ErrorType,
+    pub positions: Option<Vec<Position>>,
 }
 
 impl Display for ValidationError {
     /// Formats the validation error for display.
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let lines: Vec<String> = self
+            .positions
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|p| p.line.to_string())
+            .collect();
+        let mut line = lines.join(", ");
+
+        if !lines.is_empty() {
+            line = format!("[line: {}]", line);
+        } else {
+            line = "".to_string();
+        }
+
         write!(
             f,
-            "[{}{}] {}: {}",
+            "{}[{}{}] {}: {}",
+            line,
             self.object.clone().unwrap_or("Global".into()).bold(),
             match &self.attribute {
                 Some(attr) => format!(".{}", attr),
                 None => "".into(),
             },
             self.error_type.to_string().bold(),
-            self.message.red().bold()
+            self.message.red().bold(),
         )?;
         Ok(())
     }
 }
 
 /// Enum representing the type of validation error.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum ErrorType {
     NameError,
     TypeError,
@@ -88,10 +106,14 @@ impl Display for ErrorType {
 }
 
 /// Validator for checking the integrity of a data model.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct Validator {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,
+    #[serde(skip_serializing)]
+    pub object_positions: HashMap<String, Vec<Position>>,
+    #[serde(skip_serializing)]
+    pub enum_positions: HashMap<String, Vec<Position>>,
 }
 
 impl Error for Validator {}
@@ -112,11 +134,15 @@ impl Validator {
         Self {
             is_valid: true,
             errors: vec![],
+            object_positions: HashMap::new(),
+            enum_positions: HashMap::new(),
         }
     }
     pub fn reset(&mut self) {
         self.is_valid = true;
         self.errors.clear();
+        self.object_positions.clear();
+        self.enum_positions.clear();
     }
 
     /// Adds a validation error to the validator.
@@ -153,6 +179,10 @@ impl Validator {
         // If there are errors from a previous validation, reset the validator
         self.reset();
 
+        // Extract the positions of all objects, enums, and attributes
+        self.object_positions = extract_object_positions(model);
+        self.enum_positions = extract_enum_positions(model);
+
         // Extract the type names from the model
         let types = Self::extract_type_names(model);
 
@@ -183,11 +213,12 @@ impl Validator {
         if !duplicates.is_empty() {
             for name in duplicates {
                 self.add_error(ValidationError {
-                    message: format!("Object {} is defined more than once.", name),
+                    message: format!("Object '{}' is defined more than once.", name),
                     object: Some(name.to_string()),
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
+                    positions: self.object_positions.get(name).cloned(),
                 });
             }
         }
@@ -216,11 +247,12 @@ impl Validator {
         if !duplicates.is_empty() {
             for name in duplicates {
                 self.add_error(ValidationError {
-                    message: format!("Enumeration {} is defined more than once.", name),
+                    message: format!("Enumeration '{}' is defined more than once.", name),
                     object: Some(name.to_string()),
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
+                    positions: self.enum_positions.get(name).cloned(),
                 });
             }
         }
@@ -239,7 +271,7 @@ impl Validator {
 
         // Validate the attributes of the object
         object.attributes.iter().for_each(|attribute| {
-            self.validate_attribute(attribute, types, &object.name);
+            self.validate_attribute(attribute, types, object);
         });
     }
 
@@ -256,17 +288,20 @@ impl Validator {
             .map(|attribute| attribute.name.as_str())
             .collect::<Vec<&str>>();
 
+        let attribute_positions = extract_attribute_positions(object);
+
         let unique = unique_elements(&attr_names);
         if attr_names.len() != unique.len() {
             let duplicates = unique_elements(&get_duplicates(&attr_names));
 
             for name in duplicates {
                 self.add_error(ValidationError {
-                    message: format!("Property {} is defined more than once.", name),
+                    message: format!("Property '{}' is defined more than once.", name),
                     object: Some(object.name.clone()),
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
+                    positions: attribute_positions.get(name).cloned(),
                 });
             }
         }
@@ -280,11 +315,12 @@ impl Validator {
     fn check_has_attributes(&mut self, object: &Object) {
         if !object.has_attributes() {
             self.add_error(ValidationError {
-                message: format!("Type {} is empty and has no properties.", object.name),
+                message: format!("Type '{}' is empty and has no properties.", object.name),
                 object: Some(object.name.clone()),
                 attribute: None,
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
+                positions: self.object_positions.get(&object.name).cloned(),
             });
         }
     }
@@ -309,6 +345,7 @@ impl Validator {
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
+                    positions: self.object_positions.get(name).cloned(),
                 });
             }
         }
@@ -327,6 +364,7 @@ impl Validator {
                 attribute: None,
                 location: "Global".into(),
                 error_type: ErrorType::GlobalError,
+                positions: None,
             });
         }
     }
@@ -338,21 +376,24 @@ impl Validator {
     /// * `attribute` - A reference to the `Attribute` to be validated.
     /// * `types` - A slice of type names that are valid within the model.
     /// * `obj_name` - The name of the object that contains the attribute.
-    fn validate_attribute(&mut self, attribute: &Attribute, types: &[&str], obj_name: &str) {
-        self.validate_attribute_name(&attribute.name, obj_name);
+    fn validate_attribute(&mut self, attribute: &Attribute, types: &[&str], object: &Object) {
+        self.validate_attribute_name(&attribute.name, object);
+
+        let attribute_positions = extract_attribute_positions(object);
 
         if attribute.dtypes.is_empty() {
             self.add_error(ValidationError {
-                message: format!("Property {} has no type specified.", attribute.name),
-                object: Some(obj_name.into()),
+                message: format!("Property '{}' has no type specified.", attribute.name),
+                object: Some(object.name.clone()),
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
+                positions: attribute_positions.get(&attribute.name).cloned(),
             })
         }
 
         for dtype in &attribute.dtypes {
-            self.check_attr_dtype(attribute, types, obj_name, &dtype);
+            self.check_attr_dtype(attribute, types, object, dtype);
         }
     }
 
@@ -368,19 +409,22 @@ impl Validator {
         &mut self,
         attribute: &Attribute,
         types: &[&str],
-        obj_name: &str,
-        dtype: &&String,
+        object: &Object,
+        dtype: &str,
     ) {
-        if !types.contains(&dtype.as_str()) && !BASIC_TYPES.contains(&dtype.as_str()) {
+        let attribute_positions = extract_attribute_positions(object);
+
+        if !types.contains(&dtype) && !BASIC_TYPES.contains(&dtype) {
             self.add_error(ValidationError {
                 message: format!(
-                    "Type {} of property {} not found. Either define the type or use a base type.",
+                    "Type '{}' of property '{}' not found. Either define the type or use a base type.",
                     dtype, attribute.name
                 ),
-                object: Some(obj_name.into()),
+                object: Some(object.name.clone()),
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
+                positions: attribute_positions.get(&attribute.name).cloned(),
             })
         }
     }
@@ -391,21 +435,24 @@ impl Validator {
     ///
     /// * `name` - The name of the attribute to be validated.
     /// * `obj_name` - The name of the object that contains the attribute.
-    fn validate_attribute_name(&mut self, name: &str, obj_name: &str) {
+    fn validate_attribute_name(&mut self, name: &str, object: &Object) {
         let checks = vec![
             starts_with_character,
             contains_white_space,
             contains_special_characters,
         ];
 
+        let attribute_positions = extract_attribute_positions(object);
+
         for check in checks {
             if let Err(e) = check(name) {
                 self.add_error(ValidationError {
                     message: e,
-                    object: Some(obj_name.into()),
-                    attribute: Some(name.into()),
+                    object: Some(object.name.clone()),
+                    attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
+                    positions: attribute_positions.get(name).cloned(),
                 });
             }
         }
@@ -534,4 +581,79 @@ fn contains_special_characters(name: &str) -> Result<(), String> {
     name.chars().any(|c| !c.is_alphanumeric() && c != '_' && c != ' ').then(
         || Err(format!("Name '{}' contains special characters, which are not valid except for underscores.", name))
     ).unwrap_or(Ok(()))
+}
+
+/// Extracts the positions of all objects in the data model.
+///
+/// # Arguments
+///
+/// * `model` - A reference to the `DataModel` to extract positions from.
+///
+/// # Returns
+///
+/// A `HashMap` mapping object names to their positions in the source code.
+fn extract_object_positions(model: &DataModel) -> HashMap<String, Vec<Position>> {
+    let mut positions: HashMap<String, Vec<Position>> = HashMap::new();
+    for object in &model.objects {
+        if object.position.is_none() {
+            continue;
+        }
+
+        if let Some(pos) = positions.get_mut(&object.name) {
+            pos.push(object.position.unwrap());
+        } else {
+            positions.insert(object.name.clone(), vec![object.position.unwrap()]);
+        }
+    }
+    positions
+}
+
+/// Extracts the positions of all enums in the data model.
+///
+/// # Arguments
+///
+/// * `model` - A reference to the `DataModel` to extract positions from.
+///
+/// # Returns
+///
+/// A `HashMap` mapping enum names to their positions in the source code.
+fn extract_enum_positions(model: &DataModel) -> HashMap<String, Vec<Position>> {
+    let mut positions: HashMap<String, Vec<Position>> = HashMap::new();
+    for enum_ in &model.enums {
+        if enum_.position.is_none() {
+            continue;
+        }
+
+        if let Some(pos) = positions.get_mut(&enum_.name) {
+            pos.push(enum_.position.unwrap());
+        } else {
+            positions.insert(enum_.name.clone(), vec![enum_.position.unwrap()]);
+        }
+    }
+    positions
+}
+
+/// Extracts the positions of all attributes across all objects in the data model.
+///
+/// # Arguments
+///
+/// * `model` - A reference to the `DataModel` to extract positions from.
+///
+/// # Returns
+///
+/// A `HashMap` mapping attribute names to their positions in the source code.
+fn extract_attribute_positions(object: &Object) -> HashMap<String, Vec<Position>> {
+    let mut positions: HashMap<String, Vec<Position>> = HashMap::new();
+    for attribute in &object.attributes {
+        if attribute.position.is_none() {
+            continue;
+        }
+
+        if let Some(pos) = positions.get_mut(&attribute.name) {
+            pos.push(attribute.position.unwrap());
+        } else {
+            positions.insert(attribute.name.clone(), vec![attribute.position.unwrap()]);
+        }
+    }
+    positions
 }

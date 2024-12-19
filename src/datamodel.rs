@@ -85,9 +85,9 @@ impl DataModel {
     // Get the JSON schema for an object
     //
     // * `obj_name` - Name of the object
+    // * `openai` - Whether to remove options from the schema properties. OpenAI does not support options.
     //
     // # Panics
-    //
     // If no objects are found in the markdown file
     // If the object is not found in the markdown file
     //
@@ -304,6 +304,7 @@ impl DataModel {
     /// ```
     /// # Returns
     /// A data model
+    #[allow(clippy::result_large_err)]
     pub fn from_markdown(path: &Path) -> Result<Self, Validator> {
         let content = fs::read_to_string(path).expect("Could not read file");
         parse_markdown(&content)
@@ -326,6 +327,7 @@ impl DataModel {
     /// ```
     /// # Returns
     /// A data model
+    #[allow(clippy::result_large_err)]
     pub fn from_markdown_string(content: &str) -> Result<Self, Validator> {
         parse_markdown(content)
     }
@@ -359,6 +361,7 @@ mod tests {
             xml: None,
             default: None,
             is_enum: false,
+            position: None,
         });
 
         let mut obj2 = Object::new("Object2".to_string(), None);
@@ -374,18 +377,21 @@ mod tests {
             xml: None,
             default: None,
             is_enum: false,
+            position: None,
         });
 
         let enm1 = Enumeration {
             name: "Enum1".to_string(),
             mappings: BTreeMap::from([("key1".to_string(), "value1".to_string())]),
             docstring: "".to_string(),
+            position: None,
         };
 
         let enm2 = Enumeration {
             name: "Enum2".to_string(),
             mappings: BTreeMap::from([("key2".to_string(), "value2".to_string())]),
             docstring: "".to_string(),
+            position: None,
         };
 
         model1.objects.push(obj1);
@@ -422,6 +428,7 @@ mod tests {
             xml: None,
             default: Some(DataType::String("".to_string())),
             is_enum: false,
+            position: None,
         });
 
         obj.add_attribute(crate::attribute::Attribute {
@@ -436,6 +443,7 @@ mod tests {
             xml: None,
             default: None,
             is_enum: false,
+            position: None,
         });
 
         model.objects.push(obj);

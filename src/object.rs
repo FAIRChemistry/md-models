@@ -21,7 +21,7 @@
  *
  */
 
-use crate::attribute::Attribute;
+use crate::{attribute::Attribute, markdown::parser::Position};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::collections::BTreeMap;
@@ -44,6 +44,9 @@ pub struct Object {
     pub term: Option<String>,
     /// Parent object of the object.
     pub parent: Option<String>,
+    /// The line number of the object
+    #[serde(skip_serializing)]
+    pub position: Option<Position>,
 }
 
 impl Object {
@@ -64,6 +67,7 @@ impl Object {
             docstring: String::new(),
             term,
             parent: None,
+            position: None,
         }
     }
 
@@ -83,6 +87,15 @@ impl Object {
     /// * `docstring` - A string representing the documentation string for the object.
     pub fn set_docstring(&mut self, docstring: String) {
         self.docstring = docstring;
+    }
+
+    /// Sets the line number of the object.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - The position to set.
+    pub fn set_position(&mut self, position: Position) {
+        self.position = Some(position);
     }
 
     /// Retrieves the last attribute added to the object.
@@ -164,6 +177,9 @@ pub struct Enumeration {
     pub mappings: BTreeMap<String, String>,
     /// Documentation string for the enumeration.
     pub docstring: String,
+    /// The line number of the enumeration
+    #[serde(skip_serializing)]
+    pub position: Option<Position>,
 }
 
 impl Enumeration {
@@ -174,6 +190,15 @@ impl Enumeration {
     /// * `bool` - `true` if the enumeration has values, `false` otherwise.
     pub fn has_values(&self) -> bool {
         !self.mappings.is_empty()
+    }
+
+    /// Sets the position of the enumeration.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - The position to set.
+    pub fn set_position(&mut self, position: Position) {
+        self.position = Some(position);
     }
 }
 

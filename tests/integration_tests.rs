@@ -348,4 +348,22 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_invalid_complete() {
+        let path = Path::new("tests/data/model_invalid_complete.md");
+        let model = DataModel::from_markdown(path);
+
+        if let Err(e) = model {
+            let expected = std::fs::read_to_string("tests/data/expected_invalid_complete.json")
+                .expect("Could not read expected invalid complete");
+            let expected: serde_json::Value =
+                serde_json::from_str(&expected).expect("Could not parse expected invalid complete");
+
+            let e: serde_json::Value =
+                serde_json::from_str(&serde_json::to_string_pretty(&e).unwrap()).unwrap();
+
+            assert_eq!(e, expected);
+        }
+    }
 }

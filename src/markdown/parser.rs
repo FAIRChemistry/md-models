@@ -25,10 +25,11 @@ use colored::Colorize;
 use core::panic;
 use lazy_static::lazy_static;
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use pulldown_cmark::{CowStr, Event, Parser, Tag};
+use pulldown_cmark::{CowStr, Event, HeadingLevel, OffsetIter, Options, Parser, Tag, TagEnd};
 use regex::Regex;
 
 use crate::attribute;
@@ -37,6 +38,9 @@ use crate::object::{self, Enumeration, Object};
 use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
+
+#[cfg(feature = "python")]
+use pyo3::pyclass;
 
 lazy_static! {
     static ref MD_MODEL_TYPES: BTreeMap<&'static str, &'static str> = {
@@ -53,11 +57,41 @@ lazy_static! {
     };
 }
 
+// Heading levels for re-use
+const H1: Tag = Tag::Heading {
+    level: HeadingLevel::H1,
+    id: None,
+    classes: Vec::new(),
+    attrs: Vec::new(),
+};
+const H2: Tag = Tag::Heading {
+    level: HeadingLevel::H2,
+    id: None,
+    classes: Vec::new(),
+    attrs: Vec::new(),
+};
+const H3: Tag = Tag::Heading {
+    level: HeadingLevel::H3,
+    id: None,
+    classes: Vec::new(),
+    attrs: Vec::new(),
+};
+
+const H3_END: TagEnd = TagEnd::Heading(HeadingLevel::H3);
+
 #[derive(Debug, PartialEq, Eq)]
 enum ParserState {
     InDefinition,
     OutsideDefinition,
     InHeading,
+}
+
+// Add this struct to track positions
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(get_all))]
+pub struct Position {
+    pub line: usize,
+    pub range: (usize, usize),
 }
 
 /// Parses a Markdown file at the given path and returns a `DataModel`.
@@ -69,6 +103,7 @@ enum ParserState {
 /// # Returns
 ///
 /// A `Result` containing a `DataModel` on success or an error on failure.
+#[allow(clippy::result_large_err)]
 pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     // Remove HTML and links
     let content = clean_content(content);
@@ -76,9 +111,18 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     // Parse the frontmatter
     let config = parse_frontmatter(&content);
 
-    // Parse the markdown content
-    let parser = Parser::new(&content);
-    let mut iterator = parser.into_iter();
+    // Create line offset mapping
+    let line_offsets: Vec<usize> = content
+        .char_indices()
+        .filter(|(_, c)| *c == '\n')
+        .map(|(i, _)| i)
+        .collect();
+
+    // Create parser with options to enable offset tracking
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
+    let parser = Parser::new_ext(&content, options);
+    let mut iterator = parser.into_offset_iter();
 
     let mut objects = Vec::new();
     let mut enums = Vec::new();
@@ -88,15 +132,22 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     // Extract objects from the markdown file
     let mut state = ParserState::OutsideDefinition;
     while let Some(event) = iterator.next() {
-        process_object_event(&mut iterator, &mut objects, event, &mut model, &mut state);
+        process_object_event(
+            &mut iterator,
+            &mut objects,
+            event,
+            &mut model,
+            &mut state,
+            &line_offsets,
+        );
     }
 
     // Reset the iterator
     let parser = Parser::new(&content);
-    let mut iterator = parser.into_iter();
+    let mut iterator = parser.into_offset_iter();
 
-    while let Some(event) = iterator.next() {
-        process_enum_event(&mut iterator, &mut enums, event);
+    while let Some((event, range)) = iterator.next() {
+        process_enum_event(&mut iterator, &mut enums, (event, range), &line_offsets);
     }
 
     // Filter empty objects and enums
@@ -135,6 +186,20 @@ fn clean_content(content: &str) -> String {
     content
 }
 
+// Helper function to convert byte offset to line number
+fn get_position(line_offsets: &[usize], start: usize, end: usize) -> Position {
+    match line_offsets.binary_search(&start) {
+        Ok(line) => Position {
+            line: line + 1,
+            range: (start, end),
+        },
+        Err(line) => Position {
+            line: line + 1,
+            range: (start, end),
+        },
+    }
+}
+
 /// Processes a single Markdown event for object extraction.
 ///
 /// # Arguments
@@ -144,25 +209,29 @@ fn clean_content(content: &str) -> String {
 /// * `event` - The current Markdown event.
 /// * `model` - A mutable reference to the data model.
 fn process_object_event(
-    iterator: &mut Parser,
+    iterator: &mut pulldown_cmark::OffsetIter,
     objects: &mut Vec<Object>,
-    event: Event,
+    event: (Event, std::ops::Range<usize>), // Now includes offset range
     model: &mut DataModel,
     state: &mut ParserState,
+    line_offsets: &[usize], // Pass in line offsets
 ) {
+    let (event, range) = event;
+
     match event {
-        Event::Start(Tag::Heading(1)) => {
+        Event::Start(tag) if tag == H1 => {
             model.name = Some(extract_name(iterator));
         }
-        Event::Start(Tag::Heading(2)) => {
+        Event::Start(tag) if tag == H2 => {
             *state = ParserState::OutsideDefinition;
         }
-        Event::Start(Tag::Heading(3)) => {
+        Event::Start(tag) if tag == H3 => {
             *state = ParserState::InHeading;
-            let object = process_object_heading(iterator);
+            let mut object = process_object_heading(iterator);
+            object.set_position(get_position(line_offsets, range.start, range.end));
             objects.push(object);
         }
-        Event::End(Tag::Heading(3)) => {
+        Event::End(tag) if tag == H3_END => {
             *state = ParserState::InDefinition;
         }
         Event::Text(CowStr::Borrowed("[")) => {
@@ -172,7 +241,7 @@ fn process_object_event(
                 let parent = iterator.next();
 
                 match parent {
-                    Some(Event::Text(text)) if text.to_string() != "]" => {
+                    Some((Event::Text(text), _)) if text.to_string() != "]" => {
                         last_object.parent = Some(text.to_string());
                     }
                     _ => {
@@ -198,7 +267,8 @@ fn process_object_event(
             if !last_object.has_attributes() {
                 iterator.next();
                 let (required, attr_name) = extract_attr_name_required(iterator);
-                let attribute = attribute::Attribute::new(attr_name, required);
+                let mut attribute = attribute::Attribute::new(attr_name, required);
+                attribute.set_position(get_position(line_offsets, range.start, range.end));
                 objects.last_mut().unwrap().add_attribute(attribute);
             } else {
                 let attr_strings = extract_attribute_options(iterator);
@@ -213,7 +283,8 @@ fn process_object_event(
             }
 
             let (required, attr_string) = extract_attr_name_required(iterator);
-            let attribute = attribute::Attribute::new(attr_string, required);
+            let mut attribute = attribute::Attribute::new(attr_string, required);
+            attribute.set_position(get_position(line_offsets, range.start, range.end));
             objects.last_mut().unwrap().add_attribute(attribute);
         }
         Event::Text(text) => {
@@ -235,7 +306,7 @@ fn process_object_event(
 /// # Returns
 ///
 /// An `Object` created from the heading.
-fn process_object_heading(iterator: &mut Parser) -> object::Object {
+fn process_object_heading(iterator: &mut OffsetIter) -> object::Object {
     let heading = extract_name(iterator);
     let term = extract_object_term(&heading);
     let name = heading.split_whitespace().next().unwrap().to_string();
@@ -252,14 +323,14 @@ fn process_object_heading(iterator: &mut Parser) -> object::Object {
 /// # Returns
 ///
 /// A string containing the extracted name.
-fn extract_name(iterator: &mut Parser) -> String {
-    if let Some(Event::Text(text)) = iterator.next() {
+fn extract_name(iterator: &mut OffsetIter) -> String {
+    if let Some((Event::Text(text), _)) = iterator.next() {
         return text.to_string();
     }
 
     // Try for two text events
     for _ in 0..2 {
-        if let Some(Event::Text(text)) = iterator.next() {
+        if let Some((Event::Text(text), _)) = iterator.next() {
             return text.to_string();
         }
     }
@@ -276,14 +347,14 @@ fn extract_name(iterator: &mut Parser) -> String {
 /// # Returns
 ///
 /// A tuple containing a boolean indicating if the attribute is required and the attribute name.
-fn extract_attr_name_required(iterator: &mut Parser) -> (bool, String) {
-    if let Some(Event::Text(text)) = iterator.next() {
+fn extract_attr_name_required(iterator: &mut OffsetIter) -> (bool, String) {
+    if let Some((Event::Text(text), _)) = iterator.next() {
         return (false, text.to_string());
     }
 
     // Try for two text events
     for _ in 0..2 {
-        if let Some(Event::Text(text)) = iterator.next() {
+        if let Some((Event::Text(text), _)) = iterator.next() {
             return (true, text.to_string());
         }
     }
@@ -316,15 +387,15 @@ fn extract_object_term(heading: &str) -> Option<String> {
 /// # Returns
 ///
 /// A vector of strings containing the extracted attribute options.
-fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
+fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
     let mut options = Vec::new();
-    while let Some(next) = iterator.next() {
+    while let Some((next, _)) = iterator.next() {
         match next {
             Event::Start(Tag::Item) => {
                 let name = extract_name(iterator);
                 options.push(name);
             }
-            Event::End(Tag::List(None)) => {
+            Event::End(TagEnd::List(false)) => {
                 break;
             }
             Event::Text(text) if text.to_string() == "[" => {
@@ -413,20 +484,31 @@ fn process_option(option: &String) -> (String, String) {
 /// * `iterator` - A mutable reference to the parser iterator.
 /// * `enums` - A mutable reference to the vector of enumerations.
 /// * `event` - The current Markdown event.
-pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, event: Event) {
+/// * `range` - The range of the event.
+/// * `line_offsets` - The line offsets of the file.
+pub fn process_enum_event(
+    iterator: &mut OffsetIter,
+    enums: &mut Vec<Enumeration>,
+    event: (Event, std::ops::Range<usize>),
+    line_offsets: &[usize],
+) {
+    let (event, range) = event;
+
     match event {
-        Event::Start(Tag::Heading(3)) => {
+        Event::Start(tag) if tag == H3 => {
             let enum_name = extract_name(iterator);
-            let enum_obj = Enumeration {
+            let mut enum_obj = Enumeration {
                 name: enum_name,
                 mappings: BTreeMap::new(),
                 docstring: "".to_string(),
+                position: None,
             };
+            enum_obj.set_position(get_position(line_offsets, range.start, range.end));
             enums.push(enum_obj);
         }
         Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(_))) => {
             let event = iterator.next().unwrap();
-            if let Event::Text(text) = event {
+            if let (Event::Text(text), _) = event {
                 let mappings = text.to_string();
 
                 if enums.last_mut().is_some() {
