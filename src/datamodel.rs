@@ -85,9 +85,9 @@ impl DataModel {
     // Get the JSON schema for an object
     //
     // * `obj_name` - Name of the object
+    // * `openai` - Whether to remove options from the schema properties. OpenAI does not support options.
     //
     // # Panics
-    //
     // If no objects are found in the markdown file
     // If the object is not found in the markdown file
     //
