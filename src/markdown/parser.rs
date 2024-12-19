@@ -28,7 +28,7 @@ use log::error;
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use pulldown_cmark::{CowStr, Event, Parser, Tag};
+use pulldown_cmark::{CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
 use regex::Regex;
 
 use crate::attribute;
@@ -52,6 +52,28 @@ lazy_static! {
         m
     };
 }
+
+// Heading levels for re-use
+const H1: Tag = Tag::Heading {
+    level: HeadingLevel::H1,
+    id: None,
+    classes: Vec::new(),
+    attrs: Vec::new(),
+};
+const H2: Tag = Tag::Heading {
+    level: HeadingLevel::H2,
+    id: None,
+    classes: Vec::new(),
+    attrs: Vec::new(),
+};
+const H3: Tag = Tag::Heading {
+    level: HeadingLevel::H3,
+    id: None,
+    classes: Vec::new(),
+    attrs: Vec::new(),
+};
+
+const H3_END: TagEnd = TagEnd::Heading(HeadingLevel::H3);
 
 #[derive(Debug, PartialEq, Eq)]
 enum ParserState {
@@ -151,18 +173,18 @@ fn process_object_event(
     state: &mut ParserState,
 ) {
     match event {
-        Event::Start(Tag::Heading(1)) => {
+        Event::Start(tag) if tag == H1 => {
             model.name = Some(extract_name(iterator));
         }
-        Event::Start(Tag::Heading(2)) => {
+        Event::Start(tag) if tag == H2 => {
             *state = ParserState::OutsideDefinition;
         }
-        Event::Start(Tag::Heading(3)) => {
+        Event::Start(tag) if tag == H3 => {
             *state = ParserState::InHeading;
             let object = process_object_heading(iterator);
             objects.push(object);
         }
-        Event::End(Tag::Heading(3)) => {
+        Event::End(tag) if tag == H3_END => {
             *state = ParserState::InDefinition;
         }
         Event::Text(CowStr::Borrowed("[")) => {
@@ -324,7 +346,7 @@ fn extract_attribute_options(iterator: &mut Parser) -> Vec<String> {
                 let name = extract_name(iterator);
                 options.push(name);
             }
-            Event::End(Tag::List(None)) => {
+            Event::End(TagEnd::List(false)) => {
                 break;
             }
             Event::Text(text) if text.to_string() == "[" => {
@@ -415,7 +437,7 @@ fn process_option(option: &String) -> (String, String) {
 /// * `event` - The current Markdown event.
 pub fn process_enum_event(iterator: &mut Parser, enums: &mut Vec<Enumeration>, event: Event) {
     match event {
-        Event::Start(Tag::Heading(3)) => {
+        Event::Start(tag) if tag == H3 => {
             let enum_name = extract_name(iterator);
             let enum_obj = Enumeration {
                 name: enum_name,
