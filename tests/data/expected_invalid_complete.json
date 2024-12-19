@@ -1,0 +1,147 @@
+{
+    "is_valid": false,
+    "errors": [
+        {
+            "message": "Object 'Duplicate' is defined more than once.",
+            "object": "Duplicate",
+            "attribute": null,
+            "location": "Global",
+            "error_type": "DuplicateError",
+            "positions": [
+                {
+                    "line": 25,
+                    "range": [
+                        306,
+                        320
+                    ]
+                },
+                {
+                    "line": 30,
+                    "range": [
+                        347,
+                        361
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Name '1number' must start with a letter.",
+            "object": "Test",
+            "attribute": "1number",
+            "location": "Global",
+            "error_type": "NameError",
+            "positions": [
+                {
+                    "line": 13,
+                    "range": [
+                        173,
+                        267
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Name 'some name' contains whitespace, which is not valid. Use underscores instead.",
+            "object": "Test",
+            "attribute": "some name",
+            "location": "Global",
+            "error_type": "NameError",
+            "positions": [
+                {
+                    "line": 15,
+                    "range": [
+                        200,
+                        229
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Type 'Undefined' of property 'undefined_type' not found. Either define the type or use a base type.",
+            "object": "Test",
+            "attribute": "undefined_type",
+            "location": "Global",
+            "error_type": "TypeError",
+            "positions": [
+                {
+                    "line": 17,
+                    "range": [
+                        229,
+                        267
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Name '1Test' must start with a letter.",
+            "object": "1Test",
+            "attribute": null,
+            "location": "Global",
+            "error_type": "NameError",
+            "positions": [
+                {
+                    "line": 20,
+                    "range": [
+                        267,
+                        277
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Name '1number' must start with a letter.",
+            "object": "1Test",
+            "attribute": "1number",
+            "location": "Global",
+            "error_type": "NameError",
+            "positions": [
+                {
+                    "line": 22,
+                    "range": [
+                        278,
+                        306
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Property 'some_name' is defined more than once.",
+            "object": "DuplicateAttributes",
+            "attribute": "some_name",
+            "location": "Global",
+            "error_type": "DuplicateError",
+            "positions": [
+                {
+                    "line": 37,
+                    "range": [
+                        413,
+                        472
+                    ]
+                },
+                {
+                    "line": 39,
+                    "range": [
+                        442,
+                        472
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Property 'some_name' has no type specified.",
+            "object": "NoType",
+            "attribute": "some_name",
+            "location": "Global",
+            "error_type": "TypeError",
+            "positions": [
+                {
+                    "line": 44,
+                    "range": [
+                        484,
+                        514
+                    ]
+                }
+            ]
+        }
+    ]
+}
