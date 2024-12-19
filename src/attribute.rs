@@ -21,7 +21,7 @@
  *
  */
 
-use crate::xmltype::XMLType;
+use crate::{markdown::parser::Position, xmltype::XMLType};
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
@@ -57,6 +57,9 @@ pub struct Attribute {
     pub xml: Option<XMLType>,
     /// Is an enumeration or not
     pub is_enum: bool,
+    /// The line number of the attribute
+    #[serde(skip_serializing)]
+    pub position: Option<Position>,
 }
 
 impl Attribute {
@@ -79,6 +82,7 @@ impl Attribute {
             xml: Some(XMLType::from_str(name.as_str()).unwrap()),
             default: None,
             is_enum: false,
+            position: None,
         }
     }
 
@@ -89,6 +93,15 @@ impl Attribute {
     /// * `docstring` - The documentation string to set.
     pub fn set_docstring(&mut self, docstring: String) {
         self.docstring = docstring;
+    }
+
+    /// Sets the line number of the attribute.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - The position to set.
+    pub fn set_position(&mut self, position: Position) {
+        self.position = Some(position);
     }
 
     /// Adds an option to the attribute.

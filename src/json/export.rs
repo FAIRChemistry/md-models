@@ -530,6 +530,7 @@ mod tests {
             default: None,
             xml: None,
             is_enum: false,
+            position: None,
         };
 
         let property: schema::Property =
@@ -563,6 +564,7 @@ mod tests {
             default: None,
             xml: None,
             is_enum: false,
+            position: None,
         };
 
         let property: schema::Property =
