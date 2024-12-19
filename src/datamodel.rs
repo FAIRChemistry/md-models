@@ -304,6 +304,7 @@ impl DataModel {
     /// ```
     /// # Returns
     /// A data model
+    #[allow(clippy::result_large_err)]
     pub fn from_markdown(path: &Path) -> Result<Self, Validator> {
         let content = fs::read_to_string(path).expect("Could not read file");
         parse_markdown(&content)
@@ -326,6 +327,7 @@ impl DataModel {
     /// ```
     /// # Returns
     /// A data model
+    #[allow(clippy::result_large_err)]
     pub fn from_markdown_string(content: &str) -> Result<Self, Validator> {
         parse_markdown(content)
     }

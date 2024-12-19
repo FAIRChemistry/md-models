@@ -62,7 +62,7 @@ impl Display for ValidationError {
             .collect();
         let mut line = lines.join(", ");
 
-        if lines.len() > 0 {
+        if !lines.is_empty() {
             line = format!("[line: {}]", line);
         } else {
             line = "".to_string();
@@ -271,7 +271,7 @@ impl Validator {
 
         // Validate the attributes of the object
         object.attributes.iter().for_each(|attribute| {
-            self.validate_attribute(attribute, types, &object);
+            self.validate_attribute(attribute, types, object);
         });
     }
 
@@ -393,7 +393,7 @@ impl Validator {
         }
 
         for dtype in &attribute.dtypes {
-            self.check_attr_dtype(attribute, types, object, &dtype);
+            self.check_attr_dtype(attribute, types, object, dtype);
         }
     }
 
@@ -600,9 +600,9 @@ fn extract_object_positions(model: &DataModel) -> HashMap<String, Vec<Position>>
         }
 
         if let Some(pos) = positions.get_mut(&object.name) {
-            pos.push(object.position.clone().unwrap());
+            pos.push(object.position.unwrap());
         } else {
-            positions.insert(object.name.clone(), vec![object.position.clone().unwrap()]);
+            positions.insert(object.name.clone(), vec![object.position.unwrap()]);
         }
     }
     positions
@@ -625,9 +625,9 @@ fn extract_enum_positions(model: &DataModel) -> HashMap<String, Vec<Position>> {
         }
 
         if let Some(pos) = positions.get_mut(&enum_.name) {
-            pos.push(enum_.position.clone().unwrap());
+            pos.push(enum_.position.unwrap());
         } else {
-            positions.insert(enum_.name.clone(), vec![enum_.position.clone().unwrap()]);
+            positions.insert(enum_.name.clone(), vec![enum_.position.unwrap()]);
         }
     }
     positions
@@ -650,12 +650,9 @@ fn extract_attribute_positions(object: &Object) -> HashMap<String, Vec<Position>
         }
 
         if let Some(pos) = positions.get_mut(&attribute.name) {
-            pos.push(attribute.position.clone().unwrap());
+            pos.push(attribute.position.unwrap());
         } else {
-            positions.insert(
-                attribute.name.clone(),
-                vec![attribute.position.clone().unwrap()],
-            );
+            positions.insert(attribute.name.clone(), vec![attribute.position.unwrap()]);
         }
     }
     positions

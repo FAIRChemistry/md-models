@@ -39,6 +39,9 @@ use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
 
+#[cfg(feature = "python")]
+use pyo3::pyclass;
+
 lazy_static! {
     static ref MD_MODEL_TYPES: BTreeMap<&'static str, &'static str> = {
         let mut m = BTreeMap::new();
@@ -85,6 +88,7 @@ enum ParserState {
 
 // Add this struct to track positions
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(get_all))]
 pub struct Position {
     pub line: usize,
     pub range: (usize, usize),
@@ -99,6 +103,7 @@ pub struct Position {
 /// # Returns
 ///
 /// A `Result` containing a `DataModel` on success or an error on failure.
+#[allow(clippy::result_large_err)]
 pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     // Remove HTML and links
     let content = clean_content(content);
