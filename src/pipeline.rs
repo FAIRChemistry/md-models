@@ -340,7 +340,7 @@ fn serialize_to_internal_schema(
 ) -> Result<(), Box<dyn Error>> {
     match merge_state {
         MergeState::Merge => {
-            let schema = model.sdrdm_schema();
+            let schema = model.internal_schema();
             save_to_file(out, &schema)?;
             print_render_msg(out, &Templates::Internal);
             Ok(())

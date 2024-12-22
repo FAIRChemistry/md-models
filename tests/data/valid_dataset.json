@@ -1,0 +1,28 @@
+{
+    "floating": 10.0,
+    "integer": 1,
+    "boolean": true,
+    "string": "hello",
+    "primitive_number_array": [
+        1,
+        2,
+        3
+    ],
+    "complex": {
+        "name": "Test",
+        "age": 20
+    },
+    "complex_array": [
+        {
+            "name": "Test",
+            "age": 20
+        }
+    ],
+    "mixed_array": [
+        1,
+        {
+            "name": "Test",
+            "age": 20
+        }
+    ]
+}

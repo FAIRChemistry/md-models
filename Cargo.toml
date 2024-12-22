@@ -33,6 +33,7 @@ wasm-bindgen = { version = "0.2.95", optional = true }
 serde-wasm-bindgen = { version = "0.6.5", optional = true }
 tokio = { version = "1.42.0", features = ["rt"] }
 openai-api-rs = { version = "5.2.3", optional = true }
+jsonschema = { version = "0.26.2", default-features = false }
 
 [features]
 default = ["openai"]
