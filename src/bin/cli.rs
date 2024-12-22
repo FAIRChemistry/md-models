@@ -23,9 +23,11 @@
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use log::error;
 use mdmodels::{
     datamodel::DataModel,
     exporters::{render_jinja_template, Templates},
+    json::validation::validate_json,
     llm::extraction::query_openai,
     pipeline::process_pipeline,
 };
@@ -53,6 +55,8 @@ enum Commands {
     Pipeline(PipelineArgs),
     /// Large Language Model Extraction
     Extract(ExtractArgs),
+    /// Validate a dataset against a markdown model.
+    Dataset(DatasetArgs),
 }
 
 /// Arguments for the validate subcommand.
@@ -141,6 +145,33 @@ struct ExtractArgs {
     multiple: bool,
 }
 
+/// Arguments for the dataset subcommand.
+#[derive(Parser, Debug)]
+struct DatasetArgs {
+    #[command(subcommand)]
+    command: DatasetCommands,
+}
+
+/// Subcommands for dataset operations
+#[derive(Subcommand, Debug)]
+enum DatasetCommands {
+    /// Validate a dataset against a markdown model.
+    Validate(ValidateDatasetArgs),
+    // Add more dataset subcommands here as needed
+}
+
+/// Arguments for the validate dataset subcommand.
+#[derive(Parser, Debug)]
+struct ValidateDatasetArgs {
+    /// Path to the dataset file.
+    #[arg(short, long, help = "Path to the dataset file")]
+    input: InputType,
+
+    /// Path to the markdown model.
+    #[arg(short, long, help = "Path to the markdown model")]
+    model: InputType,
+}
+
 /// Represents the input type, either remote URL or local file path.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 enum InputType {
@@ -186,6 +217,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Convert(args) => convert(args),
         Commands::Pipeline(args) => process_pipeline(&args.input),
         Commands::Extract(args) => query_llm(args),
+        Commands::Dataset(args) => match args.command {
+            DatasetCommands::Validate(args) => validate_ds(args),
+        },
     }
 }
 
@@ -351,6 +385,20 @@ fn render_all_json_schemes(
 
     // Render the JSON Schema for each entity
     model.json_schema_all(outdir.to_path_buf(), false)?;
+
+    Ok(())
+}
+
+/// Validates a dataset against a markdown model.
+fn validate_ds(args: ValidateDatasetArgs) -> Result<(), Box<dyn Error>> {
+    let model_path = resolve_input_path(&args.model);
+    let model = DataModel::from_markdown(&model_path)?;
+    let dataset_path = resolve_input_path(&args.input);
+    let result = validate_json(dataset_path, &model, None)?;
+
+    for error in result {
+        error!("{}", error);
+    }
 
     Ok(())
 }

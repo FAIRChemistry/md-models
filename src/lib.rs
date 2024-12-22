@@ -41,6 +41,7 @@ pub mod json {
     mod datatype;
     pub mod export;
     pub mod schema;
+    pub mod validation;
 }
 
 pub(crate) mod markdown {

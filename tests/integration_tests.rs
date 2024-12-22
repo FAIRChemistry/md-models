@@ -92,10 +92,10 @@ mod tests {
 
         // Assert
         let expected =
-            std::fs::read_to_string("tests/data/expected_sdrdm_full_schema.json").unwrap();
+            std::fs::read_to_string("tests/data/expected_internal_full_schema.json").unwrap();
         let expected: serde_json::Value = serde_json::from_str(&expected).unwrap();
 
-        let schema = model.sdrdm_schema();
+        let schema = model.internal_schema();
         let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
 
         assert_eq!(schema, expected);
@@ -192,18 +192,18 @@ mod tests {
     }
 
     #[test]
-    fn test_sdrdm_schema() {
+    fn test_internal_schema() {
         // Arrange
         let path = Path::new("tests/data/model.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
-        let schema = model.sdrdm_schema();
+        let schema = model.internal_schema();
         let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
 
         // Assert
         let expected_schema =
-            std::fs::read_to_string("tests/data/expected_sdrdm_schema.json").unwrap();
+            std::fs::read_to_string("tests/data/expected_internal_schema.json").unwrap();
         let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
 
         assert_eq!(schema, expected_schema);
@@ -211,12 +211,12 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_sdrdm_schema_no_objects() {
+    fn test_internal_schema_no_objects() {
         // Arrange
         let model = mdmodels::datamodel::DataModel::new(None, None);
 
         // Act
-        model.sdrdm_schema();
+        model.internal_schema();
     }
 
     #[test]
@@ -278,11 +278,12 @@ mod tests {
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Assert
-        let schema = model.sdrdm_schema();
+        let schema = model.internal_schema();
         let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
 
         let expected_schema =
-            std::fs::read_to_string("tests/data/expected_sdrdm_schema_inheritance.json").unwrap();
+            std::fs::read_to_string("tests/data/expected_internal_schema_inheritance.json")
+                .unwrap();
 
         assert_eq!(schema, expected_schema);
     }
@@ -365,5 +366,29 @@ mod tests {
 
             assert_eq!(e, expected);
         }
+    }
+
+    #[test]
+    fn test_json_validation() {
+        let path = Path::new("tests/data/model_json_validation.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        let validation = model
+            .validate_json(&Path::new("tests/data/invalid_dataset.json"), None)
+            .expect("Could not validate JSON");
+
+        assert_eq!(validation.len(), 13);
+    }
+
+    #[test]
+    fn test_json_validation_valid() {
+        let path = Path::new("tests/data/model_json_validation.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        let validation = model
+            .validate_json(&Path::new("tests/data/valid_dataset.json"), None)
+            .expect("Could not validate JSON");
+
+        assert_eq!(validation.len(), 0);
     }
 }

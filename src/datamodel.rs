@@ -30,6 +30,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::exporters::{render_jinja_template, Templates};
 use crate::json::export::to_json_schema;
+use crate::json::validation::{validate_json, ValidationError};
 use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
@@ -60,7 +61,7 @@ use pyo3::pyclass;
 // * `parse` - Parse a markdown file and create a data model
 // * `json_schema` - Generate a JSON schema from the data model
 // * `json_schema_all` - Generate JSON schemas for all objects in the data model
-// * `sdrdm_schema` - Generate a SDRDM schema from the data model
+// * `internal_schema` - Generate an internal schema from the data model
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
 pub struct DataModel {
@@ -80,6 +81,28 @@ impl DataModel {
             enums: Vec::new(),
             config,
         }
+    }
+
+    /// Validates a dataset against the data model.
+    ///
+    /// This function takes the path to a dataset and validates it against the
+    /// current data model. It returns a vector of validation errors if any
+    /// validation issues are found, or an empty vector if the validation is successful.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - A reference to the path of the dataset to validate.
+    /// * `root` - An optional root path for the schema. Will use the first object if not provided.
+    ///
+    /// # Returns
+    /// A Result containing a vector of `ValidationError` if validation fails,
+    /// or an empty vector if successful.
+    pub fn validate_json(
+        &self,
+        path: &Path,
+        root: Option<String>,
+    ) -> Result<Vec<ValidationError>, Box<dyn Error>> {
+        validate_json(path.to_path_buf(), self, root)
     }
 
     // Get the JSON schema for an object
@@ -166,7 +189,7 @@ impl DataModel {
         Ok(())
     }
 
-    // Get the SDRDM schema for the markdown file
+    // Get the internal schema for the markdown file
     //
     // # Panics
     //
@@ -177,18 +200,18 @@ impl DataModel {
     // ```
     // let model = DataModel::new();
     // model.parse("path/to/file.md".to_string());
-    // let schema = model.sdrdm_schema();
+    // let schema = model.internal_schema();
     // ```
     //
     // # Returns
     //
-    // A SDRDM schema string
-    pub fn sdrdm_schema(&self) -> String {
+    // An internal schema string
+    pub fn internal_schema(&self) -> String {
         if self.objects.is_empty() {
             panic!("No objects found in the markdown file");
         }
 
-        serde_json::to_string_pretty(&self).expect("Could not serialize to sdRDM schema")
+        serde_json::to_string_pretty(&self).expect("Could not serialize to internal schema")
     }
 
     // Parse a markdown file and create a data model
@@ -199,14 +222,14 @@ impl DataModel {
     //
     // ```
     // let path = Path::new("path/to/file.md");
-    // let model = DataModel::from_sdrdm_schema(path);
+    // let model = DataModel::from_internal_schema(path);
     // ```
     //
     // # Returns
     //
     // A data model
     //
-    pub fn from_sdrdm_schema(path: &Path) -> Result<Self, Box<dyn Error>> {
+    pub fn from_internal_schema(path: &Path) -> Result<Self, Box<dyn Error>> {
         if !path.exists() {
             return Err("File does not exist".into());
         }
@@ -457,12 +480,12 @@ mod tests {
     }
 
     #[test]
-    fn test_from_sdrdm_schema() {
+    fn test_from_internal_schema() {
         // Arrange
-        let path = Path::new("tests/data/expected_sdrdm_schema.json");
+        let path = Path::new("tests/data/expected_internal_schema.json");
 
         // Act
-        let model = DataModel::from_sdrdm_schema(path).expect("Failed to parse SDRDM schema");
+        let model = DataModel::from_internal_schema(path).expect("Failed to parse internal schema");
 
         // Assert
         assert_eq!(model.objects.len(), 2);
