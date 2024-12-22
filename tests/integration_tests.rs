@@ -374,7 +374,7 @@ mod tests {
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         let validation = model
-            .validate_json(&Path::new("tests/data/invalid_dataset.json"), None)
+            .validate_json(Path::new("tests/data/invalid_dataset.json"), None)
             .expect("Could not validate JSON");
 
         assert_eq!(validation.len(), 13);
@@ -386,7 +386,7 @@ mod tests {
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         let validation = model
-            .validate_json(&Path::new("tests/data/valid_dataset.json"), None)
+            .validate_json(Path::new("tests/data/valid_dataset.json"), None)
             .expect("Could not validate JSON");
 
         assert_eq!(validation.len(), 0);

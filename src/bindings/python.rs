@@ -82,7 +82,7 @@ impl DataModel {
     ///
     /// A string that represents the `DataModel` instance.
     fn __repr__(&self) -> String {
-        self.model.sdrdm_schema()
+        self.model.internal_schema()
     }
 
     /// Converts the `DataModel` instance to a specified template format.
