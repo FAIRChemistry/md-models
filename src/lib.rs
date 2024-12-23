@@ -37,6 +37,12 @@ pub(crate) mod attribute;
 pub(crate) mod object;
 pub(crate) mod xmltype;
 
+pub mod prelude {
+    pub use crate::datamodel::DataModel;
+    pub use crate::exporters::Templates;
+    pub use crate::validation::Validator;
+}
+
 pub mod json {
     mod datatype;
     pub mod export;
@@ -47,6 +53,7 @@ pub mod json {
 pub(crate) mod markdown {
     pub(crate) mod frontmatter;
     pub(crate) mod parser;
+    pub(crate) mod position;
 }
 
 #[cfg(feature = "openai")]
