@@ -21,7 +21,7 @@
  *
  */
 
-use crate::{attribute::Attribute, markdown::parser::Position};
+use crate::{attribute::Attribute, markdown::position::Position};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::collections::BTreeMap;

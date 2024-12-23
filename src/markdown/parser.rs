@@ -25,7 +25,6 @@ use colored::Colorize;
 use core::panic;
 use lazy_static::lazy_static;
 use log::error;
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
 
@@ -38,6 +37,7 @@ use crate::object::{self, Enumeration, Object};
 use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
+use super::position::{Position, PositionRange};
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
@@ -84,20 +84,6 @@ enum ParserState {
     InDefinition,
     OutsideDefinition,
     InHeading,
-}
-
-// Add this struct to track positions
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
-pub struct Position {
-    pub line: usize,
-    pub column: (usize, usize),
-}
-
-impl PartialOrd for Position {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.line.cmp(&other.line))
-    }
 }
 
 /// Parses a Markdown file at the given path and returns a `DataModel`.
@@ -236,7 +222,10 @@ fn get_position(content: &str, line_offsets: &[usize], start: usize, end: usize)
 
     Position {
         line,
-        column: (start_col, end_col),
+        column: PositionRange {
+            start: start_col,
+            end: end_col,
+        },
     }
 }
 

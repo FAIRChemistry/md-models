@@ -21,7 +21,7 @@
  *
  */
 
-use crate::{markdown::parser::Position, xmltype::XMLType};
+use crate::{markdown::position::Position, xmltype::XMLType};
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 

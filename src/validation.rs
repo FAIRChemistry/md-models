@@ -24,7 +24,7 @@
 use crate::{
     attribute::Attribute,
     datamodel::DataModel,
-    markdown::parser::Position,
+    markdown::position::Position,
     object::{Enumeration, Object},
 };
 use colored::Colorize;
@@ -47,19 +47,13 @@ pub struct ValidationError {
     pub attribute: Option<String>,
     pub location: String,
     pub error_type: ErrorType,
-    pub positions: Option<Vec<Position>>,
+    pub positions: Vec<Position>,
 }
 
 impl Display for ValidationError {
     /// Formats the validation error for display.
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let lines: Vec<String> = self
-            .positions
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|p| p.line.to_string())
-            .collect();
+        let lines: Vec<String> = self.positions.iter().map(|p| p.line.to_string()).collect();
         let mut line = lines.join(", ");
 
         if !lines.is_empty() {
@@ -220,7 +214,12 @@ impl Validator {
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
-                    positions: self.object_positions.get(name).cloned(),
+                    positions: self
+                        .object_positions
+                        .get(name)
+                        .cloned()
+                        .unwrap_or_default()
+                        .clone(),
                 });
             }
         }
@@ -254,7 +253,12 @@ impl Validator {
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
-                    positions: self.enum_positions.get(name).cloned(),
+                    positions: self
+                        .enum_positions
+                        .get(name)
+                        .cloned()
+                        .unwrap_or_default()
+                        .clone(),
                 });
             }
         }
@@ -303,7 +307,7 @@ impl Validator {
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
-                    positions: attribute_positions.get(name).cloned(),
+                    positions: attribute_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
         }
@@ -322,7 +326,11 @@ impl Validator {
                 attribute: None,
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
-                positions: self.object_positions.get(&object.name).cloned(),
+                positions: self
+                    .object_positions
+                    .get(&object.name)
+                    .cloned()
+                    .unwrap_or_default(),
             });
         }
     }
@@ -347,7 +355,7 @@ impl Validator {
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
-                    positions: self.object_positions.get(name).cloned(),
+                    positions: self.object_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
         }
@@ -366,7 +374,7 @@ impl Validator {
                 attribute: None,
                 location: "Global".into(),
                 error_type: ErrorType::GlobalError,
-                positions: None,
+                positions: vec![],
             });
         }
     }
@@ -390,7 +398,10 @@ impl Validator {
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
-                positions: attribute_positions.get(&attribute.name).cloned(),
+                positions: attribute_positions
+                    .get(&attribute.name)
+                    .cloned()
+                    .unwrap_or_default(),
             })
         }
 
@@ -426,7 +437,10 @@ impl Validator {
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
-                positions: attribute_positions.get(&attribute.name).cloned(),
+                positions: attribute_positions
+                    .get(&attribute.name)
+                    .cloned()
+                    .unwrap_or_default(),
             })
         }
     }
@@ -454,7 +468,7 @@ impl Validator {
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
-                    positions: attribute_positions.get(name).cloned(),
+                    positions: attribute_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
         }
@@ -483,16 +497,8 @@ impl Validator {
     /// of issues in the source code. The sorting is done in-place on the `errors` vector.
     fn sort_errors(&mut self) {
         self.errors.sort_by(|a, b| {
-            let line_a = a
-                .positions
-                .as_ref()
-                .and_then(|pos| pos.first())
-                .map(|pos| pos.line);
-            let line_b = b
-                .positions
-                .as_ref()
-                .and_then(|pos| pos.first())
-                .map(|pos| pos.line);
+            let line_a = a.positions.first().map(|pos| pos.line);
+            let line_b = b.positions.first().map(|pos| pos.line);
             line_a.cmp(&line_b)
         });
     }
