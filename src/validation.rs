@@ -195,6 +195,8 @@ impl Validator {
         for object in &model.objects {
             self.validate_object(object, &types);
         }
+
+        self.sort_errors();
     }
 
     /// Checks for duplicate object names within the model.
@@ -475,6 +477,24 @@ impl Validator {
             .chain(model.enums.iter().map(|enum_| enum_.name.as_str()))
             .collect::<Vec<&str>>();
         types
+    }
+
+    /// Sorts the validation errors by their line number, allowing for easier identification
+    /// of issues in the source code. The sorting is done in-place on the `errors` vector.
+    fn sort_errors(&mut self) {
+        self.errors.sort_by(|a, b| {
+            let line_a = a
+                .positions
+                .as_ref()
+                .and_then(|pos| pos.first())
+                .map(|pos| pos.line);
+            let line_b = b
+                .positions
+                .as_ref()
+                .and_then(|pos| pos.first())
+                .map(|pos| pos.line);
+            line_a.cmp(&line_b)
+        });
     }
 }
 

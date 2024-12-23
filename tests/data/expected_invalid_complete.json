@@ -2,29 +2,6 @@
     "is_valid": false,
     "errors": [
         {
-            "message": "Object 'Duplicate' is defined more than once.",
-            "object": "Duplicate",
-            "attribute": null,
-            "location": "Global",
-            "error_type": "DuplicateError",
-            "positions": [
-                {
-                    "line": 25,
-                    "range": [
-                        306,
-                        320
-                    ]
-                },
-                {
-                    "line": 30,
-                    "range": [
-                        347,
-                        361
-                    ]
-                }
-            ]
-        },
-        {
             "message": "Name '1number' must start with a letter.",
             "object": "Test",
             "attribute": "1number",
@@ -33,9 +10,9 @@
             "positions": [
                 {
                     "line": 13,
-                    "range": [
-                        173,
-                        267
+                    "column": [
+                        1,
+                        10
                     ]
                 }
             ]
@@ -49,9 +26,9 @@
             "positions": [
                 {
                     "line": 15,
-                    "range": [
-                        200,
-                        229
+                    "column": [
+                        1,
+                        12
                     ]
                 }
             ]
@@ -65,9 +42,9 @@
             "positions": [
                 {
                     "line": 17,
-                    "range": [
-                        229,
-                        267
+                    "column": [
+                        1,
+                        17
                     ]
                 }
             ]
@@ -81,9 +58,9 @@
             "positions": [
                 {
                     "line": 20,
-                    "range": [
-                        267,
-                        277
+                    "column": [
+                        1,
+                        10
                     ]
                 }
             ]
@@ -97,9 +74,32 @@
             "positions": [
                 {
                     "line": 22,
-                    "range": [
-                        278,
-                        306
+                    "column": [
+                        1,
+                        10
+                    ]
+                }
+            ]
+        },
+        {
+            "message": "Object 'Duplicate' is defined more than once.",
+            "object": "Duplicate",
+            "attribute": null,
+            "location": "Global",
+            "error_type": "DuplicateError",
+            "positions": [
+                {
+                    "line": 25,
+                    "column": [
+                        1,
+                        14
+                    ]
+                },
+                {
+                    "line": 30,
+                    "column": [
+                        1,
+                        14
                     ]
                 }
             ]
@@ -113,16 +113,16 @@
             "positions": [
                 {
                     "line": 37,
-                    "range": [
-                        413,
-                        472
+                    "column": [
+                        1,
+                        12
                     ]
                 },
                 {
                     "line": 39,
-                    "range": [
-                        442,
-                        472
+                    "column": [
+                        1,
+                        12
                     ]
                 }
             ]
@@ -136,9 +136,9 @@
             "positions": [
                 {
                     "line": 44,
-                    "range": [
-                        484,
-                        514
+                    "column": [
+                        1,
+                        12
                     ]
                 }
             ]

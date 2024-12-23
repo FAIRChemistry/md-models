@@ -91,7 +91,13 @@ enum ParserState {
 #[cfg_attr(feature = "python", pyclass(get_all))]
 pub struct Position {
     pub line: usize,
-    pub range: (usize, usize),
+    pub column: (usize, usize),
+}
+
+impl PartialOrd for Position {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.line.cmp(&other.line))
+    }
 }
 
 /// Parses a Markdown file at the given path and returns a `DataModel`.
@@ -133,6 +139,7 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     let mut state = ParserState::OutsideDefinition;
     while let Some(event) = iterator.next() {
         process_object_event(
+            &content,
             &mut iterator,
             &mut objects,
             event,
@@ -147,7 +154,13 @@ pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
     let mut iterator = parser.into_offset_iter();
 
     while let Some((event, range)) = iterator.next() {
-        process_enum_event(&mut iterator, &mut enums, (event, range), &line_offsets);
+        process_enum_event(
+            &content,
+            &mut iterator,
+            &mut enums,
+            (event, range),
+            &line_offsets,
+        );
     }
 
     // Filter empty objects and enums
@@ -186,17 +199,44 @@ fn clean_content(content: &str) -> String {
     content
 }
 
-// Helper function to convert byte offset to line number
-fn get_position(line_offsets: &[usize], start: usize, end: usize) -> Position {
-    match line_offsets.binary_search(&start) {
-        Ok(line) => Position {
-            line: line + 1,
-            range: (start, end),
-        },
-        Err(line) => Position {
-            line: line + 1,
-            range: (start, end),
-        },
+// Helper function to convert byte offset to line and column numbers
+fn get_position(content: &str, line_offsets: &[usize], start: usize, end: usize) -> Position {
+    let line = match line_offsets.binary_search(&start) {
+        Ok(line) => line + 1,
+        Err(line) => line + 1,
+    };
+
+    // Get the line content
+    let line_start = if line > 1 { line_offsets[line - 2] } else { 0 };
+    let line_end = if line <= line_offsets.len() {
+        line_offsets[line - 1]
+    } else {
+        content.len()
+    };
+    let line_content = &content[line_start..line_end];
+
+    // Count leading whitespace
+    let leading_space = line_content
+        .chars()
+        .take_while(|c| c.is_whitespace())
+        .count();
+
+    // Calculate column numbers, adding leading whitespace to start
+    let start_col = if line > 1 {
+        start - line_offsets[line - 2] + leading_space - 1
+    } else {
+        start + 1 + leading_space
+    };
+
+    let end_col = if line <= line_offsets.len() {
+        line_offsets[line - 1] - (if line > 1 { line_offsets[line - 2] } else { 0 })
+    } else {
+        end - (if line > 1 { line_offsets[line - 2] } else { 0 })
+    };
+
+    Position {
+        line,
+        column: (start_col, end_col),
     }
 }
 
@@ -209,6 +249,7 @@ fn get_position(line_offsets: &[usize], start: usize, end: usize) -> Position {
 /// * `event` - The current Markdown event.
 /// * `model` - A mutable reference to the data model.
 fn process_object_event(
+    content: &str,
     iterator: &mut pulldown_cmark::OffsetIter,
     objects: &mut Vec<Object>,
     event: (Event, std::ops::Range<usize>), // Now includes offset range
@@ -228,7 +269,7 @@ fn process_object_event(
         Event::Start(tag) if tag == H3 => {
             *state = ParserState::InHeading;
             let mut object = process_object_heading(iterator);
-            object.set_position(get_position(line_offsets, range.start, range.end));
+            object.set_position(get_position(content, line_offsets, range.start, range.end));
             objects.push(object);
         }
         Event::End(tag) if tag == H3_END => {
@@ -268,7 +309,7 @@ fn process_object_event(
                 iterator.next();
                 let (required, attr_name) = extract_attr_name_required(iterator);
                 let mut attribute = attribute::Attribute::new(attr_name, required);
-                attribute.set_position(get_position(line_offsets, range.start, range.end));
+                attribute.set_position(get_position(content, line_offsets, range.start, range.end));
                 objects.last_mut().unwrap().add_attribute(attribute);
             } else {
                 let attr_strings = extract_attribute_options(iterator);
@@ -284,7 +325,7 @@ fn process_object_event(
 
             let (required, attr_string) = extract_attr_name_required(iterator);
             let mut attribute = attribute::Attribute::new(attr_string, required);
-            attribute.set_position(get_position(line_offsets, range.start, range.end));
+            attribute.set_position(get_position(content, line_offsets, range.start, range.end));
             objects.last_mut().unwrap().add_attribute(attribute);
         }
         Event::Text(text) => {
@@ -487,6 +528,7 @@ fn process_option(option: &String) -> (String, String) {
 /// * `range` - The range of the event.
 /// * `line_offsets` - The line offsets of the file.
 pub fn process_enum_event(
+    content: &str,
     iterator: &mut OffsetIter,
     enums: &mut Vec<Enumeration>,
     event: (Event, std::ops::Range<usize>),
@@ -503,7 +545,7 @@ pub fn process_enum_event(
                 docstring: "".to_string(),
                 position: None,
             };
-            enum_obj.set_position(get_position(line_offsets, range.start, range.end));
+            enum_obj.set_position(get_position(content, line_offsets, range.start, range.end));
             enums.push(enum_obj);
         }
         Event::Start(Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(_))) => {
