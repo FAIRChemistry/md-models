@@ -39,9 +39,6 @@ use crate::validation::Validator;
 use super::frontmatter::parse_frontmatter;
 use super::position::{Position, PositionRange};
 
-#[cfg(feature = "python")]
-use pyo3::pyclass;
-
 lazy_static! {
     static ref MD_MODEL_TYPES: BTreeMap<&'static str, &'static str> = {
         let mut m = BTreeMap::new();
