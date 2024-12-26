@@ -27,9 +27,14 @@ use std::str::FromStr;
 #[cfg(feature = "python")]
 use pyo3::pyclass;
 
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
+
 /// Represents an XML type, either an attribute or an element.
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub enum XMLType {
     /// An XML attribute with a name.
     Attribute { is_attr: bool, name: String },

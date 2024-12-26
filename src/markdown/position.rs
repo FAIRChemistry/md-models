@@ -23,11 +23,16 @@
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
+
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct Position {
     pub line: usize,
     pub column: PositionRange,
@@ -42,6 +47,8 @@ impl PartialOrd for Position {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct PositionRange {
     pub start: usize,
     pub end: usize,

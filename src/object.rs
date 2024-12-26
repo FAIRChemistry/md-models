@@ -29,9 +29,14 @@ use std::collections::BTreeMap;
 #[cfg(feature = "python")]
 use pyo3::pyclass;
 
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 /// Represents an object with a name, attributes, docstring, and an optional term.
 pub struct Object {
     /// Name of the object.
@@ -168,6 +173,8 @@ impl Object {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 /// Represents an enumeration with a name and mappings.
 pub struct Enumeration {
     /// Name of the enumeration.

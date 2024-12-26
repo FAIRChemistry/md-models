@@ -34,11 +34,14 @@ use crate::json::validation::{validate_json, ValidationError};
 use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
+use crate::validation::Validator;
 use colored::Colorize;
 
-use crate::validation::Validator;
 #[cfg(feature = "python")]
 use pyo3::pyclass;
+
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
 
 // Data model
 //
@@ -64,6 +67,8 @@ use pyo3::pyclass;
 // * `internal_schema` - Generate an internal schema from the data model
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct DataModel {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,

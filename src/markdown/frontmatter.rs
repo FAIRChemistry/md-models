@@ -29,9 +29,14 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "python")]
 use pyo3::pyclass;
 
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
+
 /// Represents the front matter data of a markdown file.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct FrontMatter {
     /// A boolean field with a default value, renamed from `id-field`.
     #[serde(default = "default_id_field", rename = "id-field")]
