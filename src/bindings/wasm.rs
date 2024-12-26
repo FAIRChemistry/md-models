@@ -128,10 +128,6 @@ pub fn json_schema(
 /// - `Err(JsValue)` if there is an error during parsing or validation.
 #[wasm_bindgen]
 pub fn validate(markdown_content: &str) -> Result<JsValue, JsValue> {
-    log(&format!(
-        "Validating markdown content: {}",
-        markdown_content
-    ));
     let model = DataModel::from_markdown_string(markdown_content);
 
     match model {
