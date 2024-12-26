@@ -28,9 +28,14 @@ use std::{error::Error, fmt, str::FromStr};
 #[cfg(feature = "python")]
 use pyo3::{pyclass, pymethods};
 
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
+
 /// Represents an attribute with various properties and options.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct Attribute {
     /// The name of the attribute.
     pub name: String,
@@ -247,6 +252,8 @@ impl Attribute {
 /// Represents an option for an attribute.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct AttrOption {
     /// The key of the option.
     pub key: String,
@@ -289,6 +296,8 @@ impl AttrOption {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub enum DataType {
     Boolean(bool),
     Integer(i64),

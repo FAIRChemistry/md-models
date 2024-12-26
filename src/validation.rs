@@ -29,10 +29,13 @@ use crate::{
 };
 use colored::Colorize;
 use log::error;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+
+#[cfg(feature = "wasm")]
+use tsify_next::Tsify;
 
 // Basic types that are ignored in the validation process
 pub(crate) const BASIC_TYPES: [&str; 7] = [
@@ -41,6 +44,8 @@ pub(crate) const BASIC_TYPES: [&str; 7] = [
 
 /// Represents a validation error in the data model.
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct ValidationError {
     pub message: String,
     pub object: Option<String>,
@@ -79,7 +84,9 @@ impl Display for ValidationError {
 }
 
 /// Enum representing the type of validation error.
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub enum ErrorType {
     NameError,
     TypeError,
@@ -101,6 +108,8 @@ impl Display for ErrorType {
 
 /// Validator for checking the integrity of a data model.
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct Validator {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,
