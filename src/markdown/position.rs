@@ -31,6 +31,7 @@ use pyo3::prelude::*;
 pub struct Position {
     pub line: usize,
     pub column: PositionRange,
+    pub offset: PositionRange,
 }
 
 impl PartialOrd for Position {

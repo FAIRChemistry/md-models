@@ -427,6 +427,25 @@ impl Validator {
     ) {
         let attribute_positions = extract_attribute_positions(object);
 
+        if dtype.is_empty() {
+            self.add_error(ValidationError {
+                message: format!(
+                    "Property '{}' has no type defined. Either define a type or use a base type.",
+                    attribute.name
+                ),
+                object: Some(object.name.clone()),
+                attribute: Some(attribute.name.clone()),
+                location: "Global".into(),
+                error_type: ErrorType::TypeError,
+                positions: attribute_positions
+                    .get(&attribute.name)
+                    .cloned()
+                    .unwrap_or_default(),
+            });
+
+            return;
+        }
+
         if !types.contains(&dtype) && !BASIC_TYPES.contains(&dtype) {
             self.add_error(ValidationError {
                 message: format!(
