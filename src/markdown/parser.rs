@@ -223,10 +223,7 @@ fn get_position(content: &str, line_offsets: &[usize], start: usize, end: usize)
             start: start_col,
             end: end_col,
         },
-        offset: PositionRange {
-            start: start,
-            end: end,
-        },
+        offset: PositionRange { start, end },
     }
 }
 
