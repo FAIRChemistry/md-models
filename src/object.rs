@@ -45,7 +45,6 @@ pub struct Object {
     /// Parent object of the object.
     pub parent: Option<String>,
     /// The line number of the object
-    #[serde(skip_serializing)]
     pub position: Option<Position>,
 }
 
@@ -178,7 +177,6 @@ pub struct Enumeration {
     /// Documentation string for the enumeration.
     pub docstring: String,
     /// The line number of the enumeration
-    #[serde(skip_serializing)]
     pub position: Option<Position>,
 }
 

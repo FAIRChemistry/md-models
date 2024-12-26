@@ -58,7 +58,6 @@ pub struct Attribute {
     /// Is an enumeration or not
     pub is_enum: bool,
     /// The line number of the attribute
-    #[serde(skip_serializing)]
     pub position: Option<Position>,
 }
 

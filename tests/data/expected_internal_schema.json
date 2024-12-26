@@ -14,10 +14,21 @@
           "options": [],
           "term": "schema:hello",
           "required": true,
-          "is_enum": false,
           "xml": {
             "is_attr": true,
             "name": "name"
+          },
+          "is_enum": false,
+          "position": {
+            "line": 13,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 166,
+              "end": 458
+            }
           }
         },
         {
@@ -32,10 +43,21 @@
           "term": "schema:one",
           "required": false,
           "default": 1.0,
-          "is_enum": false,
           "xml": {
             "is_attr": true,
             "name": "number"
+          },
+          "is_enum": false,
+          "position": {
+            "line": 18,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 275,
+              "end": 355
+            }
           }
         },
         {
@@ -49,10 +71,21 @@
           "options": [],
           "term": "schema:something",
           "required": false,
-          "is_enum": false,
           "xml": {
             "is_attr": false,
             "name": "SomeTest2"
+          },
+          "is_enum": false,
+          "position": {
+            "line": 23,
+            "column": {
+              "start": 1,
+              "end": 8
+            },
+            "offset": {
+              "start": 355,
+              "end": 427
+            }
           }
         },
         {
@@ -66,10 +99,21 @@
           "options": [],
           "term": null,
           "required": false,
-          "is_enum": true,
           "xml": {
             "is_attr": false,
             "name": "ontology"
+          },
+          "is_enum": true,
+          "position": {
+            "line": 27,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 427,
+              "end": 458
+            }
           }
         }
       ],
@@ -89,10 +133,21 @@
           "options": [],
           "term": "schema:hello",
           "required": false,
-          "is_enum": false,
           "xml": {
             "is_attr": false,
             "name": "name"
+          },
+          "is_enum": false,
+          "position": {
+            "line": 32,
+            "column": {
+              "start": 1,
+              "end": 8
+            },
+            "offset": {
+              "start": 469,
+              "end": 613
+            }
           }
         },
         {
@@ -111,10 +166,21 @@
           ],
           "term": "schema:one",
           "required": false,
-          "is_enum": false,
           "xml": {
             "is_attr": true,
             "name": "number"
+          },
+          "is_enum": false,
+          "position": {
+            "line": 36,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 533,
+              "end": 613
+            }
           }
         }
       ],
@@ -129,7 +195,18 @@
         "GO": "https://amigo.geneontology.org/amigo/term/",
         "SIO": "http://semanticscience.org/resource/"
       },
-      "docstring": ""
+      "docstring": "",
+      "position": {
+        "line": 45,
+        "column": {
+          "start": 1,
+          "end": 13
+        },
+        "offset": {
+          "start": 630,
+          "end": 643
+        }
+      }
     }
   ],
   "config": {

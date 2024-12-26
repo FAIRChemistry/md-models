@@ -13,6 +13,10 @@
                     "column": {
                         "start": 1,
                         "end": 10
+                    },
+                    "offset": {
+                        "start": 173,
+                        "end": 267
                     }
                 }
             ]
@@ -29,6 +33,10 @@
                     "column": {
                         "start": 1,
                         "end": 12
+                    },
+                    "offset": {
+                        "start": 200,
+                        "end": 229
                     }
                 }
             ]
@@ -45,6 +53,10 @@
                     "column": {
                         "start": 1,
                         "end": 17
+                    },
+                    "offset": {
+                        "start": 229,
+                        "end": 267
                     }
                 }
             ]
@@ -61,6 +73,10 @@
                     "column": {
                         "start": 1,
                         "end": 10
+                    },
+                    "offset": {
+                        "start": 267,
+                        "end": 277
                     }
                 }
             ]
@@ -77,6 +93,10 @@
                     "column": {
                         "start": 1,
                         "end": 10
+                    },
+                    "offset": {
+                        "start": 278,
+                        "end": 306
                     }
                 }
             ]
@@ -93,6 +113,10 @@
                     "column": {
                         "start": 1,
                         "end": 14
+                    },
+                    "offset": {
+                        "start": 306,
+                        "end": 320
                     }
                 },
                 {
@@ -100,6 +124,10 @@
                     "column": {
                         "start": 1,
                         "end": 14
+                    },
+                    "offset": {
+                        "start": 347,
+                        "end": 361
                     }
                 }
             ]
@@ -116,6 +144,10 @@
                     "column": {
                         "start": 1,
                         "end": 12
+                    },
+                    "offset": {
+                        "start": 413,
+                        "end": 472
                     }
                 },
                 {
@@ -123,6 +155,10 @@
                     "column": {
                         "start": 1,
                         "end": 12
+                    },
+                    "offset": {
+                        "start": 442,
+                        "end": 472
                     }
                 }
             ]
@@ -139,6 +175,10 @@
                     "column": {
                         "start": 1,
                         "end": 12
+                    },
+                    "offset": {
+                        "start": 484,
+                        "end": 514
                     }
                 }
             ]

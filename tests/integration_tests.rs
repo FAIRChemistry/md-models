@@ -361,8 +361,8 @@ mod tests {
             let expected: serde_json::Value =
                 serde_json::from_str(&expected).expect("Could not parse expected invalid complete");
 
-            let e: serde_json::Value =
-                serde_json::from_str(&serde_json::to_string_pretty(&e).unwrap()).unwrap();
+            let e = serde_json::to_string_pretty(&e).unwrap();
+            let e: serde_json::Value = serde_json::from_str(&e).unwrap();
 
             assert_eq!(e, expected);
         }

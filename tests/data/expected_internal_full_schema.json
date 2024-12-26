@@ -19,7 +19,18 @@
             "is_attr": true,
             "name": "name"
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 33,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 988,
+              "end": 1220
+            }
+          }
         },
         {
           "name": "number",
@@ -36,7 +47,18 @@
             "is_attr": true,
             "name": "number"
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 37,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 1054,
+              "end": 1117
+            }
+          }
         },
         {
           "name": "test2",
@@ -53,7 +75,18 @@
             "is_attr": false,
             "name": "SomeTest2"
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 41,
+            "column": {
+              "start": 1,
+              "end": 8
+            },
+            "offset": {
+              "start": 1117,
+              "end": 1189
+            }
+          }
         },
         {
           "name": "ontology",
@@ -70,7 +103,18 @@
             "is_attr": false,
             "name": "ontology"
           },
-          "is_enum": true
+          "is_enum": true,
+          "position": {
+            "line": 45,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 1189,
+              "end": 1220
+            }
+          }
         }
       ],
       "docstring": "The  schema defines the primary structure for the test entity. It contains multiple properties that capture various attributes of a test, including its name, numerical identifier, a nested array of test2 objects, and an ontology reference."
@@ -93,7 +137,18 @@
             "is_attr": false,
             "name": "name"
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 61,
+            "column": {
+              "start": 1,
+              "end": 8
+            },
+            "offset": {
+              "start": 1600,
+              "end": 1743
+            }
+          }
         },
         {
           "name": "number",
@@ -115,7 +170,18 @@
             "is_attr": true,
             "name": "number"
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 65,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 1664,
+              "end": 1743
+            }
+          }
         }
       ],
       "docstring": "The  schema represents a secondary structure used within the primary  schema. It is designed to hold an array of strings for names, a numerical value with a specified minimum, and other nested properties."
@@ -129,7 +195,18 @@
         "GO": "https://amigo.geneontology.org/amigo/term/",
         "SIO": "http://semanticscience.org/resource/"
       },
-      "docstring": ""
+      "docstring": "",
+      "position": {
+        "line": 73,
+        "column": {
+          "start": 1,
+          "end": 13
+        },
+        "offset": {
+          "start": 1760,
+          "end": 1773
+        }
+      }
     }
   ],
   "config": {
