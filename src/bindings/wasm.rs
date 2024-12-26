@@ -42,13 +42,11 @@ extern "C" {
 ///
 /// # Returns
 ///
-/// A `Result` which is:
-/// - `Ok(JsValue)` if the parsing and serialization are successful.
-/// - `Err(JsValue)` if there is an error during parsing or serialization.
-#[allow(clippy::result_large_err)]
+/// A `DataModel` or an error `JsError`.
 #[wasm_bindgen]
-pub fn parse_model(markdown_content: &str) -> Result<DataModel, Validator> {
+pub fn parse_model(markdown_content: &str) -> Result<DataModel, JsError> {
     DataModel::from_markdown_string(markdown_content)
+        .map_err(|e| JsError::new(&format!("Error parsing markdown content: {}", e)))
 }
 
 /// Converts the given markdown content into a specified template format.
