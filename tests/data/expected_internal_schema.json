@@ -117,7 +117,18 @@
           }
         }
       ],
-      "docstring": ""
+      "docstring": "",
+      "position": {
+        "line": 11,
+        "column": {
+          "start": 1,
+          "end": 9
+        },
+        "offset": {
+          "start": 156,
+          "end": 165
+        }
+      }
     },
     {
       "name": "Test2",
@@ -184,7 +195,18 @@
           }
         }
       ],
-      "docstring": ""
+      "docstring": "",
+      "position": {
+        "line": 30,
+        "column": {
+          "start": 1,
+          "end": 10
+        },
+        "offset": {
+          "start": 458,
+          "end": 468
+        }
+      }
     }
   ],
   "enums": [

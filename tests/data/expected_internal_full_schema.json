@@ -117,7 +117,18 @@
           }
         }
       ],
-      "docstring": "The  schema defines the primary structure for the test entity. It contains multiple properties that capture various attributes of a test, including its name, numerical identifier, a nested array of test2 objects, and an ontology reference."
+      "docstring": "The  schema defines the primary structure for the test entity. It contains multiple properties that capture various attributes of a test, including its name, numerical identifier, a nested array of test2 objects, and an ontology reference.",
+      "position": {
+        "line": 29,
+        "column": {
+          "start": 1,
+          "end": 9
+        },
+        "offset": {
+          "start": 731,
+          "end": 740
+        }
+      }
     },
     {
       "name": "Test2",
@@ -184,7 +195,18 @@
           }
         }
       ],
-      "docstring": "The  schema represents a secondary structure used within the primary  schema. It is designed to hold an array of strings for names, a numerical value with a specified minimum, and other nested properties."
+      "docstring": "The  schema represents a secondary structure used within the primary  schema. It is designed to hold an array of strings for names, a numerical value with a specified minimum, and other nested properties.",
+      "position": {
+        "line": 57,
+        "column": {
+          "start": 1,
+          "end": 10
+        },
+        "offset": {
+          "start": 1370,
+          "end": 1380
+        }
+      }
     }
   ],
   "enums": [
