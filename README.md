@@ -78,6 +78,28 @@ The following templates are available:
 - `shacl`: SHACL shapes definition
 - `shex`: ShEx shapes definition
 
+## Installation options
+
+The main Rust crate is compiled to Python and WebAssembly, allowing the usage beyond the command line tool. These are the main packages:
+
+- **[Core Python Package](https://pypi.org/project/mdmodels-core/)**: Install via pip:
+  ```bash
+  # Mainly used to access the core functionality of the library
+  pip install mdmodels-core
+  ```
+
+- **[Python Package](https://pypi.org/project/mdmodels/)**: Install via pip:
+  ```bash
+  # Provides in-memory data models, database support, LLM support, etc.
+  pip install mdmodels
+  ```
+
+- **[NPM Package](https://www.npmjs.com/package/mdmodels-core)**: Install via npm:
+  ```bash
+  # Mainly used to access the core functionality of the library
+  npm install mdmodels-core
+  ```
+
 ## Development
 
 This project uses GitHub Actions for continuous integration. The tests can be run using the following command:
