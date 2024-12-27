@@ -1,7 +1,9 @@
 
 # MD-Models
 
-![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)
+![Crates.io Version](https://img.shields.io/crates/v/mdmodels) ![NPM Version](https://img.shields.io/npm/v/mdmodels-core)
+![PyPI - Version](https://img.shields.io/pypi/v/mdmodels-core)
+ ![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg) 
 
 Welcome to Markdown Models (MD-Models), a powerful framework for research data management that prioritizes flexibility and efficiency.
 
