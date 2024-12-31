@@ -9,7 +9,7 @@ Welcome to Markdown Models (MD-Models), a powerful framework for research data m
 
 With an adaptable markdown-based schema language, MD-Models automatically generates schemas and programming language representations. This markdown schema forms the foundation for object-oriented models, enabling seamless cross-format compatibility and simplifying modifications to data structures.
 
-Check out the [documentation](https://fairchemistry.github.io/md-models/) for more information.
+Check out the [documentation and graph editor](https://mdmodels.vercel.app/?about) for more information.
 
 ### Example
 
