@@ -26,6 +26,7 @@ use crate::{
     datamodel::DataModel,
     markdown::position::Position,
     object::{Enumeration, Object},
+    xmltype::XMLType,
 };
 use colored::Colorize;
 use log::error;
@@ -417,6 +418,17 @@ impl Validator {
         for dtype in &attribute.dtypes {
             self.check_attr_dtype(attribute, types, object, dtype);
         }
+
+        if let Some(xml_option) = &attribute.xml {
+            match xml_option {
+                XMLType::Attribute { name, .. } => {
+                    self.validate_xml_attribute_option(name, &object.name, &attribute.name);
+                }
+                XMLType::Element { name, .. } => {
+                    self.validate_xml_element_option(name, &object.name, &attribute.name);
+                }
+            }
+        }
     }
 
     /// Checks the data type of attribute.
@@ -497,6 +509,101 @@ impl Validator {
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
                     positions: attribute_positions.get(name).cloned().unwrap_or_default(),
+                });
+            }
+        }
+    }
+
+    /// Validates an XML element option string.
+    ///
+    /// # Arguments
+    ///
+    /// * `option` - The XML element option string to validate. Can contain multiple comma-separated values.
+    ///
+    /// Checks that:
+    /// - The option string is not empty
+    /// - Each comma-separated value contains no special characters
+    fn validate_xml_element_option(
+        &mut self,
+        option: &str,
+        object_name: &str,
+        attribute_name: &str,
+    ) {
+        let option = option.trim();
+        if option.is_empty() {
+            self.add_error(ValidationError {
+                message: "XML option is not defined.".into(),
+                object: Some(object_name.to_string()),
+                attribute: Some(attribute_name.to_string()),
+                location: "Global".into(),
+                error_type: ErrorType::GlobalError,
+                positions: vec![],
+            });
+        }
+
+        let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
+        for opt in options {
+            if contains_special_characters(opt.trim()).is_err() {
+                self.add_error(ValidationError {
+                    message: format!("XML option '{}' contains special characters.", opt),
+                    object: Some(object_name.to_string()),
+                    attribute: Some(attribute_name.to_string()),
+                    location: "Global".into(),
+                    error_type: ErrorType::GlobalError,
+                    positions: vec![],
+                });
+            }
+        }
+    }
+
+    /// Validates an XML attribute option string.
+    ///
+    /// # Arguments
+    ///
+    /// * `option` - The XML attribute option string to validate. Can contain multiple comma-separated values.
+    /// * `object_name` - The name of the object containing this attribute
+    /// * `attribute_name` - The name of the attribute being validated
+    ///
+    /// Checks that:
+    /// - The option string is not empty
+    /// - Each comma-separated value contains no special characters
+    ///
+    /// # Errors
+    ///
+    /// Adds validation errors to the validator if:
+    /// - The option string is empty
+    /// - Any of the comma-separated values contain special characters
+    fn validate_xml_attribute_option(
+        &mut self,
+        option: &str,
+        object_name: &str,
+        attribute_name: &str,
+    ) {
+        let option = option.trim();
+        if option.is_empty() {
+            self.add_error(ValidationError {
+                message: "XML attribute option is not defined.".into(),
+                object: Some(object_name.to_string()),
+                attribute: Some(attribute_name.to_string()),
+                location: "Global".into(),
+                error_type: ErrorType::GlobalError,
+                positions: vec![],
+            });
+        }
+
+        let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
+        for opt in options {
+            if contains_special_characters(opt).is_err() {
+                self.add_error(ValidationError {
+                    message: format!(
+                        "XML attribute option '{}' contains special characters.",
+                        opt
+                    ),
+                    object: Some(object_name.to_string()),
+                    attribute: Some(attribute_name.to_string()),
+                    location: "Global".into(),
+                    error_type: ErrorType::GlobalError,
+                    positions: vec![],
                 });
             }
         }

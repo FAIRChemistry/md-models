@@ -333,6 +333,23 @@ mod tests {
     }
 
     #[test]
+    fn test_invalid_xml_option() {
+        let path = Path::new("tests/data/model_invalid_xml_option.md");
+        let result = DataModel::from_markdown(path);
+
+        if let Err(e) = result {
+            assert_eq!(
+                e.errors.len(),
+                5,
+                "Expected 5 errors, got {}",
+                e.errors.len()
+            );
+        } else {
+            panic!("Expected error, but got success");
+        }
+    }
+
+    #[test]
     fn test_multiple_types() {
         let path = Path::new("tests/data/model_multiple_types.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
