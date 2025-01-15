@@ -88,7 +88,7 @@ The main Rust crate is compiled to Python and WebAssembly, allowing the usage be
   pip install mdmodels-core
   ```
 
-- **[Python Package](https://pypi.org/project/mdmodels/)**: Install via pip:
+- **[Python Package]([https://pypi.org/project/mdmodels/](https://github.com/FAIRChemistry/py-mdmodels/tree/master))**: Install via pip:
   ```bash
   # Provides in-memory data models, database support, LLM support, etc.
   pip install mdmodels
