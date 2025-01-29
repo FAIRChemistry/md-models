@@ -430,6 +430,12 @@ fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
                 let last_option = options.last_mut().unwrap();
                 *last_option = format!("{}[]", last_option);
             }
+            Event::Text(text) if text.to_string() != "]" => {
+                let last_option = options.last_mut().unwrap();
+                if last_option.to_lowercase().contains("description:") {
+                    *last_option = format!("{} {}", last_option.trim(), text);
+                }
+            }
             _ => {}
         }
     }
