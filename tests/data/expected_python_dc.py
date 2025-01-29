@@ -1,3 +1,28 @@
+"""
+This file contains dataclass definitions for data validation.
+
+Dataclasses are a built-in Python library that provides a way to define data models
+with type hints and automatic serialization to JSON.
+
+Usage example:
+```python
+from my_model import MyModel
+
+# Validates data at runtime
+my_model = MyModel(name="John", age=30)
+
+# Type-safe - my_model has correct type hints
+print(my_model.name)
+```
+
+For more information see:
+https://docs.python.org/3/library/dataclasses.html
+
+WARNING: This is an auto-generated file.
+Do not edit directly - any changes will be overwritten.
+"""
+
+
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations

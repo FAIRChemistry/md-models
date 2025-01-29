@@ -1,0 +1,125 @@
+/**
+ * This file contains Zod schema definitions for data validation.
+ * 
+ * Zod is a TypeScript-first schema declaration and validation library.
+ * It allows you to create schemas that validate data at runtime while 
+ * providing static type inference.
+ * 
+ * Usage example:
+ * ```typescript
+ * import { TestSchema } from './schemas';
+ * 
+ * // Validates data at runtime
+ * const result = TestSchema.parse(data);
+ * 
+ * // Type-safe - result has correct TypeScript types
+ * console.log(result.name);
+ * 
+ * // Will throw error if validation fails
+ * try {
+ *   TestSchema.parse(invalidData);
+ * } catch (err) {
+ *   console.error(err);
+ * }
+ * ```
+ * 
+ * @see https://github.com/colinhacks/zod
+ * 
+ * WARNING: This is an auto-generated file.
+ * Do not edit directly - any changes will be overwritten.
+ */
+
+
+{% macro is_multiple(attr) %}
+  {%- if attr.multiple -%}[]{%- endif -%}
+{% endmacro %}
+
+{% macro get_type(attr) %}
+  {%- if attr.dtypes | length == 1 -%}
+    {%- if attr.dtypes[0] in object_names -%}
+    {{ attr.dtypes[0] }}
+    {%- else -%}
+    {{ attr.dtypes[0] }}
+    {%- endif -%}
+  {%- else -%}
+    union
+  {%- endif -%}
+{% endmacro %}
+
+{# New macros for Zod schema types #}
+{% macro zod_type(dtype, attr) %}
+  {%- if attr.dtypes | length > 1 -%}
+    z.union([
+      {%- for type in attr.dtypes -%}
+        {%- if type in object_names -%}
+        {{ type }}Schema
+        {%- elif type in enum_names -%}
+        {{ type }}Schema
+        {%- elif type == "float" -%}
+        z.number()
+        {%- else -%}
+        z.{{ type | lower }}()
+        {%- endif -%}
+        {%- if not loop.last %}, {% endif -%}
+      {%- endfor -%}
+    ])
+  {%- else -%}
+    {%- if dtype in object_names -%}
+    {{ dtype }}Schema
+    {%- elif dtype in enum_names -%}
+    {{ dtype }}Schema
+    {%- elif dtype == "float" -%}
+    z.number()
+    {%- else -%}
+    z.{{ dtype | lower }}()
+    {%- endif -%}
+  {%- endif -%}
+{% endmacro %}
+
+{% macro wrap_zod_type(dtype, attr) %}
+  {%- if attr.multiple -%}
+  z.array({{ zod_type(dtype, attr) }})
+  {%- elif attr.required is false -%}
+  {{ zod_type(dtype, attr) }}.nullable()
+  {%- else -%}
+  {{ zod_type(dtype, attr) }}
+  {%- endif -%}
+{% endmacro %}
+
+{# Code structure starts here #}
+import { z } from 'zod';
+
+// JSON-LD Types
+export const JsonLdContextSchema = z.record(z.any());
+
+export const JsonLdSchema = z.object({
+  '@context': JsonLdContextSchema.optional(),
+  '@id': z.string().optional(),
+  '@type': z.string().optional(),
+});
+
+// {% if title %}{{ title }}{% else %}Model{% endif %} Type definitions
+{%- for object in objects %}
+export const {{ object.name }}Schema = z.lazy(() => JsonLdSchema.extend({
+  {%- for attr in object.attributes %}
+  {{ attr.name }}: {{ wrap_zod_type(get_type(attr), attr) }}{% if attr.docstring %}.describe(`
+    {{ wrap(attr.docstring, 70, "", "    ", None) }}
+  `){% endif %},
+  {%- endfor %}
+}));
+
+export type {{ object.name }} = z.infer<typeof {{ object.name }}Schema>;
+{% endfor %}
+
+{%- if enums | length > 0 %}
+// {% if title %}{{ title }}{% else %}Model{% endif %} Enum definitions
+{%- for enum in enums %}
+export enum {{ enum.name }} {
+  {%- for key, value in enum.mappings | dictsort %}
+  {{ key }} = '{{ value }}',
+  {%- endfor %}
+}
+
+export const {{ enum.name }}Schema = z.nativeEnum({{ enum.name }});
+{% endfor %}
+{% endif %}

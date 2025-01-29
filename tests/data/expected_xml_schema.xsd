@@ -20,7 +20,10 @@
         <xs:attribute name="name" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
-                    The name of the test.
+                    The name of the test. This is a unique identifier that helps track
+                    individual test cases across the system. It should
+                    be descriptive and follow the standard naming
+                    conventions.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute><xs:attribute name="number" type="xs:float" default="1.0"/>

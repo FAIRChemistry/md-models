@@ -10,7 +10,7 @@
           "dtypes": [
             "string"
           ],
-          "docstring": "The name of the test.",
+          "docstring": "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.",
           "options": [],
           "term": "schema:hello",
           "required": true,
@@ -20,14 +20,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 13,
+            "line": 15,
             "column": {
               "start": 1,
               "end": 11
             },
             "offset": {
-              "start": 166,
-              "end": 458
+              "start": 399,
+              "end": 864
             }
           }
         },
@@ -36,7 +36,8 @@
           "multiple": false,
           "is_id": false,
           "dtypes": [
-            "float"
+            "float",
+            "string"
           ],
           "docstring": "",
           "options": [],
@@ -49,14 +50,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 18,
+            "line": 22,
             "column": {
               "start": 1,
               "end": 9
             },
             "offset": {
-              "start": 275,
-              "end": 355
+              "start": 673,
+              "end": 761
             }
           }
         },
@@ -77,14 +78,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 23,
+            "line": 27,
             "column": {
               "start": 1,
               "end": 8
             },
             "offset": {
-              "start": 355,
-              "end": 427
+              "start": 761,
+              "end": 833
             }
           }
         },
@@ -105,19 +106,19 @@
           },
           "is_enum": true,
           "position": {
-            "line": 27,
+            "line": 31,
             "column": {
               "start": 1,
               "end": 11
             },
             "offset": {
-              "start": 427,
-              "end": 458
+              "start": 833,
+              "end": 864
             }
           }
         }
       ],
-      "docstring": "",
+      "docstring": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
       "position": {
         "line": 11,
         "column": {
@@ -150,14 +151,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 32,
+            "line": 36,
             "column": {
               "start": 1,
               "end": 8
             },
             "offset": {
-              "start": 469,
-              "end": 613
+              "start": 875,
+              "end": 1019
             }
           }
         },
@@ -183,28 +184,28 @@
           },
           "is_enum": false,
           "position": {
-            "line": 36,
+            "line": 40,
             "column": {
               "start": 1,
               "end": 9
             },
             "offset": {
-              "start": 533,
-              "end": 613
+              "start": 939,
+              "end": 1019
             }
           }
         }
       ],
       "docstring": "",
       "position": {
-        "line": 30,
+        "line": 34,
         "column": {
           "start": 1,
           "end": 10
         },
         "offset": {
-          "start": 458,
-          "end": 468
+          "start": 864,
+          "end": 874
         }
       }
     }
@@ -219,14 +220,14 @@
       },
       "docstring": "",
       "position": {
-        "line": 45,
+        "line": 49,
         "column": {
           "start": 1,
           "end": 13
         },
         "offset": {
-          "start": 630,
-          "end": 643
+          "start": 1036,
+          "end": 1049
         }
       }
     }

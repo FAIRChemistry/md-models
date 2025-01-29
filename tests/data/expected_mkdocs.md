@@ -29,14 +29,14 @@ This page provides comprehensive information about the structure and components 
 
 
 ### Test
-
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
 __name__* `string`
 
-- The name of the test.
+- The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.
 
 
-__number__ `float`
+__number__ `float``string`
 
 
 - `Default`: 1.0

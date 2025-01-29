@@ -1,0 +1,80 @@
+/**
+ * This file contains Protocol Buffer message definitions.
+ * 
+ * Protocol Buffers (protobuf) is Google's language-neutral, platform-neutral,
+ * extensible mechanism for serializing structured data.
+ * 
+ * WARNING: This is an auto-generated file.
+ * Do not edit directly - any changes will be overwritten.
+ */
+
+{% macro get_type(attr) %}
+  {%- if attr.dtypes | length > 1 -%}
+  OneOf{{ attr.name | pascal_case }}
+  {%- elif attr.dtypes[0] in object_names -%}
+  {{ attr.dtypes[0] }}
+  {%- elif attr.dtypes[0] in enum_names -%}
+  {{ attr.dtypes[0] }}
+  {%- elif attr.dtypes[0] == "string" -%}
+  string
+  {%- elif attr.dtypes[0] == "float" -%}
+  double
+  {%- elif attr.dtypes[0] == "int" -%}
+  int32
+  {%- elif attr.dtypes[0] == "bool" -%}
+  bool
+  {%- else -%}
+  {{ attr.dtypes[0] }}
+  {%- endif -%}
+{% endmacro %}
+
+{% macro field_rule(attr) %}
+  {%- if attr.multiple -%}
+  repeated 
+  {%- elif attr.required is false -%}
+  optional  
+  {%- endif -%}
+{% endmacro %}
+
+syntax = "proto3";
+
+package {% if title %}{{ title | lower }}{% else %}model{% endif %};
+
+{%- if enums | length > 0 %}
+//
+// {% if title %}{{ title }}{% else %}Model{% endif %} Enum definitions
+//
+{%- for enum in enums %}
+enum {{ enum.name }} {
+  {%- for key, value in enum.mappings | dictsort %}
+  {{ key }} = {{ loop.index0 }}; // {{ value }}
+  {%- endfor %}
+}
+{%- endfor %}
+{% endif %}
+
+//
+// {% if title %}{{ title }}{% else %}Model{% endif %} Message definitions
+//
+// OneOf type definitions for attributes with multiple types
+{%- for object in objects %}
+{%- for attr in object.attributes %}
+{%- if attr.dtypes | length > 1 %}
+message OneOf{{ attr.name | pascal_case }} {
+  oneof value {
+    {%- for dtype in attr.dtypes %}
+    {{ get_type({'dtypes': [dtype]}) }} {{ dtype | snake_case }}_value = {{ loop.index }};
+    {%- endfor %}
+  }
+}
+{% endif %}
+{%- endfor %}
+message {{ object.name }} {
+  {%- for attr in object.attributes %}
+  {%- if attr.docstring %}
+  // {{ wrap(attr.docstring, 70, "", "  // ", None) }}
+  {%- endif %}
+  {{ field_rule(attr) }}{%- if not attr.required %} {% endif -%}{{ get_type(attr) }} {{ attr.name | snake_case }} = {{ loop.index }};
+  {%- endfor %}
+}
+{% endfor %}

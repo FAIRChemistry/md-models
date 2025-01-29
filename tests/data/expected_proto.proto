@@ -1,0 +1,49 @@
+/**
+ * This file contains Protocol Buffer message definitions.
+ *
+ * Protocol Buffers (protobuf) is Google's language-neutral, platform-neutral,
+ * extensible mechanism for serializing structured data.
+ *
+ * WARNING: This is an auto-generated file.
+ * Do not edit directly - any changes will be overwritten.
+ */
+
+
+syntax = "proto3";
+
+package model;
+//
+// Model Enum definitions
+//
+enum Ontology {
+  ECO = 0; // https://www.evidenceontology.org/term/
+  GO = 1; // https://amigo.geneontology.org/amigo/term/
+  SIO = 2; // http://semanticscience.org/resource/
+}
+
+
+//
+// Model Message definitions
+//
+// OneOf type definitions for attributes with multiple types
+message OneOfNumber {
+  oneof value {
+    double float_value = 1;
+    string string_value = 2;
+  }
+}
+
+message Test {
+  // The name of the test. This is a unique identifier that helps track
+  // individual test cases across the system. It should be descriptive
+  // and follow the standard naming conventions.
+  string name = 1;
+  optional OneOfNumber number = 2;
+  repeated Test2 test_2 = 3;
+  optional Ontology ontology = 4;
+}
+
+message Test2 {
+  repeated string names = 1;
+  optional double number = 2;
+}

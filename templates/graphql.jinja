@@ -1,0 +1,96 @@
+# This file contains GraphQL type definitions.
+# 
+# WARNING: This is an auto-generated file.
+# Do not edit directly - any changes will be overwritten.
+
+{% macro get_type(attr) %}
+  {%- if attr.dtypes | length > 1 -%}
+    {%- for dtype in attr.dtypes -%}
+      {%- if dtype in object_names -%}
+        {{- dtype -}}
+      {%- else -%}
+        {{- dtype -}}
+      {%- endif -%}
+      {%- if not loop.last %} | {% endif -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%- if attr.dtypes[0] in object_names -%}
+      {{- attr.dtypes[0] -}}
+    {%- else -%}
+      {{- attr.dtypes[0] -}}
+    {%- endif -%}
+  {%- endif -%}
+{% endmacro %}
+
+{% macro wrap_type(dtype, attr) %}
+  {%- if attr.multiple -%}
+  [{{ dtype }}]
+  {%- else -%}
+  {{ dtype }}
+  {%- endif -%}
+  {%- if attr.required -%}!{%- endif -%}
+{% endmacro %}
+
+# Scalar wrapper types
+{%- for object in objects -%}
+  {%- for attr in object.attributes -%}
+    {%- if attr.dtypes | length > 1 -%}
+      {%- for dtype in attr.dtypes -%}
+        {%- if dtype not in object_names %}
+type {{ dtype }}Value {
+  value: {{ dtype }}!
+}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor %}
+
+# Union type definitions
+{%- for object in objects -%}
+  {%- for attr in object.attributes -%}
+    {%- if attr.dtypes | length > 1 %}
+union {{ object.name }}{{ attr.name | capitalize }} = {% for dtype in attr.dtypes %}{% if dtype in object_names %}{{ dtype }}{% else %}{{ dtype }}Value{% endif %}{% if not loop.last %} | {% endif %}{% endfor %}
+
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor %}
+
+# {% if title %}{{ title }}{% else %}Model{% endif %} Type definitions
+{%- for object in objects %}
+type {{ object.name }} {
+  {%- for attr in object.attributes %}
+  {{ attr.name }}: {% if attr.dtypes | length > 1 -%}
+  {{ wrap_type(object.name + attr.name | capitalize, attr) }}
+  {%- else -%}
+  {{ wrap_type(get_type(attr), attr) }}
+  {%- endif -%}
+  {%- endfor %}
+}
+{% endfor %}
+
+{%- if enums | length > 0 %}
+# {% if title %}{{ title }}{% else %}Model{% endif %} Enum definitions
+{%- for enum in enums %}
+enum {{ enum.name }} {
+  {%- for key, value in enum.mappings | dictsort %}
+  {{ key }} # {{ value }}
+  {%- endfor %}
+}
+{% endfor %}
+{%- endif %}
+
+# Query type definitions
+type Query {
+  {%- for object in objects %}
+
+  # {{ object.name }} queries
+  {{ object.name | lower }}(id: ID!): {{ object.name }}
+  all{{ object.name }}s: [{{ object.name }}]
+  {%- for attr in object.attributes %}
+  {%- if not attr.multiple and attr.dtypes | length == 1 and attr.dtypes[0] not in object_names %}
+  {{ object.name | lower }}By{{ attr.name | capitalize }}({{ attr.name }}: {{ get_type(attr) }}): [{{ object.name }}]
+  {%- endif %}
+  {%- endfor %}
+  {%- endfor %}
+}

@@ -81,7 +81,7 @@ export interface JsonLd {
 {% endif %}
 
 {%- for attr in object.attributes %}
-    * @param {{ attr.name }} {%- if attr.docstring %} - {{ wrap(attr.docstring, 70, "", "             ") }}{%- endif %}
+    * @param {{ attr.name }} {%- if attr.docstring %} - {{ wrap(attr.docstring, 70, "", "             ", None) }}{%- endif %}
 {%- endfor %}
 **/
 export interface {{ object.name }} extends JsonLd {
@@ -103,7 +103,7 @@ export const {{ object.name }}Codec = D.lazy("{{ object.name }}", () => D.struct
 {%- for enum in enums %}
 {%- if enum.docstring %}
 /**
- * {{ wrap(enum.docstring, 70, " ", "    ") }}
+ * {{ wrap(enum.docstring, 70, " ", "    ", None) }}
 **/
 {%- endif %}
 export enum {{ enum.name }} {

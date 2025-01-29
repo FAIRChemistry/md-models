@@ -1,0 +1,52 @@
+# This file contains GraphQL type definitions.
+#
+# WARNING: This is an auto-generated file.
+# Do not edit directly - any changes will be overwritten.
+
+
+# Scalar wrapper types
+type FloatValue {
+  value: Float!
+}
+type StringValue {
+  value: String!
+}
+
+# Union type definitions
+union TestNumber = FloatValue | StringValue
+
+# Model Type definitions
+type Test {
+  name: String!
+  number: TestNumber
+  test2: [Test2]
+  ontology: Ontology
+}
+
+type Test2 {
+  names: [String]
+  number: Float
+}
+
+# Model Enum definitions
+enum Ontology {
+  ECO # https://www.evidenceontology.org/term/
+  GO # https://amigo.geneontology.org/amigo/term/
+  SIO # http://semanticscience.org/resource/
+}
+
+
+# Query type definitions
+type Query {
+
+  # Test queries
+  test(id: ID!): Test
+  allTests: [Test]
+  testByName(name: String): [Test]
+  testByOntology(ontology: Ontology): [Test]
+
+  # Test2 queries
+  test2(id: ID!): Test2
+  allTest2s: [Test2]
+  test2ByNumber(number: Float): [Test2]
+}
