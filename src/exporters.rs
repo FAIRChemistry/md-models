@@ -25,6 +25,7 @@ use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
 use crate::{datamodel::DataModel, markdown::frontmatter::FrontMatter};
 use clap::ValueEnum;
+use convert_case::{Case, Casing};
 use lazy_static::lazy_static;
 use minijinja::{context, Environment};
 use textwrap::wrap;
@@ -71,6 +72,19 @@ lazy_static! {
         m.insert("bytes".to_string(), "string".to_string());
         m
     };
+
+    /// Maps MD-Models type names to GraphQL-specific type names.
+    static ref GRAPHQL_TYPE_MAPS: std::collections::HashMap<String, String> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("integer".to_string(), "Int".to_string());
+        m.insert("number".to_string(), "Float".to_string());
+        m.insert("float".to_string(), "Float".to_string());
+        m.insert("boolean".to_string(), "Boolean".to_string());
+        m.insert("string".to_string(), "String".to_string());
+        m.insert("bytes".to_string(), "String".to_string());
+        m.insert("date".to_string(), "String".to_string());
+        m
+    };
 }
 
 /// Enumeration of available templates.
@@ -91,6 +105,11 @@ pub enum Templates {
     MkDocs,
     Internal,
     Typescript,
+    TypescriptZod,
+    Rust,
+    Protobuf,
+    Graphql,
+    Golang,
 }
 
 impl Display for Templates {
@@ -109,6 +128,11 @@ impl Display for Templates {
             Templates::MkDocs => write!(f, "mk-docs"),
             Templates::Internal => write!(f, "internal"),
             Templates::Typescript => write!(f, "typescript"),
+            Templates::TypescriptZod => write!(f, "typescript-zod"),
+            Templates::Rust => write!(f, "rust"),
+            Templates::Protobuf => write!(f, "protobuf"),
+            Templates::Graphql => write!(f, "graphql"),
+            Templates::Golang => write!(f, "golang"),
         }
     }
 }
@@ -132,6 +156,11 @@ impl FromStr for Templates {
             "mk-docs" => Ok(Templates::MkDocs),
             "internal" => Ok(Templates::Internal),
             "typescript" => Ok(Templates::Typescript),
+            "typescript-zod" => Ok(Templates::TypescriptZod),
+            "rust" => Ok(Templates::Rust),
+            "protobuf" => Ok(Templates::Protobuf),
+            "graphql" => Ok(Templates::Graphql),
+            "golang" => Ok(Templates::Golang),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
@@ -163,6 +192,7 @@ pub fn render_jinja_template(
     match template {
         Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
         Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
+        Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
         Templates::Shacl | Templates::Shex => {
             convert_model_types(model, &SHACL_TYPE_MAPS);
             filter_objects_wo_terms(model);
@@ -176,6 +206,8 @@ pub fn render_jinja_template(
 
     // Add custom functions to the Jinja environment
     env.add_function("wrap", wrap_text);
+    env.add_filter("pascal_case", pascal_case);
+    env.add_filter("snake_case", snake_case);
 
     // Get the appropriate template
     let template = match template {
@@ -189,6 +221,11 @@ pub fn render_jinja_template(
         Templates::PythonPydanticXML => env.get_template("python-pydantic-xml.jinja")?,
         Templates::MkDocs => env.get_template("mkdocs.jinja")?,
         Templates::Typescript => env.get_template("typescript.jinja")?,
+        Templates::TypescriptZod => env.get_template("typescript-zod.jinja")?,
+        Templates::Rust => env.get_template("rust.jinja")?,
+        Templates::Protobuf => env.get_template("protobuf.jinja")?,
+        Templates::Graphql => env.get_template("graphql.jinja")?,
+        Templates::Golang => env.get_template("golang.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
@@ -234,7 +271,14 @@ pub fn render_jinja_template(
 /// # Returns
 ///
 /// A string with the wrapped text.
-fn wrap_text(text: &str, width: usize, initial_offset: &str, offset: &str) -> String {
+fn wrap_text(
+    text: &str,
+    width: usize,
+    initial_offset: &str,
+    offset: &str,
+    delimiter: Option<&str>,
+) -> String {
+    let delimiter = delimiter.unwrap_or("");
     // Remove multiple spaces
     let options = textwrap::Options::new(width)
         .initial_indent(initial_offset)
@@ -242,7 +286,19 @@ fn wrap_text(text: &str, width: usize, initial_offset: &str, offset: &str) -> St
         .width(width)
         .break_words(false);
 
-    wrap(remove_multiple_spaces(text).as_str(), options).join("\n")
+    wrap(remove_multiple_spaces(text).as_str(), options).join(&format!("{delimiter}\n"))
+}
+
+/// Filter use only for Jinja templates.
+/// Converts a string to PascalCase.
+fn pascal_case(s: String) -> String {
+    s.to_case(Case::Pascal)
+}
+
+/// Filter use only for Jinja templates.
+/// Converts a string to snake_case.
+fn snake_case(s: String) -> String {
+    s.to_case(Case::Snake)
 }
 
 /// Removes leading and trailing whitespace and multiple spaces from a string.
@@ -439,12 +495,67 @@ mod tests {
     }
 
     #[test]
+    fn test_convert_to_typescript_zod() {
+        // Arrange
+        let rendered = build_and_convert(Templates::TypescriptZod);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_typescript_zod.ts")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
     fn test_convert_to_pydantic() {
         // Arrange
         let rendered = build_and_convert(Templates::PythonPydantic);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_pydantic.py")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_graphql() {
+        // Arrange
+        let rendered = build_and_convert(Templates::Graphql);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_graphql.graphql")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_golang() {
+        // Arrange
+        let rendered = build_and_convert(Templates::Golang);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_golang.go")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_rust() {
+        // Arrange
+        let rendered = build_and_convert(Templates::Rust);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_rust.rs")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_protobuf() {
+        // Arrange
+        let rendered = build_and_convert(Templates::Protobuf);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_protobuf.proto")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }

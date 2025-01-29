@@ -42,7 +42,7 @@
             >
             <xs:annotation>
                 <xs:documentation>
-                    {{ attribute.docstring }}
+                    {{ wrap(attribute.docstring, 70, "", "                    ", None) }}
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
@@ -65,7 +65,7 @@
                 {%- if attribute.docstring | length > 0 %}
                 <xs:annotation>
                     <xs:documentation>
-                        {{ attribute.docstring }}
+                        {{ wrap(attribute.docstring, 70, "", "                        ", None) }}
                     </xs:documentation>
                 </xs:annotation>
                 {%- endif %}
@@ -82,7 +82,7 @@
             <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type">
                 <xs:annotation>
                     <xs:documentation>
-                        {{ attribute.docstring }}
+                        {{ wrap(attribute.docstring, 70, "", "                        ", None) }}
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -99,7 +99,7 @@
             >
                 <xs:annotation>
                     <xs:documentation>
-                        {{ attribute.docstring }}
+                        {{ wrap(attribute.docstring, 70, "", "                        ", None) }}
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>

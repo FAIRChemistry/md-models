@@ -214,6 +214,51 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     Some(&specs.config),
                 )?;
             }
+            Templates::TypescriptZod => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
+            }
+            Templates::Rust => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
+            }
+            Templates::Golang => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
+            }
+            Templates::Protobuf => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
+            }
+            Templates::Graphql => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
+            }
             Templates::MkDocs => {
                 // If the template is not set to merge, then disable the navigation.
                 if let MergeState::Merge = merge_state {

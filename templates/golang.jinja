@@ -1,0 +1,203 @@
+{# Helper macros #}
+{% macro is_multiple(attr) %}
+    {%- if attr.multiple -%}[]{% endif -%}
+{% endmacro %}
+
+{% macro get_type(attr, parent_name) %}
+    {%- if attr.dtypes | length > 1 -%}
+    {{ parent_name }}{{ attr.name | capitalize }}Type
+    {%- elif attr.dtypes[0] in object_names -%}
+    {{ attr.dtypes[0] }}
+    {%- elif attr.dtypes[0] == "string" -%}
+    string
+    {%- elif attr.dtypes[0] == "float" or attr.dtypes[0] == "number" -%}
+    float64
+    {%- elif attr.dtypes[0] == "integer" -%}
+    int64
+    {%- elif attr.dtypes[0] == "boolean" -%}
+    bool
+    {%- else -%}
+    {{ attr.dtypes[0] }}
+    {%- endif -%}
+{% endmacro %}
+
+{% macro wrap_type(attr, parent_name) %}
+    {%- if attr.multiple -%}
+        []{{ get_type(attr, parent_name) }}
+    {%- else -%}
+        {{ get_type(attr, parent_name) }}
+    {%- endif -%}
+{% endmacro %}
+
+// Package {% if title -%}{{ title | lower }}{% else %}model{% endif %} contains Go struct definitions with JSON serialization.
+//
+// WARNING: This is an auto-generated file.
+// Do not edit directly - any changes will be overwritten.
+
+package {% if title -%}{{ title | lower }}{% else %}model{% endif %}
+
+import (
+    "encoding/json"
+    "fmt"
+)
+
+//
+// Type definitions
+//
+{% for object in objects %}
+{%- if object.docstring %}
+// {{ object.name }} {{ wrap(object.docstring, 70, "", "// ", None) }}
+{%- endif %}
+type {{ object.name }} struct {
+    {%- for attr in object.attributes %}
+        {%- if attr.docstring %}
+        // {{ wrap(attr.docstring, 70, "", "        // ", None) }}
+        {%- endif %}
+        {{ attr.name | capitalize }} {{ wrap_type(attr, object.name) }} `json:"{{ attr.name }}{% if attr.required is false %},omitempty{% endif %}"`
+    {%- endfor %}
+}
+{% endfor %}
+
+{%- if enums | length > 0 %}
+//
+// Enum definitions
+//
+{%- for enum in enums %}
+
+{%- if enum.docstring %}
+    // {{ enum.name }} {{ wrap(enum.docstring, 70, "", "    // ", None) }}
+{%- endif %}
+type {{ enum.name }} string
+
+const (
+    {%- for key, value in enum.mappings | dictsort %}
+    {{ enum.name }}{{ key }} {{ enum.name }} = "{{ value }}"
+    {%- endfor %}
+)
+{%- endfor %}
+{%- endif %}
+
+//
+// Type definitions for attributes with multiple types
+//
+{%- for object in objects %}
+{%- for attr in object.attributes %}
+    {%- if attr.dtypes | length > 1 %}
+
+// {{ object.name }}{{ attr.name | capitalize }}Type represents a union type that can hold any of the following types:
+{%- for dtype in attr.dtypes %}
+// - {{ dtype }}
+{%- endfor %}
+type {{ object.name }}{{ attr.name | capitalize }}Type struct {
+    {%- for dtype in attr.dtypes %}
+        {%- if dtype in object_names %}
+    Object {{ dtype }}
+        {%- elif dtype == "string" %}
+    String string
+        {%- elif dtype == "float" %}
+    Float float64
+        {%- elif dtype == "integer" %}
+    Integer int64
+        {%- elif dtype == "boolean" %}
+    Boolean bool
+        {%- else %}
+    {{ dtype | capitalize }} {{ dtype }}
+        {%- endif %}
+    {%- endfor %}
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for {{ object.name }}{{ attr.name | capitalize }}Type
+func (t *{{ object.name }}{{ attr.name | capitalize }}Type) UnmarshalJSON(data []byte) error {
+    // Reset existing values
+    {%- for dtype in attr.dtypes %}
+        {%- if dtype in object_names %}
+    t.Object = {{ dtype }}{}
+        {%- elif dtype == "string" %}
+    t.String = ""
+        {%- elif dtype == "float" %}
+    t.Float = 0
+        {%- elif dtype == "integer" %}
+    t.Integer = 0
+        {%- elif dtype == "boolean" %}
+    t.Boolean = false
+        {%- else %}
+    t.{{ dtype | capitalize }} = {{ dtype }}{}
+        {%- endif %}
+    {%- endfor %}
+
+    {%- for dtype in attr.dtypes %}
+        {%- if dtype in object_names %}
+    var objectValue {{ dtype }}
+    if err := json.Unmarshal(data, &objectValue); err == nil {
+        t.Object = objectValue
+        return nil
+    }
+        {%- elif dtype == "string" %}
+    var stringValue string
+    if err := json.Unmarshal(data, &stringValue); err == nil {
+        t.String = stringValue
+        return nil
+    }
+        {%- elif dtype == "float" %}
+    var floatValue float64
+    if err := json.Unmarshal(data, &floatValue); err == nil {
+        t.Float = floatValue
+        return nil
+    }
+        {%- elif dtype == "integer" %}
+    var intValue int64
+    if err := json.Unmarshal(data, &intValue); err == nil {
+        t.Integer = intValue
+        return nil
+    }
+        {%- elif dtype == "boolean" %}
+    var boolValue bool
+    if err := json.Unmarshal(data, &boolValue); err == nil {
+        t.Boolean = boolValue
+        return nil
+    }
+        {%- else %}
+    var value {{ dtype }}
+    if err := json.Unmarshal(data, &value); err == nil {
+        t.{{ dtype | capitalize }} = value
+        return nil
+    }
+        {%- endif %}
+    {%- endfor %}
+    return fmt.Errorf("{{ object.name }}{{ attr.name | capitalize }}Type: data is neither {{ attr.dtypes | join(', ') }}")
+}
+
+// MarshalJSON implements custom JSON marshaling for {{ object.name }}{{ attr.name | capitalize }}Type
+func (t {{ object.name }}{{ attr.name | capitalize }}Type) MarshalJSON() ([]byte, error) {
+    {%- for dtype in attr.dtypes %}
+        {%- if dtype in object_names %}
+    if t.Object != nil {
+        return json.Marshal(t.Object)
+    }
+        {%- elif dtype == "string" %}
+    if t.String != nil {
+        return json.Marshal(*t.String)
+    }
+        {%- elif dtype == "float" %}
+    if t.Float != nil {
+        return json.Marshal(*t.Float)
+    }
+        {%- elif dtype == "integer" %}
+    if t.Integer != nil {
+        return json.Marshal(*t.Integer)
+    }
+        {%- elif dtype == "boolean" %}
+    if t.Boolean != nil {
+        return json.Marshal(*t.Boolean)
+    }
+        {%- else %}
+    if t.{{ dtype | capitalize }} != nil {
+        return json.Marshal(*t.{{ dtype | capitalize }})
+    }
+        {%- endif %}
+    {%- endfor %}
+    return []byte("null"), nil
+}
+    {%- endif %}
+    {%- endfor %}
+{%- endfor %}

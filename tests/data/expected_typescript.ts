@@ -23,7 +23,14 @@ export interface JsonLd {
 
 // none Type definitions
 /**
-    * @param name - The name of the test.
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+    eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+    enim ad minim veniam, quis nostrud exercitation ullamco laboris
+    nisi ut aliquip ex ea commodo consequat.
+
+    * @param name - The name of the test. This is a unique identifier that helps track
+             individual test cases across the system. It should be
+             descriptive and follow the standard naming conventions.
     * @param number
     * @param test2
     * @param ontology

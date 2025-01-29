@@ -11,6 +11,9 @@
             default_factory=list,
             {% endif -%}
             tag="{{ xml_tag(attr.xml) }}",
+            {% if attr.docstring | length > 0 -%}
+            description="""{{ wrap(attr.docstring, 80, "", "            ", None ) }}""",
+            {% endif -%}
             json_schema_extra={{ create_options(attr.options, attr.term) }}
         )
 {% endmacro %}

@@ -1,3 +1,35 @@
+"""
+This file contains Pydantic model definitions for data validation.
+
+Pydantic is a data validation library that uses Python type annotations.
+It allows you to define data models with type hints that are validated
+at runtime while providing static type checking.
+
+Usage example:
+```python
+from my_model import MyModel
+
+# Validates data at runtime
+my_model = MyModel(name="John", age=30)
+
+# Type-safe - my_model has correct type hints
+print(my_model.name)
+
+# Will raise error if validation fails
+try:
+    MyModel(name="", age=30)
+except ValidationError as e:
+    print(e)
+```
+
+For more information see:
+https://docs.pydantic.dev/
+
+WARNING: This is an auto-generated file.
+Do not edit directly - any changes will be overwritten.
+"""
+
+
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
