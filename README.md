@@ -1,4 +1,3 @@
-
 # MD-Models
 
 ![Crates.io Version](https://img.shields.io/crates/v/mdmodels) ![NPM Version](https://img.shields.io/npm/v/mdmodels-core)
@@ -73,10 +72,19 @@ The following templates are available:
 - `python-dataclass`: Python dataclass implementation with JSON-LD support
 - `python-pydantic`: PyDantic implementation with JSON-LD support
 - `python-pydantic-xml`: PyDantic implementation with XML support
+- `typescript`: TypeScript interface definitions with JSON-LD support
+- `typescript-zod`: TypeScript Zod schema definitions
+- `rust`: Rust struct definitions with serde support
+- `golang`: Go struct definitions
+- `protobuf`: Protocol Buffer schema definition
+- `graphql`: GraphQL schema definition
 - `xml-schema`: XML schema definition
 - `json-schema`: JSON schema definition
+- `json-schema-all`: Multiple JSON schema definitions (one per object)
 - `shacl`: SHACL shapes definition
 - `shex`: ShEx shapes definition
+- `compact-markdown`: Compact markdown representation
+- `mkdocs`: MkDocs documentation format
 
 ## Installation options
 
