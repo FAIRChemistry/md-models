@@ -73,6 +73,7 @@ pub mod bindings {
 
 pub mod linkml {
     pub mod export;
+    pub mod import;
     pub mod schema;
 }
 
