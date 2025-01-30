@@ -65,7 +65,7 @@ use tsify_next::Tsify;
 // * `json_schema` - Generate a JSON schema from the data model
 // * `json_schema_all` - Generate JSON schemas for all objects in the data model
 // * `internal_schema` - Generate an internal schema from the data model
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]

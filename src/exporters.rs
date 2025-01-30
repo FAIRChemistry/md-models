@@ -110,6 +110,7 @@ pub enum Templates {
     Protobuf,
     Graphql,
     Golang,
+    Linkml,
 }
 
 impl Display for Templates {
@@ -133,6 +134,7 @@ impl Display for Templates {
             Templates::Protobuf => write!(f, "protobuf"),
             Templates::Graphql => write!(f, "graphql"),
             Templates::Golang => write!(f, "golang"),
+            Templates::Linkml => write!(f, "linkml"),
         }
     }
 }

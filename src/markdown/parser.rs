@@ -34,6 +34,7 @@ use regex::Regex;
 use crate::attribute;
 use crate::datamodel::DataModel;
 use crate::object::{self, Enumeration, Object};
+use crate::option::RawOption;
 use crate::validation::Validator;
 
 use super::frontmatter::parse_frontmatter;
@@ -456,7 +457,7 @@ fn add_option_to_last_attribute(
     value: String,
 ) -> Result<(), Box<dyn Error>> {
     let last_attr = objects.last_mut().unwrap().get_last_attribute();
-    let option = attribute::AttrOption::new(key, value);
+    let option = RawOption::new(key, value);
     last_attr.add_option(option)?;
 
     Ok(())
@@ -702,6 +703,47 @@ fn set_enum_attributes(model: &mut DataModel) {
             if !enum_dtypes.is_empty() && enum_dtypes.len() == attr.dtypes.len() {
                 attr.is_enum = true;
             }
+        }
+    }
+}
+
+/// Represents the different keys that can be used for attribute options.
+pub(crate) enum OptionKey {
+    /// Represents the data type of the attribute.
+    Type,
+    /// Represents the term associated with the attribute.
+    Term,
+    /// Represents the description of the attribute.
+    Description,
+    /// Represents the XML type information for the attribute.
+    Xml,
+    /// Represents the default value for the attribute.
+    Default,
+    /// Indicates if the attribute can have multiple values.
+    Multiple,
+    /// Represents any other option not covered by the predefined keys.
+    Other,
+}
+
+impl OptionKey {
+    /// Converts a string to an `OptionKey`.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The string representation of the key.
+    ///
+    /// # Returns
+    ///
+    /// An `OptionKey` corresponding to the given string.
+    pub fn from_str(key: &str) -> Self {
+        match key.to_lowercase().as_str() {
+            "type" => OptionKey::Type,
+            "term" => OptionKey::Term,
+            "description" => OptionKey::Description,
+            "xml" => OptionKey::Xml,
+            "default" => OptionKey::Default,
+            "multiple" => OptionKey::Multiple,
+            _ => OptionKey::Other,
         }
     }
 }

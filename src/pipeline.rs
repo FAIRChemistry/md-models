@@ -21,7 +21,7 @@
  *
  */
 
-use crate::{datamodel::DataModel, exporters::Templates};
+use crate::{datamodel::DataModel, exporters::Templates, linkml::export::serialize_linkml};
 use colored::Colorize;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -132,6 +132,10 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
             }
             Templates::JsonSchemaAll => {
                 serialize_all_json_schemes(&specs.out, paths, &merge_state)?;
+            }
+            Templates::Linkml => {
+                let model = build_models(paths)?;
+                serialize_linkml(model, Some(&specs.out))?;
             }
             Templates::Shex => {
                 serialize_by_template(

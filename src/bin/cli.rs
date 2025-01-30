@@ -28,6 +28,7 @@ use mdmodels::{
     datamodel::DataModel,
     exporters::{render_jinja_template, Templates},
     json::validation::validate_json,
+    linkml::export::serialize_linkml,
     llm::extraction::query_openai,
     pipeline::process_pipeline,
 };
@@ -319,6 +320,7 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Render the template.
     let rendered = match args.template {
         Templates::JsonSchema => model.json_schema(args.root, false)?,
+        Templates::Linkml => serialize_linkml(model, args.output.as_ref())?,
         _ => render_jinja_template(&args.template, &mut model, None)?,
     };
 

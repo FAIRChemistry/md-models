@@ -31,6 +31,7 @@ use crate::{
     datamodel::DataModel,
     markdown::frontmatter::FrontMatter,
     object::{Enumeration, Object},
+    option::AttrOption,
     validation::BASIC_TYPES,
 };
 
@@ -372,8 +373,10 @@ impl TryFrom<&Attribute> for schema::Property {
         let options: HashMap<String, PrimitiveType> = attr
             .options
             .iter()
-            .map(|o| (o.key.clone(), PrimitiveType::from(&o.value)))
-            .collect();
+            .map(|o| -> Result<(String, PrimitiveType), String> {
+                Ok((o.key().to_string(), o.try_into()?))
+            })
+            .collect::<Result<HashMap<String, PrimitiveType>, String>>()?;
 
         let reference: Option<String> =
             if attr.is_enum || matches!(dtype, Some(schema::DataType::Object { .. })) {
@@ -506,6 +509,30 @@ fn process_dtype(dtype: &str) -> schema::Item {
         Err(_) => schema::Item::ReferenceItem(schema::ReferenceItemType {
             reference: format!("#/$defs/{}", dtype),
         }),
+    }
+}
+
+impl TryFrom<&AttrOption> for PrimitiveType {
+    type Error = String;
+
+    fn try_from(option: &AttrOption) -> Result<Self, Self::Error> {
+        let value = option.value();
+
+        // Try parsing in order: f64, boolean, i64, string
+        if let Ok(float_val) = value.parse::<f64>() {
+            return Ok(PrimitiveType::Number(float_val));
+        }
+
+        if let Ok(bool_val) = value.parse::<bool>() {
+            return Ok(PrimitiveType::Boolean(bool_val));
+        }
+
+        if let Ok(int_val) = value.parse::<i64>() {
+            return Ok(PrimitiveType::Integer(int_val));
+        }
+
+        // If all other parses fail, treat as string
+        Ok(PrimitiveType::String(value))
     }
 }
 

@@ -35,6 +35,7 @@ pub mod validation;
 
 pub mod attribute;
 pub mod object;
+pub mod option;
 pub mod xmltype;
 
 pub mod prelude {
@@ -68,6 +69,11 @@ pub mod bindings {
 
     #[cfg(feature = "wasm")]
     pub(crate) mod wasm;
+}
+
+pub mod linkml {
+    pub mod export;
+    pub mod schema;
 }
 
 #[cfg(feature = "python")]
