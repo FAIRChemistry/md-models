@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // JSON-LD base types
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonLdContext(pub HashMap<String, serde_json::Value>);
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonLd {
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<JsonLdContext>,
@@ -27,7 +27,7 @@ pub struct JsonLd {
 /// eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
 /// enim ad minim veniam, quis nostrud exercitation ullamco laboris
 /// nisi ut aliquip ex ea commodo consequat.
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Test {
     #[serde(flatten)]
     pub json_ld: JsonLd,
@@ -43,7 +43,7 @@ pub struct Test {
     pub ontology: Option<Ontology>,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Test2 {
     #[serde(flatten)]
     pub json_ld: JsonLd,
@@ -57,6 +57,7 @@ pub struct Test2 {
 // Model Enum definitions
 //
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Ontology {
     #[serde(rename = "https://www.evidenceontology.org/term/")]
@@ -72,6 +73,7 @@ pub enum Ontology {
 // Enum definitions for attributes with multiple types
 //
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TestNumberType {
     Float(f64),
