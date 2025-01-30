@@ -21,7 +21,11 @@
  *
  */
 
-use crate::{markdown::position::Position, xmltype::XMLType};
+use crate::{
+    markdown::{parser::OptionKey, position::Position},
+    option::{AttrOption, RawOption},
+    xmltype::XMLType,
+};
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
@@ -113,14 +117,14 @@ impl Attribute {
     /// # Arguments
     ///
     /// * `option` - The option to add.
-    pub fn add_option(&mut self, option: AttrOption) -> Result<(), Box<dyn Error>> {
+    pub fn add_option(&mut self, option: RawOption) -> Result<(), Box<dyn Error>> {
         match OptionKey::from_str(option.key.as_str()) {
             OptionKey::Type => self.set_dtype(option.value)?,
             OptionKey::Term => self.term = Some(option.value),
             OptionKey::Description => self.docstring = option.value,
             OptionKey::Default => self.default = Some(DataType::from_str(&option.value)?),
             OptionKey::Multiple => self.is_array = option.value.to_lowercase() == "true",
-            OptionKey::Other => self.options.push(option),
+            OptionKey::Other => self.options.push(option.try_into()?),
             OptionKey::Xml => {
                 self.set_xml(XMLType::from_str(&option.value).expect("Invalid XML type"))
             }
@@ -246,51 +250,6 @@ impl Attribute {
     /// * `xml` - The XML type to set.
     pub fn set_xml(&mut self, xml: XMLType) {
         self.xml = Some(xml);
-    }
-}
-
-/// Represents an option for an attribute.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
-#[cfg_attr(feature = "wasm", derive(Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
-pub struct AttrOption {
-    /// The key of the option.
-    pub key: String,
-    /// The value of the option.
-    pub value: String,
-}
-
-impl AttrOption {
-    /// Creates a new `AttrOption` with the given key and value.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The key of the option.
-    /// * `value` - The value of the option.
-    pub fn new(key: String, value: String) -> Self {
-        Self {
-            key: key.to_lowercase(),
-            value,
-        }
-    }
-
-    /// Gets the key of the option.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the key.
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-
-    /// Gets the value of the option.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the value.
-    pub fn value(&self) -> &str {
-        &self.value
     }
 }
 
@@ -444,47 +403,6 @@ impl<'de> Deserialize<'de> for DataType {
     }
 }
 
-/// Represents the different keys that can be used for attribute options.
-enum OptionKey {
-    /// Represents the data type of the attribute.
-    Type,
-    /// Represents the term associated with the attribute.
-    Term,
-    /// Represents the description of the attribute.
-    Description,
-    /// Represents the XML type information for the attribute.
-    Xml,
-    /// Represents the default value for the attribute.
-    Default,
-    /// Indicates if the attribute can have multiple values.
-    Multiple,
-    /// Represents any other option not covered by the predefined keys.
-    Other,
-}
-
-impl OptionKey {
-    /// Converts a string to an `OptionKey`.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The string representation of the key.
-    ///
-    /// # Returns
-    ///
-    /// An `OptionKey` corresponding to the given string.
-    fn from_str(key: &str) -> Self {
-        match key.to_lowercase().as_str() {
-            "type" => OptionKey::Type,
-            "term" => OptionKey::Term,
-            "description" => OptionKey::Description,
-            "xml" => OptionKey::Xml,
-            "default" => OptionKey::Default,
-            "multiple" => OptionKey::Multiple,
-            _ => OptionKey::Other,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::xmltype::XMLType;
@@ -515,7 +433,7 @@ mod tests {
     #[test]
     fn test_attribute_add_type_option() {
         let mut attr = Attribute::new("name".to_string(), false);
-        let option = AttrOption::new("type".to_string(), "string".to_string());
+        let option = RawOption::new("type".to_string(), "string".to_string());
         attr.add_option(option).expect("Failed to add option");
         assert_eq!(attr.dtypes.len(), 1);
         assert_eq!(attr.dtypes[0], "string");
@@ -524,7 +442,7 @@ mod tests {
     #[test]
     fn test_attribute_add_term_option() {
         let mut attr = Attribute::new("name".to_string(), false);
-        let option = AttrOption::new("term".to_string(), "string".to_string());
+        let option = RawOption::new("term".to_string(), "string".to_string());
         attr.add_option(option).expect("Failed to add option");
         assert_eq!(attr.term, Some("string".to_string()));
     }
@@ -532,14 +450,24 @@ mod tests {
     #[test]
     fn test_attribute_add_option() {
         let mut attr = Attribute::new("name".to_string(), false);
-        let option = AttrOption::new("description".to_string(), "This is a test".to_string());
+        let option = RawOption::new("description".to_string(), "This is a test".to_string());
         attr.add_option(option).expect("Failed to add option");
-        let option = AttrOption::new("something".to_string(), "something".to_string());
+        let option = RawOption::new("something".to_string(), "something".to_string());
         attr.add_option(option).expect("Failed to add option");
 
         assert_eq!(attr.options.len(), 1);
-        assert_eq!(attr.options[0].key, "something");
-        assert_eq!(attr.options[0].value, "something");
+
+        if let Some(option) = attr.options.first() {
+            if let AttrOption::Other { key, value } = option {
+                assert_eq!(key, "something");
+                assert_eq!(value, "something");
+            } else {
+                panic!("Option is not an AttributeOption::Other");
+            }
+        } else {
+            panic!("Option not found");
+        }
+
         assert_eq!(attr.docstring, "This is a test");
     }
 
