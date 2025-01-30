@@ -1,8 +1,48 @@
+/*
+ * Copyright (c) 2024 Jan Range
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 //! Provides functionality to export data models to LinkML format.
 //!
 //! This module contains implementations for converting internal data model representations
 //! to LinkML schema format. It handles the conversion of objects, attributes, and enumerations
 //! to their corresponding LinkML representations.
+//!
+//! The module provides several key components:
+//! - Serialization of DataModel instances to LinkML YAML format
+//! - Conversion implementations between internal model types and LinkML schema types
+//! - Utilities for handling global slots and attribute sharing between classes
+//! - Pattern constraint management through slot usage
+//!
+//! The conversion process preserves:
+//! - Documentation and descriptions
+//! - Data types and ranges
+//! - Cardinality constraints
+//! - Identifier flags
+//! - Required/optional status
+//! - URI/term mappings
+//! - Enumeration values and meanings
+//! - Minimum/maximum value constraints
+//! - Pattern validation rules
 
 use std::{collections::HashMap, error::Error, path::PathBuf};
 
@@ -13,23 +53,26 @@ use crate::{
 };
 
 use super::schema::{
-    AttributeDefinition, ClassDefinition, EnumDefinition, LinkML, PermissibleValue, SlotUsage,
+    AttributeDefinition, ClassDefinition, EnumDefinition, Example, LinkML, PermissibleValue,
+    SlotUsage,
 };
 
 /// Serializes a DataModel to LinkML YAML format and writes it to a file.
 ///
 /// This function takes a DataModel instance and converts it to LinkML schema format,
-/// then serializes it to YAML and writes the output to the specified file path.
+/// then serializes it to YAML. If an output path is provided, the YAML will be written
+/// to that file. The function returns the serialized YAML string regardless of whether
+/// it was written to a file.
 ///
 /// # Arguments
 ///
 /// * `model` - The DataModel to serialize
-/// * `out` - The output path to write the YAML to, if provided.
+/// * `out` - Optional output path to write the YAML to
 ///
 /// # Returns
 ///
-/// * `Ok(yaml)` if serialization and file writing succeed
-/// * `Err(Box<dyn Error>)` if YAML serialization fails or if file writing fails
+/// * `Ok(String)` - The serialized YAML string
+/// * `Err(Box<dyn Error>)` - If serialization or file writing fails
 pub fn serialize_linkml(model: DataModel, out: Option<&PathBuf>) -> Result<String, Box<dyn Error>> {
     let linkml = LinkML::from(model);
     let yaml = serde_yaml::to_string(&linkml)?;
@@ -44,19 +87,16 @@ pub fn serialize_linkml(model: DataModel, out: Option<&PathBuf>) -> Result<Strin
 impl From<DataModel> for LinkML {
     /// Converts a DataModel instance into a LinkML schema.
     ///
-    /// This conversion handles:
-    /// - Basic configuration (id, prefixes, name)
-    /// - Classes and their attributes
-    /// - Global slots (shared attributes)
-    /// - Enumerations
+    /// This conversion process handles:
+    /// - Basic schema configuration including ID, prefixes, and name
+    /// - Class definitions and their attributes
+    /// - Global slots (shared attributes across classes)
+    /// - Enumeration definitions
+    /// - Import declarations
+    /// - Default type configurations
     ///
-    /// # Arguments
-    ///
-    /// * `model` - The DataModel to convert
-    ///
-    /// # Returns
-    ///
-    /// A LinkML schema representing the data model
+    /// The conversion maintains the hierarchical structure of the data model while
+    /// adapting it to LinkML's schema format requirements.
     fn from(model: DataModel) -> Self {
         // Basic configuration
         let config = model.clone().config.unwrap_or_default();
@@ -108,7 +148,14 @@ impl From<DataModel> for LinkML {
 
 /// Extracts global slots (shared attributes) from a data model.
 ///
-/// Global slots are attributes that appear in multiple classes with the same definition.
+/// Global slots are attributes that appear in multiple classes with identical definitions.
+/// This function identifies such attributes and extracts them to be defined at the schema level
+/// rather than within individual classes.
+///
+/// The extraction process:
+/// 1. Collects all attributes from all classes
+/// 2. Identifies attributes that appear multiple times with identical definitions
+/// 3. Returns these as global slots
 ///
 /// # Arguments
 ///
@@ -145,15 +192,18 @@ fn extract_slots(model: &DataModel) -> HashMap<String, AttributeDefinition> {
 
 /// Updates a class definition to use global slots where appropriate.
 ///
-/// This function:
-/// 1. Identifies which of the class's attributes are global slots
+/// This function modifies a class definition to reference global slots instead of
+/// duplicating attribute definitions. It performs the following steps:
+/// 1. Identifies which of the class's attributes match global slot definitions
 /// 2. Adds references to those slots in the class's slots list
-/// 3. Removes those attributes from the class's local attributes
+/// 3. Removes the matching attributes from the class's local attributes
+///
+/// This process helps reduce redundancy and maintain consistency across the schema.
 ///
 /// # Arguments
 ///
 /// * `class` - The class definition to update
-/// * `slots` - The map of global slots
+/// * `slots` - The map of global slots to reference
 fn remove_global_slots(class: &mut ClassDefinition, slots: &HashMap<String, AttributeDefinition>) {
     // Get the class's attributes
     let class_attrs = class.attributes.clone().unwrap_or_default();
@@ -179,18 +229,12 @@ fn remove_global_slots(class: &mut ClassDefinition, slots: &HashMap<String, Attr
 impl From<Object> for ClassDefinition {
     /// Converts an Object into a LinkML ClassDefinition.
     ///
-    /// This handles:
+    /// This conversion process handles:
     /// - Converting attributes to LinkML format
     /// - Setting up slot usage for pattern constraints
     /// - Preserving documentation and URI terms
-    ///
-    /// # Arguments
-    ///
-    /// * `obj` - The Object to convert
-    ///
-    /// # Returns
-    ///
-    /// A LinkML ClassDefinition
+    /// - Maintaining inheritance relationships
+    /// - Managing attribute constraints and validations
     fn from(obj: Object) -> Self {
         // Create a map of attributes
         let attrib = obj
@@ -217,7 +261,8 @@ impl From<Object> for ClassDefinition {
             description: Some(obj.docstring),
             class_uri: obj.term,
             slots: Vec::new(),
-            is_a: Some(obj.name),
+            is_a: obj.parent,
+            mixins: vec![],
             tree_root: None,
             attributes: Some(attrib),
             slot_usage: if slot_usage.is_empty() {
@@ -233,22 +278,30 @@ impl From<Object> for ClassDefinition {
 impl From<Attribute> for AttributeDefinition {
     /// Converts an Attribute into a LinkML AttributeDefinition.
     ///
-    /// This preserves:
+    /// This conversion preserves:
     /// - Array/multivalued status
     /// - Data type (range)
     /// - Documentation
     /// - ID status
     /// - Required status
-    ///
-    /// # Arguments
-    ///
-    /// * `attribute` - The Attribute to convert
-    ///
-    /// # Returns
-    ///
-    /// A LinkML AttributeDefinition
+    /// - Minimum and maximum values
+    /// - Examples
+    /// - Term mappings
     fn from(attribute: Attribute) -> Self {
+        let minimum_value = attribute.options.iter().find(|o| o.key() == "minimum");
+        let maximum_value = attribute.options.iter().find(|o| o.key() == "maximum");
+        let example = attribute
+            .options
+            .iter()
+            .filter(|o| o.key() == "example")
+            .map(|o| Example {
+                value: Some(o.value()),
+                description: None,
+            })
+            .collect::<Vec<_>>();
+
         AttributeDefinition {
+            slot_uri: attribute.term,
             multivalued: Some(attribute.is_array),
             range: if attribute.dtypes[0] == "string" {
                 None
@@ -259,10 +312,10 @@ impl From<Attribute> for AttributeDefinition {
             identifier: Some(attribute.is_id),
             required: Some(attribute.required),
             readonly: None,
-            minimum_value: None,
-            maximum_value: None,
+            minimum_value: minimum_value.map(|v| v.value().parse::<i64>().unwrap()),
+            maximum_value: maximum_value.map(|v| v.value().parse::<i64>().unwrap()),
             recommended: None,
-            examples: None,
+            examples: example,
             annotations: None,
         }
     }
@@ -272,17 +325,11 @@ impl From<Attribute> for AttributeDefinition {
 impl From<Enumeration> for EnumDefinition {
     /// Converts an Enumeration into a LinkML EnumDefinition.
     ///
-    /// This preserves:
-    /// - Documentation
+    /// This conversion process handles:
+    /// - Documentation preservation
     /// - Enumeration values and their meanings
-    ///
-    /// # Arguments
-    ///
-    /// * `enum_` - The Enumeration to convert
-    ///
-    /// # Returns
-    ///
-    /// A LinkML EnumDefinition
+    /// - Value descriptions
+    /// - Semantic mappings
     fn from(enum_: Enumeration) -> Self {
         let mut values = HashMap::new();
         for (key, value) in enum_.mappings.iter() {
@@ -304,6 +351,7 @@ impl From<Enumeration> for EnumDefinition {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use std::{collections::BTreeMap, path::PathBuf};
 
     use crate::option::AttrOption;
@@ -313,14 +361,14 @@ mod tests {
     #[test]
     fn serialize_linkml_test() {
         let model = DataModel::from_markdown(&PathBuf::from("tests/data/model.md")).unwrap();
-        let yaml = serialize_linkml(model, None).unwrap();
+        let yaml = serde_yaml::from_str::<LinkML>(&serialize_linkml(model, None).unwrap()).unwrap();
 
         let expected_yaml = serde_yaml::from_str::<LinkML>(
             &std::fs::read_to_string("tests/data/expected_linkml.yml").unwrap(),
         )
         .unwrap();
-        let yaml_yaml = serde_yaml::from_str::<LinkML>(&yaml).unwrap();
-        assert_eq!(yaml_yaml, expected_yaml);
+
+        assert_eq!(yaml, expected_yaml);
     }
 
     #[test]
@@ -343,7 +391,7 @@ mod tests {
             class_def.class_uri,
             Some("http://example.org/TestClass".to_string())
         );
-        assert_eq!(class_def.is_a, Some("TestClass".to_string()));
+        assert!(class_def.is_a.is_none());
         assert!(class_def.slot_usage.is_some());
     }
 
