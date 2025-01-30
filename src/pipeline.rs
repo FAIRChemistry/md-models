@@ -21,9 +21,8 @@
  *
  */
 
-use crate::{datamodel::DataModel, exporters::Templates, linkml::export::serialize_linkml};
+use crate::{datamodel::DataModel, exporters::Templates};
 use colored::Colorize;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -127,15 +126,25 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
 
         match template {
             Templates::JsonSchema => {
-                let model = build_models(paths)?;
-                serialize_to_json_schema(model, specs.root, &specs.out, &merge_state)?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::JsonSchemaAll => {
                 serialize_all_json_schemes(&specs.out, paths, &merge_state)?;
             }
             Templates::Linkml => {
-                let model = build_models(paths)?;
-                serialize_linkml(model, Some(&specs.out))?;
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    Some(&specs.config),
+                )?;
             }
             Templates::Shex => {
                 serialize_by_template(
@@ -336,40 +345,6 @@ fn path_exists(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Serializes the data model to a JSON schema file.
-///
-/// # Arguments
-///
-/// * `model` - The DataModel to serialize.
-/// * `root` - The root object for the JSON schema.
-/// * `out` - The output path for the JSON schema file.
-///
-/// # Returns
-///
-/// A Result indicating success or failure.
-fn serialize_to_json_schema(
-    model: DataModel,
-    root: Option<String>,
-    out: &PathBuf,
-    merge_state: &MergeState,
-) -> Result<(), Box<dyn Error>> {
-    if let MergeState::NoMerge = merge_state {
-        return Err(
-            "Per spec is not supported for single JSON schema generation at the moment.".into(),
-        );
-    }
-
-    match root {
-        Some(root) => {
-            let schema = model.json_schema(Some(root), false)?;
-            save_to_file(out, &schema)?;
-            print_render_msg(out, &Templates::JsonSchema);
-            Ok(())
-        }
-        None => Err("Root object has to be specified".into()),
-    }
-}
-
 /// Serializes the data model to the internal schema.
 ///
 /// Please note, this format may only be used for internal purposes.
@@ -482,7 +457,7 @@ fn serialize_by_template(
                     return Err(format!("Path does not exist: {:?}", spec).into());
                 }
 
-                let path = replace_wildcard_fname(out, get_file_name(spec).as_str());
+                let path = replace_wildcard(out, get_file_name(spec).as_str());
                 print_render_msg(&path, template);
 
                 let mut model = DataModel::from_markdown(spec)?;
@@ -506,12 +481,11 @@ fn serialize_by_template(
 ///
 /// A boolean indicating if the path has a wildcard file name.
 fn has_wildcard_fname(path: &Path) -> bool {
-    let pattern = r"^.+/\*\.[a-zA-Z0-9]+$";
-    let re = Regex::new(pattern).unwrap();
-    re.is_match(path.to_str().unwrap())
+    let path_str = path.to_str().unwrap();
+    path_str.contains("*")
 }
 
-/// Replaces the wildcard file name with the given name.
+/// Replaces the wildcard in the given path with the given name.
 ///
 /// # Arguments
 ///
@@ -520,14 +494,11 @@ fn has_wildcard_fname(path: &Path) -> bool {
 ///
 /// # Returns
 ///
-/// A PathBuf with the wildcard file name replaced.
-fn replace_wildcard_fname(path: &Path, name: &str) -> PathBuf {
-    let path = PathBuf::from(path);
-    let file_name = path.file_name().unwrap().to_str().unwrap();
-    let new_name = file_name.replace('*', name);
-    let parent = path.parent().unwrap();
-
-    parent.join(new_name)
+/// A PathBuf with the wildcard replaced.
+fn replace_wildcard(path: &Path, name: &str) -> PathBuf {
+    let path_str = path.to_str().unwrap();
+    let new_path = path_str.replace('*', name);
+    PathBuf::from(new_path)
 }
 
 /// Gets the file name without the extension.
@@ -562,7 +533,7 @@ fn save_to_file(out: &PathBuf, content: &str) -> Result<(), Box<dyn Error>> {
         fs::create_dir_all(dir)?;
     }
 
-    fs::write(out, content.trim())?;
+    fs::write(out, content.trim()).map_err(|e| format!("Error writing to file: {:#?}", e))?;
     Ok(())
 }
 
