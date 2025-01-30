@@ -9,50 +9,40 @@ imports:
 - linkml:types
 classes:
   Test2:
-    is_a: Test2
     attributes:
       names:
-        identifier: false
-        required: false
+        slot_uri: schema:hello
         multivalued: true
       number:
-        identifier: false
-        required: false
+        slot_uri: schema:one
         range: float
-        multivalued: false
+        minimum_value: 0
   Test:
     description: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-    is_a: Test
     attributes:
+      name:
+        description: The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.
+        slot_uri: schema:hello
+        identifier: true
+        required: true
+      number:
+        slot_uri: schema:one
+        range: float
       test2:
-        identifier: false
-        required: false
+        slot_uri: schema:something
         range: Test2
         multivalued: true
       ontology:
-        identifier: false
-        required: false
         range: Ontology
-        multivalued: false
-      number:
-        identifier: false
-        required: false
-        range: float
-        multivalued: false
-      name:
-        description: The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.
-        identifier: true
-        required: true
-        multivalued: false
 enums:
   Ontology:
     permissible_values:
-      GO:
-        meaning: https://amigo.geneontology.org/amigo/term/
-        description: https://amigo.geneontology.org/amigo/term/
       SIO:
         meaning: http://semanticscience.org/resource/
         description: http://semanticscience.org/resource/
       ECO:
         meaning: https://www.evidenceontology.org/term/
         description: https://www.evidenceontology.org/term/
+      GO:
+        meaning: https://amigo.geneontology.org/amigo/term/
+        description: https://amigo.geneontology.org/amigo/term/
