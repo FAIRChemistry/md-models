@@ -4,9 +4,20 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/mdmodels-core)
  ![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg) 
 
-Welcome to Markdown Models (MD-Models), a powerful framework for research data management that prioritizes flexibility and efficiency.
+Welcome to Markdown Models (MD-Models), a powerful framework for research data management that prioritizes narrative and readability for data models.
 
 With an adaptable markdown-based schema language, MD-Models automatically generates schemas and programming language representations. This markdown schema forms the foundation for object-oriented models, enabling seamless cross-format compatibility and simplifying modifications to data structures.
+
+## Core Philosophy
+
+The primary motivation behind MD-Models is to reduce cognitive overhead and maintenance burden by unifying documentation and structural definition into a single source of truth. Traditional approaches often require maintaining separate artifacts:
+
+1. Technical schemas (JSON Schema, XSD, ShEx, SHACL)
+2. Programming language implementations
+3. Documentation for domain experts
+4. API documentation
+
+This separation frequently leads to documentation drift and increases the cognitive load on both developers and domain experts.
 
 Check out the [documentation and graph editor](https://mdmodels.vercel.app/?about) for more information.
 
@@ -85,6 +96,7 @@ The following templates are available:
 - `shex`: ShEx shapes definition
 - `compact-markdown`: Compact markdown representation
 - `mkdocs`: MkDocs documentation format
+- `linkml`: LinkML schema definition
 
 ## Installation options
 
