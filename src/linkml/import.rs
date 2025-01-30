@@ -273,7 +273,7 @@ mod tests {
                 .objects
                 .iter()
                 .find(|o| o.name == obj.name)
-                .expect(&format!("Object {} not found", obj.name));
+                .unwrap_or_else(|| panic!("Object {} not found", obj.name));
             assert_eq!(obj.name, other_obj.name, "Object name mismatch");
             assert_eq!(
                 obj.docstring, other_obj.docstring,
@@ -291,7 +291,7 @@ mod tests {
                     .attributes
                     .iter()
                     .find(|a| a.name == attr.name)
-                    .expect(&format!("Attribute {} not found", attr.name));
+                    .unwrap_or_else(|| panic!("Attribute {} not found", attr.name));
                 assert_eq!(attr.name, other_attr.name, "Attribute name mismatch");
             }
         }
@@ -301,7 +301,7 @@ mod tests {
                 .enums
                 .iter()
                 .find(|e| e.name == enum_.name)
-                .expect(&format!("Enum {} not found", enum_.name));
+                .unwrap_or_else(|| panic!("Enum {} not found", enum_.name));
             assert_eq!(enum_.name, other_enum.name, "Enum name mismatch");
             assert_eq!(
                 enum_.docstring, other_enum.docstring,
