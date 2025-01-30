@@ -165,7 +165,7 @@ pub struct ClassDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_a: Option<String>,
     /// Whether this class is a tree root
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_false_option")]
     pub tree_root: Option<bool>,
     /// Map of slot usage definitions
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -173,6 +173,9 @@ pub struct ClassDefinition {
     /// Map of attributes
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attributes: Option<HashMap<String, AttributeDefinition>>,
+    /// Mixed in class
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mixins: Vec<String>,
 }
 
 /// Represents an annotation on a schema element
@@ -201,20 +204,23 @@ pub struct AttributeDefinition {
         deserialize_with = "remove_newlines"
     )]
     pub description: Option<String>,
+    /// Semantic type of the slot
+    #[serde(default, skip_serializing_if = "is_empty_string_option")]
+    pub slot_uri: Option<String>,
     /// Whether this slot serves as an identifier
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_false_option")]
     pub identifier: Option<bool>,
     /// Whether this slot is required
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_false_option")]
     pub required: Option<bool>,
     /// Optional type range for the slot
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<String>,
     /// Whether this slot is read-only
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_false_option")]
     pub readonly: Option<bool>,
     /// Whether this slot can have multiple values
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_false_option")]
     pub multivalued: Option<bool>,
     /// Optional minimum value for numeric slots
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -223,11 +229,11 @@ pub struct AttributeDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub maximum_value: Option<i64>,
     /// Whether this slot is recommended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_false_option")]
     pub recommended: Option<bool>,
     /// Optional map of example values
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub examples: Option<HashMap<String, Example>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<Example>,
     /// Optional map of annotations
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<HashMap<String, Annotation>>,
@@ -264,4 +270,8 @@ where
 
 fn is_empty_string_option(s: &Option<String>) -> bool {
     s.is_none() || s.as_ref().unwrap().is_empty()
+}
+
+fn is_false_option(s: &Option<bool>) -> bool {
+    s.is_none() || !s.as_ref().unwrap()
 }
