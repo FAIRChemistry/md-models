@@ -57,6 +57,8 @@
         {{ type }}Schema
         {%- elif type == "float" -%}
         z.number()
+        {%- elif type == "integer" -%}
+        z.number()
         {%- else -%}
         z.{{ type | lower }}()
         {%- endif -%}
@@ -69,6 +71,8 @@
     {%- elif dtype in enum_names -%}
     {{ dtype }}Schema
     {%- elif dtype == "float" -%}
+    z.number()
+    {%- elif dtype == "integer" -%}
     z.number()
     {%- else -%}
     z.{{ dtype | lower }}()
