@@ -4,13 +4,16 @@
 {% for object in objects %}
 ### {{ object.name }}
 {% if object.docstring %}
-{{ object.docstring }}
+{{ wrap(object.docstring, 70, "", "", None) }}
 {% endif %}
 {%- for attribute in object.attributes %}
 - {{attribute.name}}
   - Type: {% for dtype in attribute.dtypes -%} {{dtype}}{% if not loop.last %}, {% endif %}{% endfor -%}
   {%- if attribute.term %}
   - Term: {{ attribute.term }}
+  {%- endif %}
+  {%- if attribute.docstring %}
+  - Description: {{ wrap(attribute.docstring, 60, "", "    ", None) }}
   {%- endif %}
   {%- for option in attribute.options %}
   - {{ option.key }}: {{ option.value }}
@@ -25,7 +28,7 @@
 {%- for enum in enums %}
 ### {{ enum.name }}
 {% if enum.docstring %}
-{{ enum.docstring }}
+{{ wrap(enum.docstring, 70, "", "", None) }}
 {% endif %}
 ```
 {%- for key, value in enum.mappings | dictsort %}
