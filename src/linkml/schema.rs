@@ -26,12 +26,11 @@
 //! This module provides Rust structs that map directly to the YAML structure of LinkML schemas.
 //! Each struct is annotated with serde derive macros to enable serialization/deserialization.
 
-use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// The root schema object that contains all LinkML schema definitions
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LinkML {
     /// Unique identifier for the schema
     pub id: String,
@@ -75,14 +74,14 @@ pub struct LinkML {
 }
 
 /// Represents a contributor to the schema
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Contributor {
     /// Name of the contributor
     pub name: String,
 }
 
 /// Defines a subset of schema elements
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Subset {
     /// Optional description of the subset's purpose
     #[serde(
@@ -94,7 +93,7 @@ pub struct Subset {
 }
 
 /// Defines a custom data type
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TypeDefinition {
     /// Base type that this type extends
     pub base: String,
@@ -114,7 +113,7 @@ pub struct TypeDefinition {
 }
 
 /// Defines an enumeration type
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EnumDefinition {
     /// Optional description of the enum
     #[serde(
@@ -129,8 +128,7 @@ pub struct EnumDefinition {
 }
 
 /// Represents a single permissible value in an enum
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
-#[builder(setter(into))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PermissibleValue {
     /// Human-readable text for the value
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -148,7 +146,7 @@ pub struct PermissibleValue {
 }
 
 /// Defines a class in the schema
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ClassDefinition {
     /// Optional description of the class
     #[serde(
@@ -178,7 +176,7 @@ pub struct ClassDefinition {
 }
 
 /// Represents an annotation on a schema element
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Annotation {
     /// The annotation value
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -186,7 +184,7 @@ pub struct Annotation {
 }
 
 /// Defines how a slot is used in a specific context
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SlotUsage {
     /// Optional pattern for validation
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -194,7 +192,7 @@ pub struct SlotUsage {
 }
 
 /// Defines a slot (property/field) in the schema
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AttributeDefinition {
     /// Optional description of the slot
     #[serde(
@@ -236,7 +234,7 @@ pub struct AttributeDefinition {
 }
 
 /// Represents an example value for a slot
-#[derive(Debug, Clone, Serialize, Deserialize, Builder, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Example {
     /// The example value
     #[serde(default, skip_serializing_if = "Option::is_none")]
