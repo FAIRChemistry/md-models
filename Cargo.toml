@@ -11,6 +11,7 @@ repository = "https://github.com/FAIRChemistry/md-models"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+serde_yaml = "0.9.34"
 serde = { version = "1.0.198", features = ["derive"] }
 pulldown-cmark = "0.12.2"
 serde_json = { "version" = "1.0.116", features = ["preserve_order"] }
@@ -36,6 +37,8 @@ openai-api-rs = { version = "5.2.3", optional = true }
 jsonschema = { version = "0.27.1", default-features = false }
 getrandom = { version = "0.2.15", features = ["js"] }
 tsify-next = { version = "0.5.4", features = ["js"], optional = true }
+strum = "0.26.3"
+strum_macros = "0.26.4"
 
 [features]
 default = ["openai"]
