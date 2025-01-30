@@ -31,6 +31,7 @@ use serde::{Deserialize, Serialize};
 use crate::exporters::{render_jinja_template, Templates};
 use crate::json::export::to_json_schema;
 use crate::json::validation::{validate_json, ValidationError};
+use crate::linkml::export::serialize_linkml;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::parse_markdown;
 use crate::object::{Enumeration, Object};
@@ -270,7 +271,12 @@ impl DataModel {
         config: Option<&HashMap<String, String>>,
     ) -> Result<String, minijinja::Error> {
         self.sort_attrs();
-        render_jinja_template(template, self, config)
+
+        match template {
+            Templates::JsonSchema => Ok(self.json_schema(None, false).unwrap()),
+            Templates::Linkml => Ok(serialize_linkml(self.clone(), None).unwrap()),
+            _ => render_jinja_template(template, self, config),
+        }
     }
 
     // Merge two data models
