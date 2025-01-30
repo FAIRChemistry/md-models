@@ -148,6 +148,7 @@ impl FromStr for Templates {
             "python-dataclass" => Ok(Templates::PythonDataclass),
             "python-sdrdm" => Ok(Templates::PythonPydanticXML),
             "python-pydantic" => Ok(Templates::PythonPydantic),
+            "python-pydantic-xml" => Ok(Templates::PythonPydanticXML),
             "xml-schema" => Ok(Templates::XmlSchema),
             "markdown" => Ok(Templates::Markdown),
             "compact-markdown" => Ok(Templates::CompactMarkdown),
@@ -163,6 +164,7 @@ impl FromStr for Templates {
             "protobuf" => Ok(Templates::Protobuf),
             "graphql" => Ok(Templates::Graphql),
             "golang" => Ok(Templates::Golang),
+            "linkml" => Ok(Templates::Linkml),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
