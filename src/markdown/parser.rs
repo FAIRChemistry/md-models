@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,9 @@ use colored::Colorize;
 use core::panic;
 use lazy_static::lazy_static;
 use log::error;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
+use std::path::Path;
 
 use pulldown_cmark::{CowStr, Event, HeadingLevel, OffsetIter, Options, Parser, Tag, TagEnd};
 use regex::Regex;
@@ -37,7 +38,7 @@ use crate::object::{self, Enumeration, Object};
 use crate::option::RawOption;
 use crate::validation::Validator;
 
-use super::frontmatter::parse_frontmatter;
+use super::frontmatter::{parse_frontmatter, FrontMatter, ImportType};
 use super::position::{Position, PositionRange};
 
 lazy_static! {
@@ -84,91 +85,156 @@ enum ParserState {
     InHeading,
 }
 
-/// Parses a Markdown file at the given path and returns a `DataModel`.
+/// Parses a Markdown file and returns a DataModel.
 ///
 /// # Arguments
-///
-/// * `path` - A reference to the path of the Markdown file.
+/// * `content` - The markdown content to parse
+/// * `path` - Optional path to the markdown file
 ///
 /// # Returns
-///
-/// A `Result` containing a `DataModel` on success or an error on failure.
+/// * `Result<DataModel, Validator>` - The parsed data model or validation errors
 #[allow(clippy::result_large_err)]
-pub fn parse_markdown(content: &str) -> Result<DataModel, Validator> {
-    // Remove HTML and links
+pub fn parse_markdown(content: &str, path: Option<&Path>) -> Result<DataModel, Validator> {
     let content = clean_content(content);
+    let config = parse_frontmatter(&content).unwrap_or_default();
+    let line_offsets = create_line_offsets(&content);
 
-    // Parse the frontmatter
-    let config = parse_frontmatter(&content);
+    let mut model = DataModel::new(None, Some(config.clone()));
+    let (objects, enums) = parse_model_components(&content, &line_offsets, &mut model);
 
-    // Create line offset mapping
-    let line_offsets: Vec<usize> = content
+    process_model_components(&mut model, objects, enums, &config);
+    merge_imports(&mut model, config.imports, path);
+
+    validate_model(&model)?;
+    Ok(model)
+}
+
+/// Creates a vector of line offset positions from content.
+///
+/// # Arguments
+/// * `content` - The content to analyze
+///
+/// # Returns
+/// * Vector of line offset positions
+fn create_line_offsets(content: &str) -> Vec<usize> {
+    content
         .char_indices()
         .filter(|(_, c)| *c == '\n')
         .map(|(i, _)| i)
-        .collect();
+        .collect()
+}
 
-    // Create parser with options to enable offset tracking
-    let mut options = Options::empty();
-    options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
-    let parser = Parser::new_ext(&content, options);
-    let mut iterator = parser.into_offset_iter();
-
+/// Parses objects and enums from the markdown content.
+///
+/// # Arguments
+/// * `content` - The markdown content to parse
+/// * `line_offsets` - Vector of line offset positions
+/// * `model` - Mutable reference to the data model
+///
+/// # Returns
+/// * Tuple containing vectors of objects and enums
+fn parse_model_components(
+    content: &str,
+    line_offsets: &[usize],
+    model: &mut DataModel,
+) -> (Vec<Object>, Vec<Enumeration>) {
     let mut objects = Vec::new();
     let mut enums = Vec::new();
 
-    let mut model = DataModel::new(None, config);
-
-    // Extract objects from the markdown file
+    // Parse objects
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
+    let mut iterator = Parser::new_ext(content, options).into_offset_iter();
     let mut state = ParserState::OutsideDefinition;
+
     while let Some(event) = iterator.next() {
         process_object_event(
-            &content,
+            content,
             &mut iterator,
             &mut objects,
             event,
-            &mut model,
+            model,
             &mut state,
-            &line_offsets,
+            line_offsets,
         );
     }
 
-    // Reset the iterator
-    let parser = Parser::new(&content);
-    let mut iterator = parser.into_offset_iter();
-
+    // Parse enums
+    let mut iterator = Parser::new(content).into_offset_iter();
     while let Some((event, range)) = iterator.next() {
         process_enum_event(
-            &content,
+            content,
             &mut iterator,
             &mut enums,
             (event, range),
-            &line_offsets,
+            line_offsets,
         );
     }
 
-    // Filter empty objects and enums
+    (objects, enums)
+}
+
+/// Processes and filters model components, applying inheritance and internal types.
+///
+/// # Arguments
+/// * `model` - Mutable reference to the data model
+/// * `objects` - Vector of parsed objects
+/// * `enums` - Vector of parsed enums
+/// * `config` - Reference to the configuration
+fn process_model_components(
+    model: &mut DataModel,
+    objects: Vec<Object>,
+    enums: Vec<Enumeration>,
+    config: &FrontMatter,
+) {
+    let allow_empty = &config.allow_empty;
+
+    // Filter and set components
     model.enums = enums.into_iter().filter(|e| e.has_values()).collect();
-    model.objects = objects.into_iter().filter(|o| o.has_attributes()).collect();
+    model.objects = objects
+        .into_iter()
+        .filter(|o| {
+            if *allow_empty {
+                !&model.enums.iter().any(|e| e.name == o.name)
+            } else {
+                o.has_attributes()
+            }
+        })
+        .collect();
 
-    // Set 'is_enum' for all attributes using an enumeration
-    set_enum_attributes(&mut model);
+    set_enum_attributes(model);
+    add_internal_types(model);
+    add_parent_types(model).expect("Failed to add parent types");
+}
 
-    // Add internal types, if used
-    add_internal_types(&mut model);
+/// Merges imported models into the main model.
+///
+/// # Arguments
+/// * `model` - Mutable reference to the data model
+/// * `imports` - The imports configuration
+/// * `path` - Optional path to the markdown file
+fn merge_imports(model: &mut DataModel, imports: HashMap<String, ImportType>, path: Option<&Path>) {
+    for (_prefix, import) in imports {
+        let mut model_to_merge = import.fetch(path).unwrap();
+        model.merge(&mut model_to_merge);
+    }
+}
 
-    // Apply inheritance (THIS NEEDS TO BE SPLIT INTO A SEPARATE FUNCTION)
-    add_parent_types(&mut model).expect("Failed to add parent types");
-
-    // Validate the model
+/// Validates the model and returns any validation errors.
+///
+/// # Arguments
+/// * `model` - Reference to the data model to validate
+///
+/// # Returns
+/// * `Result<(), Validator>` - Ok if valid, Err with validator if invalid
+fn validate_model(model: &DataModel) -> Result<(), Validator> {
     let mut validator = Validator::new();
-    validator.validate(&model);
+    validator.validate(model);
 
     if !validator.is_valid {
         return Err(validator);
     }
-
-    Ok(model)
+    Ok(())
 }
 
 fn clean_content(content: &str) -> String {
@@ -232,59 +298,43 @@ fn get_position(content: &str, line_offsets: &[usize], start: usize, end: usize)
 ///
 /// # Arguments
 ///
-/// * `iterator` - A mutable reference to the parser iterator.
-/// * `objects` - A mutable reference to the vector of objects.
-/// * `event` - The current Markdown event.
-/// * `model` - A mutable reference to the data model.
+/// * `content` - The full content of the markdown file
+/// * `iterator` - A mutable reference to the parser iterator
+/// * `objects` - A mutable reference to the vector of objects
+/// * `event` - The current Markdown event and its range
+/// * `model` - A mutable reference to the data model
+/// * `state` - A mutable reference to the parser state
+/// * `line_offsets` - A reference to the line offsets of the file
 fn process_object_event(
     content: &str,
     iterator: &mut pulldown_cmark::OffsetIter,
     objects: &mut Vec<Object>,
-    event: (Event, std::ops::Range<usize>), // Now includes offset range
+    event: (Event, std::ops::Range<usize>),
     model: &mut DataModel,
     state: &mut ParserState,
-    line_offsets: &[usize], // Pass in line offsets
+    line_offsets: &[usize],
 ) {
     let (event, range) = event;
 
     match event {
         Event::Start(tag) if tag == H1 => {
-            model.name = Some(extract_name(iterator));
+            handle_h1_event(iterator, model);
         }
         Event::Start(tag) if tag == H2 => {
             *state = ParserState::OutsideDefinition;
         }
         Event::Start(tag) if tag == H3 => {
-            *state = ParserState::InHeading;
-            let mut object = process_object_heading(iterator);
-            object.set_position(get_position(content, line_offsets, range.start, range.end));
-            objects.push(object);
+            handle_h3_start(content, iterator, objects, state, line_offsets, range);
         }
         Event::End(tag) if tag == H3_END => {
             *state = ParserState::InDefinition;
         }
+        Event::Text(CowStr::Borrowed(text)) if text.starts_with(":") => {
+            handle_type_annotation(objects, text);
+        }
         Event::Text(CowStr::Borrowed("[")) => {
             if *state == ParserState::InHeading {
-                // Extract parent from the next text event
-                let last_object = objects.last_mut().unwrap();
-                let parent = iterator.next();
-
-                match parent {
-                    Some((Event::Text(text), _)) if text.to_string() != "]" => {
-                        last_object.parent = Some(text.to_string());
-                    }
-                    _ => {
-                        error!(
-                            "[{}] {}: Opening bracket but no parent name. Inheritance wont be applied",
-                            last_object.name.bold(),
-                            "SyntaxError".bold(),
-                        );
-
-                        panic!(
-                            "Inheritance syntax error. Expected parent name after opening bracket."
-                        );
-                    }
-                }
+                handle_inheritance(objects, iterator);
             }
         }
         Event::Start(Tag::List(None)) => {
@@ -292,38 +342,185 @@ fn process_object_event(
                 return;
             }
 
-            let last_object = objects.last_mut().unwrap();
-            if !last_object.has_attributes() {
-                iterator.next();
-                let (required, attr_name) = extract_attr_name_required(iterator);
-                let mut attribute = attribute::Attribute::new(attr_name, required);
-                attribute.set_position(get_position(content, line_offsets, range.start, range.end));
-                objects.last_mut().unwrap().add_attribute(attribute);
-            } else {
-                let attr_strings = extract_attribute_options(iterator);
-                for attr_string in attr_strings {
-                    distribute_attribute_options(objects, attr_string);
-                }
-            }
+            handle_list_start(content, iterator, objects, line_offsets, range);
         }
         Event::Start(Tag::Item) => {
             if *state == ParserState::OutsideDefinition {
                 return;
             }
 
-            let (required, attr_string) = extract_attr_name_required(iterator);
-            let mut attribute = attribute::Attribute::new(attr_string, required);
-            attribute.set_position(get_position(content, line_offsets, range.start, range.end));
-            objects.last_mut().unwrap().add_attribute(attribute);
+            handle_list_item(content, iterator, objects, line_offsets, range);
+        }
+        Event::Text(text) if text.to_string() == "]" => {
+            handle_array_marker(objects);
         }
         Event::Text(text) => {
             if *state == ParserState::InDefinition {
-                let last_object = objects.last_mut().unwrap();
-                last_object.docstring.push_str(text.as_ref());
+                handle_docstring(objects, text);
             }
         }
         _ => {}
     }
+}
+
+/// Handles H1 heading events by setting the model name.
+///
+/// # Arguments
+///
+/// * `iterator` - A mutable reference to the markdown parser iterator
+/// * `model` - A mutable reference to the data model to update
+fn handle_h1_event(iterator: &mut pulldown_cmark::OffsetIter, model: &mut DataModel) {
+    model.name = Some(extract_name(iterator));
+}
+
+/// Handles H3 heading start events by creating and adding a new object.
+///
+/// # Arguments
+///
+/// * `content` - The full content of the markdown file
+/// * `iterator` - A mutable reference to the parser iterator
+/// * `objects` - A mutable reference to the vector of objects
+/// * `state` - A mutable reference to the parser state
+/// * `line_offsets` - A reference to the line offsets of the file
+/// * `range` - The byte range of the current event
+fn handle_h3_start(
+    content: &str,
+    iterator: &mut pulldown_cmark::OffsetIter,
+    objects: &mut Vec<Object>,
+    state: &mut ParserState,
+    line_offsets: &[usize],
+    range: std::ops::Range<usize>,
+) {
+    *state = ParserState::InHeading;
+    let mut object = process_object_heading(iterator);
+    object.set_position(get_position(content, line_offsets, range.start, range.end));
+    objects.push(object);
+}
+
+/// Handles type annotations in the format ": type".
+///
+/// # Arguments
+///
+/// * `objects` - A mutable slice of objects
+/// * `text` - The text containing the type annotation
+fn handle_type_annotation(objects: &mut [Object], text: &str) {
+    let attribute = objects.last_mut().unwrap().get_last_attribute();
+    attribute
+        .add_option(RawOption::new(
+            "type".to_string(),
+            text.to_string().trim_start_matches(':').trim().to_string(),
+        ))
+        .unwrap();
+}
+
+/// Handles inheritance declarations in object headings.
+///
+/// # Arguments
+///
+/// * `objects` - A mutable slice of objects
+/// * `iterator` - A mutable reference to the parser iterator
+fn handle_inheritance(objects: &mut [Object], iterator: &mut pulldown_cmark::OffsetIter) {
+    let last_object = objects.last_mut().unwrap();
+    let parent = iterator.next();
+
+    match parent {
+        Some((Event::Text(text), _)) if text.to_string() != "]" => {
+            last_object.parent = Some(text.to_string());
+        }
+        _ => {
+            error!(
+                "[{}] {}: Opening bracket but no parent name. Inheritance wont be applied",
+                last_object.name.bold(),
+                "SyntaxError".bold(),
+            );
+            panic!("Inheritance syntax error. Expected parent name after opening bracket.");
+        }
+    }
+}
+
+/// Handles the start of a list, processing either attributes or attribute options.
+///
+/// # Arguments
+///
+/// * `content` - The full content of the markdown file
+/// * `iterator` - A mutable reference to the parser iterator
+/// * `objects` - A mutable reference to the vector of objects
+/// * `line_offsets` - A reference to the line offsets of the file
+/// * `range` - The byte range of the current event
+fn handle_list_start(
+    content: &str,
+    iterator: &mut pulldown_cmark::OffsetIter,
+    objects: &mut Vec<Object>,
+    line_offsets: &[usize],
+    range: std::ops::Range<usize>,
+) {
+    let last_object = objects.last_mut().unwrap();
+    if !last_object.has_attributes() {
+        iterator.next();
+        let (required, attr_name, dtypes) = extract_attr_name_required(iterator);
+        let mut attribute = attribute::Attribute::new(attr_name, required);
+
+        if let Some((key, dtypes)) = dtypes {
+            attribute.add_option(RawOption::new(key, dtypes)).unwrap();
+        }
+
+        attribute.set_position(get_position(content, line_offsets, range.start, range.end));
+        objects.last_mut().unwrap().add_attribute(attribute);
+    } else {
+        let attr_strings = extract_attribute_options(iterator);
+        for attr_string in attr_strings {
+            distribute_attribute_options(objects, attr_string);
+        }
+    }
+}
+
+/// Handles list items by creating new attributes.
+///
+/// # Arguments
+///
+/// * `content` - The full content of the markdown file
+/// * `iterator` - A mutable reference to the parser iterator
+/// * `objects` - A mutable reference to the vector of objects
+/// * `line_offsets` - A reference to the line offsets of the file
+/// * `range` - The byte range of the current event
+fn handle_list_item(
+    content: &str,
+    iterator: &mut pulldown_cmark::OffsetIter,
+    objects: &mut Vec<Object>,
+    line_offsets: &[usize],
+    range: std::ops::Range<usize>,
+) {
+    let (required, attr_string, dtypes) = extract_attr_name_required(iterator);
+    let mut attribute = attribute::Attribute::new(attr_string, required);
+
+    if let Some((key, dtypes)) = dtypes {
+        attribute.add_option(RawOption::new(key, dtypes)).unwrap();
+    }
+
+    attribute.set_position(get_position(content, line_offsets, range.start, range.end));
+    objects.last_mut().unwrap().add_attribute(attribute);
+}
+
+/// Handles array markers by setting the is_array flag on the last attribute.
+///
+/// # Arguments
+///
+/// * `objects` - A mutable slice of objects
+fn handle_array_marker(objects: &mut [Object]) {
+    let last_object = objects.last_mut().unwrap();
+    let last_attribute = last_object.get_last_attribute();
+    last_attribute.is_array = true;
+}
+
+/// Handles docstring text by appending it to the last object's docstring.
+///
+/// # Arguments
+///
+/// * `objects` - A mutable slice of objects
+/// * `text` - The text to append to the docstring
+fn handle_docstring(objects: &mut [Object], text: CowStr) {
+    let last_object = objects.last_mut().unwrap();
+    last_object.docstring.push_str(text.as_ref());
 }
 
 /// Processes the heading of an object.
@@ -376,19 +573,63 @@ fn extract_name(iterator: &mut OffsetIter) -> String {
 /// # Returns
 ///
 /// A tuple containing a boolean indicating if the attribute is required and the attribute name.
-fn extract_attr_name_required(iterator: &mut OffsetIter) -> (bool, String) {
-    if let Some((Event::Text(text), _)) = iterator.next() {
-        return (false, text.to_string());
+fn extract_attr_name_required(
+    iterator: &mut OffsetIter,
+) -> (bool, String, Option<(String, String)>) {
+    let mut next = iterator.next();
+
+    // If there are newlines between the attributes, the likely a paragraph
+    // is being started. We need to consume the paragraph and the following
+    // text event.
+    if let Some((Event::Start(Tag::Paragraph), _)) = next {
+        next = iterator.next();
     }
 
-    // Try for two text events
-    for _ in 0..2 {
-        if let Some((Event::Text(text), _)) = iterator.next() {
-            return (true, text.to_string());
+    match next {
+        Some((Event::Text(text), _)) => {
+            if let Some((key, dtypes)) = shorthand_type(&text) {
+                return (false, key, Some(dtypes));
+            } else {
+                return (false, text.to_string(), None);
+            }
         }
+        Some((Event::Start(Tag::Strong), _)) => {
+            let next = iterator.next();
+            let mut name = String::new();
+            if let Some((Event::Text(text), _)) = next {
+                name = text.to_string();
+            }
+
+            // Consume the Strong end tag
+            iterator.next();
+
+            return (true, name, None);
+        }
+        _ => {}
     }
 
-    panic!("Could not extract name. Plesae check the markdown file.");
+    panic!("Could not extract attribute name. Please check the markdown file.");
+}
+
+/// Extracts a type definition from shorthand notation in the form "key: type".
+///
+/// # Arguments
+///
+/// * `text` - A string slice containing the potential shorthand type definition
+///
+/// # Returns
+///
+/// An `Option` containing a tuple of `(key, type)` strings if the text matches the shorthand format,
+/// or `None` if it does not contain a colon separator.
+fn shorthand_type(text: &str) -> Option<(String, (String, String))> {
+    if let Some((key, dtypes)) = text.split_once(":") {
+        Some((
+            key.trim().to_string(),
+            ("type".to_string(), dtypes.trim().to_string()),
+        ))
+    } else {
+        None
+    }
 }
 
 /// Extracts the term from an object heading.
@@ -440,7 +681,6 @@ fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
             _ => {}
         }
     }
-
     options
 }
 
