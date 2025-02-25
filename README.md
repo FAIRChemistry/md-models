@@ -87,6 +87,7 @@ The following templates are available:
 - `typescript-zod`: TypeScript Zod schema definitions
 - `rust`: Rust struct definitions with serde support
 - `golang`: Go struct definitions
+- `julia`: Julia struct definitions
 - `protobuf`: Protocol Buffer schema definition
 - `graphql`: GraphQL schema definition
 - `xml-schema`: XML schema definition
