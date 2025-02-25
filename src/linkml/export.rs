@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,12 +44,15 @@
 //! - Minimum/maximum value constraints
 //! - Pattern validation rules
 
-use std::{collections::HashMap, error::Error, path::PathBuf};
+use std::{error::Error, path::PathBuf};
+
+use indexmap::IndexMap;
 
 use crate::{
     attribute::Attribute,
     object::{Enumeration, Object},
     prelude::DataModel,
+    tree::{self},
 };
 
 use super::schema::{
@@ -101,18 +104,20 @@ impl From<DataModel> for LinkML {
         // Basic configuration
         let config = model.clone().config.unwrap_or_default();
         let id = &config.prefix;
-        let prefixes = &config.prefixes.unwrap_or_default();
+        let prefixes: IndexMap<String, String> =
+            config.prefixes.unwrap_or_default().into_iter().collect();
         let name = model
             .name
             .clone()
             .unwrap_or("Unnamed Data Model".to_string());
 
-        // Classes
-        let mut classes: HashMap<String, ClassDefinition> = model
-            .objects
-            .iter()
-            .map(|c| (c.name.clone(), c.clone().into()))
-            .collect::<HashMap<String, ClassDefinition>>();
+        // Classes - ensure sorting by collecting into a BTreeMap
+        let mut classes: IndexMap<String, ClassDefinition> = IndexMap::from_iter(
+            model
+                .objects
+                .iter()
+                .map(|c| (c.name.clone(), c.clone().into())),
+        );
 
         // Extract slots and update classes
         let slots = extract_slots(&model);
@@ -121,12 +126,23 @@ impl From<DataModel> for LinkML {
             remove_global_slots(c, &slots);
         });
 
+        // Determine the order of classes based on dependencies
+        let graph = tree::dependency_graph(&model);
+        let class_order = tree::get_topological_order(&graph);
+
+        // Set the root class
+        if let Some(root) = class_order.first() {
+            if let Some(class) = classes.get_mut(root) {
+                class.tree_root = Some(true);
+            }
+        }
+
         // Enums
-        let enums: HashMap<String, EnumDefinition> = model
+        let enums: IndexMap<String, EnumDefinition> = model
             .enums
             .iter()
             .map(|e| (e.name.clone(), e.clone().into()))
-            .collect::<HashMap<String, EnumDefinition>>();
+            .collect::<IndexMap<String, EnumDefinition>>();
 
         Self {
             id: id.clone(),
@@ -164,9 +180,9 @@ impl From<DataModel> for LinkML {
 /// # Returns
 ///
 /// A HashMap mapping slot names to their definitions
-fn extract_slots(model: &DataModel) -> HashMap<String, AttributeDefinition> {
+fn extract_slots(model: &DataModel) -> IndexMap<String, AttributeDefinition> {
     // Extract and convert attributes to a map
-    let attributes: HashMap<String, AttributeDefinition> = model
+    let attributes: IndexMap<String, AttributeDefinition> = model
         .objects
         .iter()
         .flat_map(|o| o.attributes.iter())
@@ -204,7 +220,7 @@ fn extract_slots(model: &DataModel) -> HashMap<String, AttributeDefinition> {
 ///
 /// * `class` - The class definition to update
 /// * `slots` - The map of global slots to reference
-fn remove_global_slots(class: &mut ClassDefinition, slots: &HashMap<String, AttributeDefinition>) {
+fn remove_global_slots(class: &mut ClassDefinition, slots: &IndexMap<String, AttributeDefinition>) {
     // Get the class's attributes
     let class_attrs = class.attributes.clone().unwrap_or_default();
 
@@ -241,10 +257,10 @@ impl From<Object> for ClassDefinition {
             .attributes
             .iter()
             .map(|a| (a.name.clone(), a.clone().into()))
-            .collect::<HashMap<String, AttributeDefinition>>();
+            .collect::<IndexMap<String, AttributeDefinition>>();
 
         // Derive slot usage from attributes
-        let mut slot_usage = HashMap::new();
+        let mut slot_usage = IndexMap::new();
         for attr in obj.attributes.iter() {
             let pattern_option = attr.options.iter().find(|o| o.key() == "pattern");
             if let Some(pattern) = pattern_option {
@@ -331,7 +347,7 @@ impl From<Enumeration> for EnumDefinition {
     /// - Value descriptions
     /// - Semantic mappings
     fn from(enum_: Enumeration) -> Self {
-        let mut values = HashMap::new();
+        let mut values = IndexMap::new();
         for (key, value) in enum_.mappings.iter() {
             values.insert(
                 key.clone(),
