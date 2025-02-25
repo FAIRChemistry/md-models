@@ -1,3 +1,54 @@
+{# ============================================================================ #}
+{# Import Utilities                                                              #}
+{# ============================================================================ #}
+{% import "python-macros.jinja" as utils %}
+
+{# ============================================================================ #}
+{# Type Generation Macros                                                        #}
+{# ============================================================================ #}
+
+{%- macro default_value(attr) -%}
+{%- if attr.default is true or attr.default is false -%}
+    {{ attr.default | capitalize }}
+{%- elif attr.default is number -%}
+    {{ attr.default }}
+{%- else -%}
+    None
+{%- endif -%}
+{%- endmacro -%}
+
+{# Creates the inner type definition for an attribute with XML configuration #}
+{%- macro create_inner_type(attr) -%}
+    {{ utils.xml_type(attr.xml) }}(
+        {%- if attr.required is false and attr.multiple is false %}
+        default={{- default_value(attr) -}},
+        {%- endif %}
+        {%- if attr.multiple is true %}
+        default_factory=list,{%- endif %}
+        tag="{{ utils.xml_tag(attr.xml) }}",
+        {%- if attr.docstring | length > 0 %}
+        description="""{{ wrap(attr.docstring, 80, "", "            ", None ) }}""",
+        {%- endif %}
+        json_schema_extra={{ utils.create_options(attr.options, attr.term) }},
+    )
+{%- endmacro -%}
+
+{# Creates a complete attribute definition with XML wrapping if needed #}
+{% macro create_attribute(attr) -%}
+{%- if attr.xml.wrapped %}
+    {{ attr.name }}: {{ utils.get_type(attr) }} = wrapped(
+        "{{ attr.xml.wrapped | join('/') }}",
+        {{ create_inner_type(attr) | indent(4) }},
+    )
+{%- else %}
+    {{ attr.name }}: {{ utils.get_type(attr) }} = {{ create_inner_type(attr) }}
+{%- endif %}
+{%- endmacro %}
+
+{# ============================================================================ #}
+{# File Header Documentation                                                     #}
+{# ============================================================================ #}
+
 """
 This file contains Pydantic XML model definitions for data validation.
 
@@ -29,12 +80,14 @@ WARNING: This is an auto-generated file.
 Do not edit directly - any changes will be overwritten.
 """
 
-{% import "python-macros.jinja" as utils %}
-
 ## This is a generated file. Do not modify it manually!
 
+{# ============================================================================ #}
+{# Imports                                                                       #}
+{# ============================================================================ #}
+
 from __future__ import annotations
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from uuid import uuid4
 from datetime import date, datetime
 from xml.dom import minidom
@@ -44,23 +97,47 @@ from enum import Enum
 
 from lxml.etree import _Element
 from pydantic import PrivateAttr, model_validator
-from pydantic_xml import attr, element, BaseXmlModel
+from pydantic_xml import attr, wrapped, element, BaseXmlModel
+
+{# ============================================================================ #}
+{# Model Definitions                                                             #}
+{# ============================================================================ #}
 
 {% for object in objects %}
 class {{object.name}}(
     BaseXmlModel,
     search_mode="unordered",
+    {%- if object.term and ":" not in object.term %}
+    ns="{{ object.term }}",
+    {%- endif %}
+    {%- if nsmap %}
+    nsmap={
+        {%- for key, value in nsmap | dictsort %}
+        "{{ key }}": "{{ value }}",
+        {%- endfor %}
+    },
+    {%- endif %}
 ):
+    {%- if object.docstring %}
+    {{ utils.object_docstring(object) }}
+    {%- endif %}
+
+    {%- if object.attributes | length == 0 %}
+    pass
+    {%- endif %}
     {%- for attr in object.attributes -%}
-        {{ utils.create_attribute(attr) }}
+        {{ create_attribute(attr) }}
     {%- endfor %}
 
+    {# Generate helper methods for list attributes #}
     {% for attr in object.attributes %}
     {%- for dtype in attr.dtypes %}
     {%- if dtype in object_names and attr.multiple is true %}
+
     def add_to_{{ attr.name }}(
         {{ utils.signature(objects, dtype) }}
     ):
+        """Helper method to add a new {{ dtype }} to the {{ attr.name }} list."""
         params = { {{ utils.params(objects, dtype) }}
         }
 
@@ -74,26 +151,41 @@ class {{object.name}}(
     {%- endfor %}
     {%- endfor %}
 
+    {%- if object.attributes | length > 0 %}
     def xml(self, encoding: str = "unicode") -> str | bytes:
         """Converts the object to an XML string
 
         Args:
             encoding (str, optional): The encoding to use. If set to "bytes", will return a bytes string.
                                       Defaults to "unicode".
-        """
 
+        Returns:
+            str | bytes: The XML representation of the object
+        """
         if encoding == "bytes":
             return self.to_xml()
 
         raw_xml = self.to_xml(encoding=None)
         parsed_xml = minidom.parseString(raw_xml)
         return parsed_xml.toprettyxml(indent="  ")
-
+    {%- endif %}
 
 {% endfor %}
+
+{# ============================================================================ #}
+{# Enum Definitions                                                              #}
+{# ============================================================================ #}
+
 {%- for enum in enums %}
 class {{ enum.name }}(Enum):
+    """Enumeration for {{ enum.name }} values"""
     {%- for key, value in enum.mappings | dictsort %}
     {{ key }} = "{{ value }}"
     {%- endfor %}
 {% endfor %}
+
+{# ============================================================================ #}
+{# Utility Functions                                                             #}
+{# ============================================================================ #}
+
+{{ utils.rebuild_classes(objects) }}

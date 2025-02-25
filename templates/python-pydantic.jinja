@@ -53,6 +53,9 @@ from typing import Optional, Generic, TypeVar
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
+{%- if config.astropy %}
+from mdmodels.units.annotation import UnitDefinitionAnnotated
+{%- endif %}
 
 # Filter Wrapper definition used to filter a list of objects
 # based on their attributes
@@ -114,6 +117,7 @@ def validate_prefix(term: str | dict, prefix: str):
 
 # Model Definitions
 {% for object in objects %}
+{%- if not (astropy and object.name in ["UnitDefinition", "BaseUnit"]) %}
 class {{ object.name }}(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
@@ -267,6 +271,7 @@ class {{ object.name }}(BaseModel):
     {%- endif %}
     {%- endfor %}
     {% endfor %}
+{%- endif %}
 {%- endfor %}
 
 {%- for enum in enums %}
@@ -275,3 +280,5 @@ class {{ enum.name }}(Enum):
     {{ key }} = "{{ value }}"
     {%- endfor %}
 {% endfor %}
+
+{{ utils.rebuild_classes(objects) }}

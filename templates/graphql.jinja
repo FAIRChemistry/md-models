@@ -85,7 +85,6 @@ type Query {
   {%- for object in objects %}
 
   # {{ object.name }} queries
-  {{ object.name | lower }}(id: ID!): {{ object.name }}
   all{{ object.name }}s: [{{ object.name }}]
   {%- for attr in object.attributes %}
   {%- if not attr.multiple and attr.dtypes | length == 1 and attr.dtypes[0] not in object_names %}

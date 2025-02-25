@@ -1,31 +1,115 @@
-{# Helper macros #}
+{# ============================================================================ #}
+{# Global Macros for Type Handling                                               #}
+{# ============================================================================ #}
+
+{# Determines if a field should be an array type #}
 {% macro is_multiple(attr) %}
     {%- if attr.multiple -%}[]{% endif -%}
 {% endmacro %}
 
-{% macro get_type(attr, parent_name) %}
-    {%- if attr.dtypes | length > 1 -%}
-    {{ parent_name }}{{ attr.name | capitalize }}Type
-    {%- elif attr.dtypes[0] in object_names -%}
-    {{ attr.dtypes[0] }}
-    {%- elif attr.dtypes[0] == "string" -%}
-    string
-    {%- elif attr.dtypes[0] == "float" or attr.dtypes[0] == "number" -%}
-    float64
-    {%- elif attr.dtypes[0] == "integer" -%}
-    int64
-    {%- elif attr.dtypes[0] == "boolean" -%}
-    bool
+{# Determines if a type should be a pointer (when it references itself) #}
+{% macro is_self(attr, parent_name) %}
+    {%- if attr.dtypes[0] == parent_name -%}*{%- endif -%}
+{% endmacro %}
+
+{# Converts schema type to Go type #}
+{% macro convert_basic_type(dtype) %}
+    {%- if dtype == "string" -%}
+        string
+    {%- elif dtype in ["float", "number"] -%}
+        float64
+    {%- elif dtype == "integer" -%}
+        int64
+    {%- elif dtype == "boolean" -%}
+        bool
     {%- else -%}
-    {{ attr.dtypes[0] }}
+        {{ dtype }}
     {%- endif -%}
 {% endmacro %}
 
+{# Determines the Go type for an attribute #}
+{% macro get_type(attr, parent_name) %}
+    {%- if attr.dtypes | length > 1 -%}
+        {{ parent_name }}{{ attr.name | capitalize }}Type
+    {%- elif attr.dtypes[0] in object_names -%}
+        {{ attr.dtypes[0] }}
+    {%- else -%}
+        {{ convert_basic_type(attr.dtypes[0]) }}
+    {%- endif -%}
+{% endmacro %}
+
+{# Wraps type with array notation if needed #}
 {% macro wrap_type(attr, parent_name) %}
     {%- if attr.multiple -%}
-        []{{ get_type(attr, parent_name) }}
+        []{{ is_self(attr, parent_name) }}{{ get_type(attr, parent_name) }}
     {%- else -%}
-        {{ get_type(attr, parent_name) }}
+        {{ is_self(attr, parent_name) }}{{ get_type(attr, parent_name) }}
+    {%- endif -%}
+{% endmacro %}
+
+{# ============================================================================ #}
+{# JSON/XML/GORM Tag Generation Macros                                                #}
+{# ============================================================================ #}
+
+{# Generates JSON tag for a field #}
+{% macro json_tag(attr) %}
+    {{- attr.name -}}
+    {%- if attr.required is false -%},omitempty{%- endif -%}
+{% endmacro %}
+
+{# Generates XML tag for a field #}
+{% macro xml_tag(attr) %}
+    {%- if attr.xml.wrapped -%}
+        {{- attr.xml.wrapped | join('>') -}}>
+    {%- endif -%}
+    {%- if attr.xml.name -%}
+        {{- attr.xml.name -}}
+    {%- else -%}
+        {{- attr.name -}}
+    {%- endif -%}
+    {%- if attr.xml.is_attr -%},attr{%- endif -%}
+    {%- if attr.required is false -%},omitempty{%- endif -%}
+{% endmacro %}
+
+{# Generates GORM tag for a field if needed #}
+{% macro gorm_tag(attr, parent_name) %}
+    {%- if attr.multiple and attr.dtypes[0] in object_names -%}
+        gorm:"many2many:{{ parent_name | lower }}_{{ attr.name }};"
+    {%- else -%}
+    {%- for option in attr.options -%}
+        {%- if option.key == "pk" -%}
+            gorm:"primaryKey"
+        {%- endif -%}
+    {%- endfor -%}
+    {%- endif -%}
+{% endmacro %}
+
+{# Add ID field if no PK exists #}
+{% macro add_id_field(object) %}
+    {%- if object.name not in pk_objects %}
+        ID *uint `json:"id,omitempty" xml:"id,attr,omitempty" gorm:"primaryKey,autoIncrement"`
+    {%- endif -%}
+{% endmacro %}
+
+{# Generates GORM many2many tag if needed #}
+{% macro many2many_tag(attr, parent_name) %}
+    {%- if attr.multiple and attr.dtypes[0] in object_names -%}
+        gorm:"many2many:{{ parent_name | lower }}_{{ attr.name }};"
+    {%- endif -%}
+{% endmacro %}
+
+
+
+{# ============================================================================ #}
+{# Union Type Generation Macros                                                  #}
+{# ============================================================================ #}
+
+{# Generates a field for union type struct #}
+{% macro union_type_field(dtype) %}
+    {%- if dtype in object_names -%}
+        Object {{ dtype }}
+    {%- else -%}
+        {{ dtype | capitalize }} {{ convert_basic_type(dtype) }}
     {%- endif -%}
 {% endmacro %}
 
@@ -34,9 +118,13 @@
 // WARNING: This is an auto-generated file.
 // Do not edit directly - any changes will be overwritten.
 
-package {% if title -%}{{ title | lower }}{% else %}model{% endif %}
+package {% if title -%}{{ title | replace_lower(" ", "_") }}{% else %}model{% endif %}
 
-{% set has_multiple_types = false -%}
+import (
+	"encoding/json"
+	"fmt"
+)
+{%- set has_multiple_types = false -%}
 {% for object in objects -%}
     {% for attr in object.attributes -%}
         {% if attr.dtypes | length > 1 -%}
@@ -56,15 +144,15 @@ import (
 // Type definitions
 //
 {% for object in objects %}
+// {{ object.name }}
 {%- if object.docstring %}
-// {{ object.name }} {{ wrap(object.docstring, 70, "", "// ", None) }}
+//
+// {{ wrap(object.docstring, 80, "", "// ", None) }}
 {%- endif %}
 type {{ object.name }} struct {
+    {{- add_id_field(object) }}
     {%- for attr in object.attributes %}
-        {%- if attr.docstring %}
-        // {{ wrap(attr.docstring, 70, "", "        // ", None) }}
-        {%- endif %}
-        {{ attr.name | capitalize }} {{ wrap_type(attr, object.name) }} `json:"{{ attr.name }}{% if attr.required is false %},omitempty{% endif %}"`
+        {{ attr.name | pascal_case }} {{ wrap_type(attr, object.name) }} `json:"{{ json_tag(attr) }}" xml:"{{ xml_tag(attr) }}" {{ gorm_tag(attr, object.name) }}`
     {%- endfor %}
 }
 {% endfor %}
@@ -82,15 +170,12 @@ type {{ enum.name }} string
 
 const (
     {%- for key, value in enum.mappings | dictsort %}
-    {{ enum.name }}{{ key }} {{ enum.name }} = "{{ value }}"
+    {{ key }} {{ enum.name }} = "{{ value }}"
     {%- endfor %}
 )
 {%- endfor %}
 {%- endif %}
 
-//
-// Type definitions for attributes with multiple types
-//
 {%- for object in objects %}
 {%- for attr in object.attributes %}
     {%- if attr.dtypes | length > 1 %}
@@ -182,28 +267,28 @@ func (t *{{ object.name }}{{ attr.name | capitalize }}Type) UnmarshalJSON(data [
 func (t {{ object.name }}{{ attr.name | capitalize }}Type) MarshalJSON() ([]byte, error) {
     {%- for dtype in attr.dtypes %}
         {%- if dtype in object_names %}
-    if t.Object != nil {
+    if t.Object != ({{ dtype }}{}) {
         return json.Marshal(t.Object)
     }
         {%- elif dtype == "string" %}
-    if t.String != nil {
-        return json.Marshal(*t.String)
+    if t.String != "" {
+        return json.Marshal(t.String)
     }
         {%- elif dtype == "float" %}
-    if t.Float != nil {
-        return json.Marshal(*t.Float)
+    if t.Float != 0 {
+        return json.Marshal(t.Float)
     }
         {%- elif dtype == "integer" %}
-    if t.Integer != nil {
-        return json.Marshal(*t.Integer)
+    if t.Integer != 0 {
+        return json.Marshal(t.Integer)
     }
         {%- elif dtype == "boolean" %}
-    if t.Boolean != nil {
-        return json.Marshal(*t.Boolean)
+    if t.Boolean {
+        return json.Marshal(t.Boolean)
     }
         {%- else %}
-    if t.{{ dtype | capitalize }} != nil {
-        return json.Marshal(*t.{{ dtype | capitalize }})
+    if t.{{ dtype | capitalize }} != ({{ dtype }}{}) {
+        return json.Marshal(t.{{ dtype | capitalize }})
     }
         {%- endif %}
     {%- endfor %}

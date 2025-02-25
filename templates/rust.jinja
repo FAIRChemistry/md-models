@@ -1,35 +1,58 @@
-{# Helper macros #}
+{# ============================================================================ #}
+{# Global Macros for Type Handling                                               #}
+{# ============================================================================ #}
+
+{# Determines if a type should be wrapped in Vec<...> for multiple values #}
 {% macro is_multiple(attr) %}
     {%- if attr.multiple -%}Vec<{%- endif -%}
 {% endmacro %}
 
+{# Closes the Vec<...> wrapper if needed #}
 {% macro is_multiple_end(attr) %}
-    {%- if attr.multiple -%}>{%- endif -%}
+    {%- if attr.multiple  -%}>{%- endif -%}
 {% endmacro %}
 
-{% macro get_type(attr, parent_name) %}
-    {%- if attr.dtypes | length > 1 -%}
-    {{ parent_name }}{{ attr.name | capitalize }}Type
-    {%- elif attr.dtypes[0] in object_names -%}
-    {{ attr.dtypes[0] }}
-    {%- elif attr.dtypes[0] == "string" -%}
-    String
-    {%- elif attr.dtypes[0] == "float" -%}
-    f64
-    {%- elif attr.dtypes[0] == "integer" -%}
-    i64
-    {%- elif attr.dtypes[0] == "boolean" -%}
-    bool
+{# Converts schema type to Rust type #}
+{% macro convert_basic_type(dtype) %}
+    {%- if dtype == "string" -%}
+        String
+    {%- elif dtype == "float" -%}
+        f64
+    {%- elif dtype == "integer" -%}
+        i64
+    {%- elif dtype == "boolean" -%}
+        bool
     {%- else -%}
-    {{ attr.dtypes[0] }}
+        {{ dtype }}
     {%- endif -%}
 {% endmacro %}
 
-{% macro wrap_type(attr, parent_name) %}
-    {%- if attr.required is false -%}
-    Option<{{ is_multiple(attr) }}{{ get_type(attr, parent_name) }}{{ is_multiple_end(attr) }}>
+{# Determines the appropriate Rust type based on attribute properties #}
+{% macro get_type(attr, parent_name, object_names, wrap_index) %}
+    {%- if attr.xml.wrapped and attr.multiple and attr.dtypes[0] in object_names and wrap_index is not none -%}
+        {{ attr.xml.wrapped[wrap_index] | cap_first }}
+    {%- elif attr.dtypes | length > 1 -%}
+        {{ parent_name }}{{ attr.name | capitalize }}Type
+    {%- elif attr.dtypes[0] in object_names -%}
+        {{ attr.dtypes[0] }}
     {%- else -%}
-    {{ is_multiple(attr) }}{{ get_type(attr, parent_name) }}{{ is_multiple_end(attr) }}
+        {{ convert_basic_type(attr.dtypes[0]) }}
+    {%- endif -%}
+{% endmacro %}
+
+{# Wraps types in Option<...> if they're optional and handles multiple values #}
+{% macro wrap_type(attr, parent_name, object_names, wrap_index) %}
+    {%- if attr.required is false -%}
+        Option<{{ is_multiple(attr) }}{{ get_type(attr, parent_name, object_names, wrap_index) }}{{ is_multiple_end(attr) }}>
+    {%- else -%}
+        {{ is_multiple(attr) }}{{ get_type(attr, parent_name, object_names, wrap_index) }}{{ is_multiple_end(attr) }}
+    {%- endif -%}
+{% endmacro %}
+
+{# Adds builder attribute for handling multiple values in derive_builder #}
+{% macro array_builder_setter(attr) %}
+    {%- if attr.multiple -%}
+    #[builder(setter(into, each(name = "to_{{ attr.name }}")))]
     {%- endif -%}
 {% endmacro %}
 
@@ -39,54 +62,88 @@
 //! Do not edit directly - any changes will be overwritten.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
-// JSON-LD base types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JsonLdContext(pub HashMap<String, serde_json::Value>);
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JsonLd {
-    #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
-    pub context: Option<JsonLdContext>,
-    #[serde(rename = "@id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
-}
+use schemars::JsonSchema;
+use derive_builder::Builder;
 
 //
-// {% if title %}{{ title }}{% else %}Model{% endif %} Type definitions
+// Type definitions
 //
 {%- for object in objects %}
+
+{%- if object.name in objects_with_wrapped %}
+
+#[derive(Debug)]
+pub struct {{ object.name }} {
+   {%- for attr in object.attributes %}
+   pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names, None) }},
+   {%- endfor %}
+}
+
+impl<'de> Deserialize<'de> for {{ object.name }} {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename="{{ object.name }}")]
+        struct Helper {
+            {%- for attr in object.attributes %}
+            pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names, 0) }},
+            {%- endfor %}
+        }
+
+        {%- for attr in object.attributes %}
+        {%- if attr.xml.wrapped %}
+        {%- for wrapped in attr.xml.wrapped %}
+        #[derive(Deserialize)]
+        struct {{ wrapped | cap_first }} {
+            {%- if loop.last %}
+            pub value: {{ wrap_type(attr, object.name, object_names, None) }}
+            {%- else %}
+            pub value: {{ wrap_type(attr, object.name, object_names, loop.index) }},
+            {%- endif %}
+        }
+        {%- endfor %}
+        {%- endif %}
+        {%- endfor %}
+
+        Ok(Self {
+            {%- for attr in object.attributes %}
+            {{ attr.name }},
+            {%- endfor %}
+        })
+    }
+}
+{%- else %}
 
 {%- if object.docstring %}
 /// {{ wrap(object.docstring, 70, "", "/// ", None) }}
 {%- endif %}
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder)]
+#[allow(non_snake_case)]
 pub struct {{ object.name }} {
-    #[serde(flatten)]
-    pub json_ld: JsonLd,
-    {%- for attr in object.attributes %}
-    {%- if attr.docstring %}
-    /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
-    {%- endif %}
+    {% for attr in object.attributes %}
+    {%- if attr.docstring %}/// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}{%- endif %}
     {%- if attr.required is false %}
     #[serde(skip_serializing_if = "Option::is_none")]
     {%- endif %}
-    pub {{ attr.name }}: {{ wrap_type(attr, object.name) }},
-    {%- endfor %}
+    {%- if attr.multiple %}
+    {%- endif %}
+    pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
+    {% endfor %}
 }
+{%- endif %}
+
 {% endfor %}
 
 {%- if enums | length > 0 %}
 //
-// {% if title %}{{ title }}{% else %}Model{% endif %} Enum definitions
+// Enum definitions
 //
 {%- for enum in enums %}
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum {{ enum.name }} {
     {%- for key, value in enum.mappings | dictsort %}
     #[serde(rename = "{{ value }}")]
@@ -96,29 +153,19 @@ pub enum {{ enum.name }} {
 {% endfor %}
 {%- endif %}
 
-//
-// Enum definitions for attributes with multiple types
-//
+
 {%- for object in objects %}
 {%- for attr in object.attributes %}
 {%- if attr.dtypes | length > 1 %}
-
+/// Union type for {{ object.name }}.{{ attr.name }}
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum {{ object.name }}{{ attr.name | capitalize }}Type {
     {%- for dtype in attr.dtypes %}
     {%- if dtype in object_names %}
     Object({{ dtype }}),
-    {%- elif dtype == "string" %}
-    String(String),
-    {%- elif dtype == "float" %}
-    Float(f64),
-    {%- elif dtype == "integer" %}
-    Integer(i64),
-    {%- elif dtype == "boolean" %}
-    Boolean(bool),
     {%- else %}
-    {{ dtype | capitalize }}({{ dtype }}),
+    {{ convert_basic_type(dtype) | capitalize }}({{ convert_basic_type(dtype) }}),
     {%- endif %}
     {%- endfor %}
 }

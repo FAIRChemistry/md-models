@@ -14,7 +14,7 @@
             {% if attr.docstring | length > 0 -%}
             description="""{{ wrap(attr.docstring, 80, "", "            ", None ) }}""",
             {% endif -%}
-            json_schema_extra={{ create_options(attr.options, attr.term) }}
+            json_schema_extra={{ create_options(attr.options, attr.term) }},
         )
 {% endmacro %}
 
@@ -46,7 +46,8 @@ dict(
     - is_attr: True if the attribute is an XML attribute, False if the attribute is an XML element
 #}
 {%- macro xml_type(xml_option) %}
-{%- if xml_option.is_attr is false -%} element {%- else -%} attr {%- endif -%}
+{%- if xml_option.is_attr is false -%}
+element{%- else -%} attr {%- endif -%}
 {% endmacro %}
 
 {#
@@ -103,7 +104,11 @@ list[{{ type(attr, true) }}]
 {%- if attr.multiple -%}
  = []
 {%- elif 'default' in attr -%}
- = {% if attr.default is number -%}
+ = {%- if attr.default is boolean -%}
+    {{ attr.default | capitalize }}
+    {%- elif attr.default is false -%}
+    False
+    {%- elif attr.default is number -%}
     {{ attr.default }}
     {%- elif attr.default is string -%}
     "{{ attr.default }}"
@@ -128,3 +133,26 @@ list[{{ type(attr, true) }}]
 {%- endif %}
 {%- endfor %}
 {%- endmacro %}
+
+
+{#
+    This macro rebuilds the classes to evaluate forward references
+#}
+{%- macro rebuild_classes(objects) %}
+# Rebuild all the classes within this file
+for cls in [
+    {%- for object in objects %}
+    {{ object.name }},
+    {%- endfor %}
+]:
+    cls.model_rebuild()
+{%- endmacro -%}
+
+{#
+    This macro is used to generate a docstring for an object
+#}
+{%- macro object_docstring(object) -%}
+    """
+    {{ wrap(object.docstring, 80, "", "    ", None) }}
+    """
+{%- endmacro -%}

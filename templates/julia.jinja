@@ -1,0 +1,138 @@
+{# Helper macros for Julia type generation #}
+
+{# 
+  get_type: Determines the appropriate Julia type based on attribute properties
+  Parameters:
+    - attr: Attribute object containing dtypes and other properties
+    - parent_name: Name of the parent struct
+    - object_names: List of available object type names
+  Returns: The appropriate Julia type as a string
+#}
+{% macro get_type(attr, parent_name, object_names) %}
+    {%- if attr.dtypes | length > 1 -%}
+    {# For multiple possible types, create a custom union type #}
+    {{ parent_name }}{{ attr.name | capitalize }}Type
+    {%- elif attr.dtypes[0] in object_names -%}
+    {# For references to other objects, use their type directly #}
+    {{ attr.dtypes[0] }}
+    {%- elif attr.dtypes[0] == "string" or attr.dtypes[0] in enum_names -%}
+    String
+    {%- elif attr.dtypes[0] == "float" -%}
+    Float64
+    {%- elif attr.dtypes[0] == "integer" -%}
+    Int64
+    {%- elif attr.dtypes[0] == "boolean" -%}
+    Bool
+    {%- else -%}
+    {{ attr.dtypes[0] }}
+    {%- endif -%}
+{% endmacro %}
+
+{# 
+  wrap_type: Wraps types in appropriate containers based on multiplicity and optionality
+  Parameters:
+    - attr: Attribute object containing multiple and required flags
+    - parent_name: Name of the parent struct
+    - object_names: List of available object type names
+  Returns: The wrapped Julia type as a string
+#}
+{% macro wrap_type(attr, parent_name, object_names) %}
+    {%- if attr.multiple -%}
+        {%- if attr.required is false -%}
+            Union{Vector{ {{- get_type(attr, parent_name, object_names) -}} }, Nothing}
+        {%- else -%}
+            Vector{ {{- get_type(attr, parent_name, object_names) -}} }
+        {%- endif -%}
+    {%- else -%}
+        {%- if attr.required is false -%}
+            Union{ {{- get_type(attr, parent_name, object_names) -}} , Nothing}
+        {%- else -%}
+            {{- get_type(attr, parent_name, object_names) -}}
+        {%- endif -%}
+    {%- endif -%}
+{% endmacro %}
+
+# This file contains Julia type definitions with JSON serialization.
+# 
+# WARNING: This is an auto-generated file.
+# Do not edit directly - any changes will be overwritten.
+
+module {% if title -%}{{ title | replace_lower(" ", "_") | pascal_case }}{% else %}Model{% endif %}
+
+using JSON3
+using StructTypes
+
+#=
+  Type Definitions
+  ---------------
+  Main struct definitions with their fields and JSON serialization support.
+=#
+{%- for object in objects %}
+
+{%- if object.docstring %}
+"""
+{{ wrap(object.docstring, 70, "", "", None) }}
+"""
+{%- endif %}
+Base.@kwdef mutable struct {{ object.name }}
+    {%- for attr in object.attributes %}
+    {%- if attr.docstring %}
+    """
+    {{ wrap(attr.docstring, 70, "", "    ", None) }}
+    """
+    {%- endif %}
+    {{ attr.name }}::{{ wrap_type(attr, object.name, object_names) }}{% if attr.required is false %} = nothing{% endif %}
+    {% endfor %}
+end
+
+export {{ object.name }}
+{% endfor %}
+
+{%- for object in objects %}
+{%- for attr in object.attributes %}
+{%- if attr.dtypes | length > 1 %}
+
+#=
+  Union Type Definitions
+  ---------------------
+  Custom union types for fields that can accept multiple types.
+=#
+
+"""
+Union type for {{ object.name }}.{{ attr.name }}
+"""
+abstract type {{ object.name }}{{ attr.name | capitalize }}Type end
+
+{%- for dtype in attr.dtypes %}
+{%- if dtype in object_names or dtype in enum_names %}
+struct {{ object.name }}{{ attr.name | capitalize }}{{ dtype }} <: {{ object.name }}{{ attr.name | capitalize }}Type
+    value::{{ dtype }}
+end
+{%- elif dtype == "string" %}
+struct {{ object.name }}{{ attr.name | capitalize }}String <: {{ object.name }}{{ attr.name | capitalize }}Type
+    value::String
+end
+{%- elif dtype == "float" %}
+struct {{ object.name }}{{ attr.name | capitalize }}Float <: {{ object.name }}{{ attr.name | capitalize }}Type
+    value::Float64
+end
+{%- elif dtype == "integer" %}
+struct {{ object.name }}{{ attr.name | capitalize }}Integer <: {{ object.name }}{{ attr.name | capitalize }}Type
+    value::Int64
+end
+{%- elif dtype == "boolean" %}
+struct {{ object.name }}{{ attr.name | capitalize }}Boolean <: {{ object.name }}{{ attr.name | capitalize }}Type
+    value::Bool
+end
+{%- else %}
+struct {{ object.name }}{{ attr.name | capitalize }}{{ dtype | capitalize }} <: {{ object.name }}{{ attr.name | capitalize }}Type
+    value::{{ dtype }}
+end
+{%- endif %}
+{%- endfor %}
+
+{%- endif %}
+{%- endfor %}
+{%- endfor %} 
+
+end # module {{ title | replace_lower(" ", "_") }}

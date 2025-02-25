@@ -104,6 +104,9 @@ export const JsonLdSchema = z.object({
 
 // {% if title %}{{ title }}{% else %}Model{% endif %} Type definitions
 {%- for object in objects %}
+{%- if object.docstring %}
+// {{ wrap(object.docstring, 70, "", "// ", None) }}
+{%- endif %}
 export const {{ object.name }}Schema = z.lazy(() => JsonLdSchema.extend({
   {%- for attr in object.attributes %}
   {{ attr.name }}: {{ wrap_zod_type(get_type(attr), attr) }}{% if attr.docstring %}.describe(`
