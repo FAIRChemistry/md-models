@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,6 +68,9 @@ pub struct Attribute {
     pub is_enum: bool,
     /// The line number of the attribute
     pub position: Option<Position>,
+    /// The prefix of the attribute, if it is an import
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub import_prefix: Option<String>,
 }
 
 impl Attribute {
@@ -91,6 +94,7 @@ impl Attribute {
             default: None,
             is_enum: false,
             position: None,
+            import_prefix: None,
         }
     }
 
@@ -143,18 +147,27 @@ impl Attribute {
 
         self.validate_dtypes(&dtypes)?;
 
+        let mut new_dtypes = Vec::new();
+
         for dtype in dtypes.iter_mut() {
             *dtype = dtype.trim().to_string();
             if self.is_identifier(dtype) {
                 *dtype = self.process_identifier(dtype);
             }
 
+            if let Some((prefix, name)) = dtype.split_once('.') {
+                self.import_prefix = Some(prefix.to_string());
+                *dtype = name.to_string();
+            }
+
             if dtype.ends_with("[]") {
                 self.is_array = true;
             }
 
-            self.dtypes.push(dtype.trim_end_matches("[]").to_string());
+            new_dtypes.push(dtype.trim_end_matches("[]").to_string());
         }
+
+        self.dtypes = new_dtypes;
 
         Ok(())
     }
