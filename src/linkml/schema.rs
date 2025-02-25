@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,8 @@
 //! This module provides Rust structs that map directly to the YAML structure of LinkML schemas.
 //! Each struct is annotated with serde derive macros to enable serialization/deserialization.
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// The root schema object that contains all LinkML schema definitions
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -52,8 +52,8 @@ pub struct LinkML {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub see_also: Vec<String>,
     /// Mapping of prefix strings to their expanded URI forms
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub prefixes: HashMap<String, String>,
+    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    pub prefixes: IndexMap<String, String>,
     /// Default prefix to use when none is specified
     pub default_prefix: String,
     /// Default range type for slots
@@ -63,14 +63,14 @@ pub struct LinkML {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub imports: Vec<String>,
     /// Map of class definitions
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub classes: HashMap<String, ClassDefinition>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub classes: IndexMap<String, ClassDefinition>,
     /// Map of slot definitions
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub slots: HashMap<String, AttributeDefinition>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub slots: IndexMap<String, AttributeDefinition>,
     /// Map of enum definitions
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub enums: HashMap<String, EnumDefinition>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub enums: IndexMap<String, EnumDefinition>,
 }
 
 /// Represents a contributor to the schema
@@ -123,8 +123,8 @@ pub struct EnumDefinition {
     )]
     pub description: Option<String>,
     /// Map of allowed values and their definitions
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub permissible_values: HashMap<String, PermissibleValue>,
+    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    pub permissible_values: IndexMap<String, PermissibleValue>,
 }
 
 /// Represents a single permissible value in an enum
@@ -169,10 +169,10 @@ pub struct ClassDefinition {
     pub tree_root: Option<bool>,
     /// Map of slot usage definitions
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub slot_usage: Option<HashMap<String, SlotUsage>>,
+    pub slot_usage: Option<IndexMap<String, SlotUsage>>,
     /// Map of attributes
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<HashMap<String, AttributeDefinition>>,
+    pub attributes: Option<IndexMap<String, AttributeDefinition>>,
     /// Mixed in class
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mixins: Vec<String>,
@@ -236,7 +236,7 @@ pub struct AttributeDefinition {
     pub examples: Vec<Example>,
     /// Optional map of annotations
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub annotations: Option<HashMap<String, Annotation>>,
+    pub annotations: Option<IndexMap<String, Annotation>>,
 }
 
 /// Represents an example value for a slot
