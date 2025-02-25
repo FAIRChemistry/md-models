@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,12 @@
 
 use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
-use crate::{datamodel::DataModel, markdown::frontmatter::FrontMatter};
+use crate::{
+    datamodel::DataModel, markdown::frontmatter::FrontMatter, object::Object, option::AttrOption,
+    tree, xmltype::XMLType,
+};
 use clap::ValueEnum;
+use colored::Colorize;
 use convert_case::{Case, Casing};
 use lazy_static::lazy_static;
 use minijinja::{context, Environment};
@@ -111,6 +115,7 @@ pub enum Templates {
     Graphql,
     Golang,
     Linkml,
+    Julia,
 }
 
 impl Display for Templates {
@@ -135,6 +140,7 @@ impl Display for Templates {
             Templates::Graphql => write!(f, "graphql"),
             Templates::Golang => write!(f, "golang"),
             Templates::Linkml => write!(f, "linkml"),
+            Templates::Julia => write!(f, "julia"),
         }
     }
 }
@@ -165,6 +171,7 @@ impl FromStr for Templates {
             "graphql" => Ok(Templates::Graphql),
             "golang" => Ok(Templates::Golang),
             "linkml" => Ok(Templates::Linkml),
+            "julia" => Ok(Templates::Julia),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
@@ -199,19 +206,36 @@ pub fn render_jinja_template(
         Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
         Templates::Shacl | Templates::Shex => {
             convert_model_types(model, &SHACL_TYPE_MAPS);
-            filter_objects_wo_terms(model);
+            if let Err(e) = filter_objects_wo_terms(model) {
+                println!(
+                    " [{}] {}",
+                    template.to_string().yellow().bold(),
+                    e.to_string().bold(),
+                );
+            }
         }
         Templates::PythonDataclass | Templates::PythonPydanticXML | Templates::PythonPydantic => {
+            convert_astropy_types(model, &config);
             convert_model_types(model, &PYTHON_TYPE_MAPS);
             sort_attributes_by_required(model);
+        }
+        Templates::Julia => {
+            sort_by_dependency(model);
+        }
+        Templates::Golang => {
+            add_pk_fields(model);
         }
         _ => {}
     }
 
     // Add custom functions to the Jinja environment
     env.add_function("wrap", wrap_text);
+    env.add_function("replace", replace);
+    env.add_filter("cap_first", cap_first);
+    env.add_filter("split_path_pairs", split_path_pairs);
     env.add_filter("pascal_case", pascal_case);
     env.add_filter("snake_case", snake_case);
+    env.add_filter("replace_lower", replace_lower);
 
     // Get the appropriate template
     let template = match template {
@@ -230,6 +254,7 @@ pub fn render_jinja_template(
         Templates::Protobuf => env.get_template("protobuf.jinja")?,
         Templates::Graphql => env.get_template("graphql.jinja")?,
         Templates::Golang => env.get_template("golang.jinja")?,
+        Templates::Julia => env.get_template("julia.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
@@ -255,13 +280,96 @@ pub fn render_jinja_template(
         prefixes => prefixes,
         repo => model.config.as_ref().unwrap().repo.clone(),
         prefix => model.config.as_ref().unwrap().prefix.clone(),
+        nsmap => model.config.as_ref().unwrap().nsmap.clone(),
         config => config,
+        objects_with_wrapped => get_objects_with_wrapped(model),
+        pk_objects => pk_objects(model),
     });
 
     match rendered {
         Ok(r) => Ok(clean_and_trim(&r)),
         Err(e) => Err(e),
     }
+}
+
+/// Returns a vector of object names that have attributes with XML wrapped types.
+///
+/// # Arguments
+///
+/// * `model` - The data model to search for wrapped objects
+///
+/// # Returns
+///
+/// A vector of strings containing the names of objects that have attributes with XML wrapped types
+fn get_objects_with_wrapped(model: &mut DataModel) -> Vec<String> {
+    model
+        .objects
+        .iter()
+        .filter(|o| {
+            o.attributes.iter().any(|a| {
+                if let Some(xml) = &a.xml {
+                    matches!(xml, XMLType::Wrapped { .. })
+                } else {
+                    false
+                }
+            })
+        })
+        .map(|o| o.name.clone())
+        .collect()
+}
+
+/// Helper function to add a primary key field to the object.
+fn add_pk_fields(model: &mut DataModel) {
+    for object in &mut model.objects {
+        if has_pk(object) {
+            continue;
+        }
+        for attribute in &mut object.attributes {
+            if attribute.name == "id" {
+                attribute.options.push(AttrOption::PrimaryKey(true));
+                break;
+            }
+        }
+    }
+}
+
+/// Helper function to check if an object has a primary key.
+fn has_pk(object: &Object) -> bool {
+    object.attributes.iter().any(|a| {
+        a.options
+            .iter()
+            .any(|o| matches!(o, AttrOption::PrimaryKey { .. }))
+    })
+}
+
+/// Replaces all occurrences of a substring with another substring.
+///
+/// # Arguments
+///
+/// * `value` - The string to perform replacements on
+/// * `from` - The substring to replace
+/// * `to` - The substring to replace with
+///
+/// # Returns
+///
+/// A new string with all occurrences of `from` replaced with `to`
+fn replace(value: String, from: &str, to: &str) -> String {
+    value.replace(from, to)
+}
+
+/// Replaces all occurrences of a substring with another substring and converts the result to lowercase.
+///
+/// # Arguments
+///
+/// * `value` - The string to perform replacements on
+/// * `from` - The substring to replace
+/// * `to` - The substring to replace with
+///
+/// # Returns
+///
+/// A new string with all occurrences of `from` replaced with `to` and converted to lowercase
+fn replace_lower(value: String, from: String, to: String) -> String {
+    value.replace(&from, &to).to_lowercase()
 }
 
 /// Template function that allows to wrap text at a certain length.
@@ -293,6 +401,32 @@ fn wrap_text(
     wrap(remove_multiple_spaces(text).as_str(), options).join(&format!("{delimiter}\n"))
 }
 
+/// Splits a path into pairs of (current, previous) components.
+///
+/// # Arguments
+///
+/// * `path` - The path to split, using '/' as separator
+/// * `initial` - The initial previous value to use for the first component
+///
+/// # Returns
+///
+/// A vector of tuples containing (current_component, previous_component)
+fn split_path_pairs(path: String, initial: Option<String>) -> Vec<Vec<String>> {
+    let initial = initial.unwrap_or_default();
+    let parts: Vec<&str> = path.split('/').collect();
+    let mut pairs = Vec::new();
+    let mut prev = initial;
+
+    for part in parts {
+        if !part.is_empty() {
+            pairs.push(vec![part.to_string(), prev.clone()]);
+            prev = part.to_string();
+        }
+    }
+
+    pairs
+}
+
 /// Filter use only for Jinja templates.
 /// Converts a string to PascalCase.
 fn pascal_case(s: String) -> String {
@@ -308,6 +442,23 @@ fn snake_case(s: String) -> String {
 /// Removes leading and trailing whitespace and multiple spaces from a string.
 fn remove_multiple_spaces(input: &str) -> String {
     input.split_whitespace().collect::<Vec<&str>>().join(" ")
+}
+
+/// Checks if an object has a primary key.
+fn pk_objects(model: &mut DataModel) -> Vec<String> {
+    model
+        .objects
+        .iter()
+        .filter(|o| {
+            o.attributes.iter().any(|a| {
+                a.options
+                    .iter()
+                    .any(|o| matches!(o, AttrOption::PrimaryKey { .. }))
+                    || a.name == "id"
+            })
+        })
+        .map(|o| o.name.clone())
+        .collect()
 }
 
 /// Converts the data types in the model according to the provided type map.
@@ -332,6 +483,37 @@ fn convert_model_types(
     }
 }
 
+/// Converts the data types in the model according to the provided type map.
+///
+/// # Arguments
+///
+/// * `model` - The data model whose types are to be converted.
+fn convert_astropy_types(model: &mut DataModel, config: &Option<&HashMap<String, String>>) {
+    if config.is_none() {
+        return;
+    }
+
+    let config = config.unwrap();
+    if !config.contains_key("astropy") {
+        return;
+    }
+
+    // Replace UnitDefinition with UnitDefinitionAnnotated
+    for object in &mut model.objects {
+        for attribute in &mut object.attributes {
+            if attribute.dtypes.contains(&"UnitDefinition".to_string()) {
+                attribute.dtypes = vec!["UnitDefinitionAnnot".to_string()];
+            }
+        }
+    }
+
+    model
+        .objects
+        .retain(|o| o.name != "UnitDefinition" && o.name != "BaseUnit");
+
+    model.enums.retain(|e| e.name != "UnitType");
+}
+
 /// Retrieves the prefixes from the model configuration.
 ///
 /// # Arguments
@@ -353,12 +535,33 @@ fn get_prefixes(model: &mut DataModel) -> Vec<(String, String)> {
 /// # Arguments
 ///
 /// * `model` - The data model to filter.
-fn filter_objects_wo_terms(model: &mut DataModel) {
+fn filter_objects_wo_terms(model: &mut DataModel) -> Result<(), Box<dyn Error>> {
     model.objects.retain(|o| o.has_any_terms());
 
     if model.objects.is_empty() {
-        panic!("No objects with terms found in the model. Unable to build SHACL or ShEx.");
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "No objects with terms found in the model. Unable to build SHACL or ShEx.",
+        )));
     }
+    Ok(())
+}
+
+/// Sorts the objects in the model by their dependency.
+///
+/// This is important for languages like Julia, where forward declarations
+/// are not supported.
+///
+/// # Arguments
+///
+/// * `model` - The data model whose objects are to be sorted.
+fn sort_by_dependency(model: &mut DataModel) {
+    let graph = tree::dependency_graph(model);
+    let mut class_order = tree::get_topological_order(&graph);
+    class_order.reverse();
+    model
+        .objects
+        .sort_by_key(|o| class_order.iter().position(|c| c == &o.name).unwrap());
 }
 
 /// Sorts the attributes of each object in the model by their 'required' field.
@@ -372,6 +575,21 @@ fn sort_attributes_by_required(model: &mut DataModel) {
     }
 }
 
+/// Cleans and trims a string by removing trailing whitespace and limiting consecutive empty lines.
+///
+/// This function processes a string by:
+/// 1. Splitting it into lines
+/// 2. Trimming trailing whitespace from each line
+/// 3. Limiting consecutive empty lines to a maximum of 2
+/// 4. Joining the lines back together
+///
+/// # Arguments
+///
+/// * `s` - The string to clean and trim
+///
+/// # Returns
+///
+/// A cleaned string with trailing whitespace removed and consecutive empty lines limited
 fn clean_and_trim(s: &str) -> String {
     let splitted = s.split('\n').collect::<Vec<&str>>();
     let mut cleaned = vec![];
@@ -391,7 +609,23 @@ fn clean_and_trim(s: &str) -> String {
     }
 
     cleaned.join("\n").trim().to_string()
-    // s.to_string()
+}
+
+/// Capitalizes the first character of a string.
+///
+/// # Arguments
+///
+/// * `s` - The string to capitalize
+///
+/// # Returns
+///
+/// A new string with the first character capitalized
+fn cap_first(s: String) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+        None => s.to_string(),
+    }
 }
 
 #[cfg(test)]
@@ -415,7 +649,7 @@ mod tests {
     fn build_and_convert(template: Templates) -> String {
         let path = Path::new("tests/data/model.md");
         let content = fs::read_to_string(path).expect("Could not read markdown file");
-        let mut model = parse_markdown(&content).expect("Failed to parse markdown file");
+        let mut model = parse_markdown(&content, None).expect("Failed to parse markdown file");
         render_jinja_template(&template, &mut model, None)
             .expect("Could not render template")
             .to_string()
