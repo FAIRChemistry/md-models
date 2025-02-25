@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -341,7 +341,7 @@ impl DataModel {
     #[allow(clippy::result_large_err)]
     pub fn from_markdown(path: &Path) -> Result<Self, Validator> {
         let content = fs::read_to_string(path).expect("Could not read file");
-        parse_markdown(&content)
+        parse_markdown(&content, Some(path))
     }
 
     /// Parse a markdown file and create a data model
@@ -363,7 +363,7 @@ impl DataModel {
     /// A data model
     #[allow(clippy::result_large_err)]
     pub fn from_markdown_string(content: &str) -> Result<Self, Validator> {
-        parse_markdown(content)
+        parse_markdown(content, None)
     }
 }
 
@@ -396,6 +396,7 @@ mod tests {
             default: None,
             is_enum: false,
             position: None,
+            import_prefix: None,
         });
 
         let mut obj2 = Object::new("Object2".to_string(), None);
@@ -412,6 +413,7 @@ mod tests {
             default: None,
             is_enum: false,
             position: None,
+            import_prefix: None,
         });
 
         let enm1 = Enumeration {
@@ -463,6 +465,7 @@ mod tests {
             default: Some(DataType::String("".to_string())),
             is_enum: false,
             position: None,
+            import_prefix: None,
         });
 
         obj.add_attribute(crate::attribute::Attribute {
@@ -478,6 +481,7 @@ mod tests {
             default: None,
             is_enum: false,
             position: None,
+            import_prefix: None,
         });
 
         model.objects.push(obj);
