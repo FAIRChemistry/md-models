@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,14 @@ use crate::exporters::Templates;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 
+pub mod attribute;
 pub mod datamodel;
 pub mod exporters;
-pub mod pipeline;
-pub mod validation;
-
-pub mod attribute;
 pub mod object;
 pub mod option;
+pub mod pipeline;
+pub mod tree;
+pub mod validation;
 pub mod xmltype;
 
 pub mod prelude {
