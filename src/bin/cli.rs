@@ -33,9 +33,7 @@ use mdmodels::{
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap, error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr,
-};
+use std::{error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr};
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
