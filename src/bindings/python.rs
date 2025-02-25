@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@ use crate::datamodel;
 use crate::exporters::Templates;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::object::{Enumeration, Object};
+use crate::option::AttrOption;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 
@@ -151,6 +152,45 @@ impl Enumeration {
     /// # Returns
     ///
     /// A string that represents the `Enumeration` instance.
+    fn __repr__(&self) -> String {
+        serde_json::to_string_pretty(&self).unwrap()
+    }
+}
+
+#[pymethods]
+impl AttrOption {
+    /// Returns a key-value (RawOption) representation of the `AttrOption` instance.
+    ///
+    /// # Returns
+    ///
+    /// A key-value (RawOption) representation of the `AttrOption` instance.
+    fn pair(&self) -> (String, String) {
+        self.to_pair()
+    }
+
+    /// Returns the key of the `AttrOption` instance.
+    ///
+    /// # Returns
+    ///
+    /// A string that represents the key of the `AttrOption` instance.
+    fn k(&self) -> String {
+        self.key().to_string()
+    }
+
+    /// Returns the value of the `AttrOption` instance.
+    ///
+    /// # Returns
+    ///
+    /// A string that represents the value of the `AttrOption` instance.
+    fn v(&self) -> String {
+        self.value().to_string()
+    }
+
+    /// Returns a string representation of the `AttrOption` instance.
+    ///
+    /// # Returns
+    ///
+    /// A string that represents the `AttrOption` instance.
     fn __repr__(&self) -> String {
         serde_json::to_string_pretty(&self).unwrap()
     }
