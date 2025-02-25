@@ -2,7 +2,7 @@
 name = "mdmodels"
 authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
 description = "A tool to generate models, code and schemas from markdown files"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/FAIRChemistry/md-models"
@@ -39,6 +39,8 @@ getrandom = { version = "0.2.15", features = ["js"] }
 tsify-next = { version = "0.5.4", features = ["js"], optional = true }
 strum = "0.26.3"
 strum_macros = "0.26.4"
+indexmap = { version = "2.7.1", features = ["serde"] }
+petgraph = { version = "0.7.1", features = ["serde"] }
 
 [features]
 default = ["openai"]
