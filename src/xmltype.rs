@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,12 @@ pub enum XMLType {
     Attribute { is_attr: bool, name: String },
     /// An XML element with a name.
     Element { is_attr: bool, name: String },
+    /// Wrapped XML type
+    Wrapped {
+        is_attr: bool,
+        name: String,
+        wrapped: Option<Vec<String>>,
+    },
 }
 
 impl FromStr for XMLType {
@@ -56,6 +62,13 @@ impl FromStr for XMLType {
             Ok(XMLType::Attribute {
                 is_attr: true,
                 name: name.to_string(),
+            })
+        } else if s.contains('/') {
+            let (wrapped, name) = split_at_last(s, '/');
+            Ok(XMLType::Wrapped {
+                is_attr: false,
+                name,
+                wrapped: Some(wrapped.split('/').map(|s| s.trim().to_string()).collect()),
             })
         } else {
             Ok(XMLType::Element {
@@ -115,6 +128,7 @@ impl Serialize for XMLType {
         struct XMLTypeVisitor {
             is_attr: bool,
             name: String,
+            wrapped: Option<Vec<String>>,
         }
 
         let visitor = match self {
@@ -122,10 +136,51 @@ impl Serialize for XMLType {
                 XMLTypeVisitor {
                     is_attr: *is_attr,
                     name: name.to_string(),
+                    wrapped: None,
                 }
             }
+            XMLType::Wrapped {
+                is_attr,
+                name,
+                wrapped,
+            } => XMLTypeVisitor {
+                is_attr: *is_attr,
+                name: name.to_string(),
+                wrapped: wrapped.clone(),
+            },
         };
         visitor.serialize(serializer)
+    }
+}
+
+/// Splits a string at the last occurrence of a character.
+///
+/// This function splits a string at the last occurrence of the specified character
+/// and returns a tuple containing two parts:
+/// - The part before the last occurrence of the character
+/// - The part after the last occurrence of the character
+///
+/// If the character is not found in the string, returns an empty string as the first
+/// element and the entire input string as the second element.
+///
+/// # Arguments
+///
+/// * `s` - The string to split
+/// * `c` - The character to split on
+///
+/// # Returns
+///
+/// A tuple containing:
+/// - The part before the last occurrence of the character (or empty string if not found)
+/// - The part after the last occurrence of the character (or the entire string if not found)
+pub(crate) fn split_at_last(s: &str, c: char) -> (String, String) {
+    let parts: Vec<&str> = s.split(c).collect();
+    if parts.len() <= 1 {
+        (String::new(), s.to_string())
+    } else {
+        let last = parts[parts.len() - 1];
+        let rest = parts[..parts.len() - 1].join(&c.to_string());
+        (rest.to_string(), last.to_string())
     }
 }
 
