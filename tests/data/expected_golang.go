@@ -5,28 +5,33 @@
 
 package model
 
+import (
+	"encoding/json"
+	"fmt"
+)
 
 //
 // Type definitions
 //
 
-// Test Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-// eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-// ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-// aliquip ex ea commodo consequat.
+// Test
+//
+// Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+// incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+// nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 type Test struct {
-        // The name of the test. This is a unique identifier that helps track
-        // individual test cases across the system. It should be
-        // descriptive and follow the standard naming conventions.
-        Name string `json:"name"`
-        Number TestNumberType `json:"number,omitempty"`
-        Test2 []Test2 `json:"test2,omitempty"`
-        Ontology Ontology `json:"ontology,omitempty"`
+        ID *uint `json:"id,omitempty" xml:"id,attr,omitempty" gorm:"primaryKey,autoIncrement"`
+        Name string `json:"name" xml:"name,attr" `
+        Number TestNumberType `json:"number,omitempty" xml:"number,attr,omitempty" `
+        Test2 []Test2 `json:"test2,omitempty" xml:"SomeTest2,omitempty" gorm:"many2many:test_test2;"`
+        Ontology Ontology `json:"ontology,omitempty" xml:"ontology,omitempty" `
 }
 
+// Test2
 type Test2 struct {
-        Names []string `json:"names,omitempty"`
-        Number float64 `json:"number,omitempty"`
+        ID *uint `json:"id,omitempty" xml:"id,attr,omitempty" gorm:"primaryKey,autoIncrement"`
+        Names []string `json:"names,omitempty" xml:"name,omitempty" `
+        Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" `
 }
 
 //
@@ -35,14 +40,10 @@ type Test2 struct {
 type Ontology string
 
 const (
-    OntologyECO Ontology = "https://www.evidenceontology.org/term/"
-    OntologyGO Ontology = "https://amigo.geneontology.org/amigo/term/"
-    OntologySIO Ontology = "http://semanticscience.org/resource/"
+    ECO Ontology = "https://www.evidenceontology.org/term/"
+    GO Ontology = "https://amigo.geneontology.org/amigo/term/"
+    SIO Ontology = "http://semanticscience.org/resource/"
 )
-
-//
-// Type definitions for attributes with multiple types
-//
 
 // TestNumberType represents a union type that can hold any of the following types:
 // - float
@@ -72,11 +73,11 @@ func (t *TestNumberType) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements custom JSON marshaling for TestNumberType
 func (t TestNumberType) MarshalJSON() ([]byte, error) {
-    if t.Float != nil {
-        return json.Marshal(*t.Float)
+    if t.Float != 0 {
+        return json.Marshal(t.Float)
     }
-    if t.String != nil {
-        return json.Marshal(*t.String)
+    if t.String != "" {
+        return json.Marshal(t.String)
     }
     return []byte("null"), nil
 }

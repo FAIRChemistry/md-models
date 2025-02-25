@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://mdmodel.net/",
+  "title": "Test",
+  "type": "object",
+  "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+  "properties": {
+    "name": {
+      "title": "name",
+      "type": "string",
+      "description": "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.",
+      "$term": "schema:hello"
+    },
+    "number": {
+      "title": "number",
+      "$term": "schema:one",
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "ontology": {
+      "title": "ontology",
+      "$ref": "#/$defs/Ontology"
+    },
+    "test2": {
+      "title": "test2",
+      "type": "array",
+      "$term": "schema:something",
+      "items": {
+        "$ref": "#/$defs/Test2"
+      }
+    }
+  },
+  "$defs": {
+    "Ontology": {
+      "title": "Ontology",
+      "type": "string",
+      "enum": [
+        "https://www.evidenceontology.org/term/",
+        "https://amigo.geneontology.org/amigo/term/",
+        "http://semanticscience.org/resource/"
+      ]
+    },
+    "Test2": {
+      "title": "Test2",
+      "type": "object",
+      "properties": {
+        "names": {
+          "title": "names",
+          "type": "array",
+          "$term": "schema:hello",
+          "items": {
+            "type": "string"
+          }
+        },
+        "number": {
+          "title": "number",
+          "type": "number",
+          "$term": "schema:one",
+          "minimum": 0.0
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false
+}

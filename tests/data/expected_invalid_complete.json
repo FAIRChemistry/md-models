@@ -6,6 +6,7 @@
             "object": "Test",
             "attribute": "1number",
             "location": "Global",
+            "solution": "Resolve the issue by using 'number'.",
             "error_type": "NameError",
             "positions": [
                 {
@@ -26,6 +27,7 @@
             "object": "Test",
             "attribute": "some name",
             "location": "Global",
+            "solution": "Resolve the issue by using 'some_name'.",
             "error_type": "NameError",
             "positions": [
                 {
@@ -42,10 +44,11 @@
             ]
         },
         {
-            "message": "Type 'Undefined' of property 'undefined_type' not found. Either define the type or use a base type.",
+            "message": "Type 'Undefined' of property 'undefined_type' not found.",
             "object": "Test",
             "attribute": "undefined_type",
             "location": "Global",
+            "solution": "Add the type 'Undefined' to the model or use a base type.",
             "error_type": "TypeError",
             "positions": [
                 {
@@ -66,6 +69,7 @@
             "object": "1Test",
             "attribute": null,
             "location": "Global",
+            "solution": "Resolve the issue by using 'Test'.",
             "error_type": "NameError",
             "positions": [
                 {
@@ -86,6 +90,7 @@
             "object": "1Test",
             "attribute": "1number",
             "location": "Global",
+            "solution": "Resolve the issue by using 'number'.",
             "error_type": "NameError",
             "positions": [
                 {
@@ -106,6 +111,7 @@
             "object": "Duplicate",
             "attribute": null,
             "location": "Global",
+            "solution": "Rename the object(s) at lines 25, 30 to be unique.",
             "error_type": "DuplicateError",
             "positions": [
                 {
@@ -137,6 +143,7 @@
             "object": "DuplicateAttributes",
             "attribute": "some_name",
             "location": "Global",
+            "solution": "Rename the property(ies) at lines 37, 39 to be unique.",
             "error_type": "DuplicateError",
             "positions": [
                 {
@@ -168,6 +175,7 @@
             "object": "NoType",
             "attribute": "some_name",
             "location": "Global",
+            "solution": "Add a type to the property 'some_name' using '- some_name: <TYPE>'.",
             "error_type": "TypeError",
             "positions": [
                 {

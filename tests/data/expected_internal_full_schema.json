@@ -17,7 +17,8 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "name"
+            "name": "name",
+            "wrapped": null
           },
           "is_enum": false,
           "position": {
@@ -45,7 +46,8 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "number"
+            "name": "number",
+            "wrapped": null
           },
           "is_enum": false,
           "position": {
@@ -73,7 +75,8 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "SomeTest2"
+            "name": "SomeTest2",
+            "wrapped": null
           },
           "is_enum": false,
           "position": {
@@ -101,7 +104,8 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "ontology"
+            "name": "ontology",
+            "wrapped": null
           },
           "is_enum": true,
           "position": {
@@ -146,7 +150,8 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "name"
+            "name": "name",
+            "wrapped": null
           },
           "is_enum": false,
           "position": {
@@ -179,7 +184,8 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "number"
+            "name": "number",
+            "wrapped": null
           },
           "is_enum": false,
           "position": {
@@ -232,6 +238,7 @@
     }
   ],
   "config": {
+    "id": null,
     "id-field": true,
     "prefixes": {
       "schema": "http://schema.org/"
@@ -240,6 +247,8 @@
       "tst": "http://example.com/test/"
     },
     "repo": "https://www.github.com/my/repo/",
-    "prefix": "tst"
+    "prefix": "tst",
+    "imports": {},
+    "allow-empty": false
   }
 }

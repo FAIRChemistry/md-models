@@ -40,13 +40,11 @@ enum Ontology {
 type Query {
 
   # Test queries
-  test(id: ID!): Test
   allTests: [Test]
   testByName(name: String): [Test]
   testByOntology(ontology: Ontology): [Test]
 
   # Test2 queries
-  test2(id: ID!): Test2
   allTest2s: [Test2]
   test2ByNumber(number: Float): [Test2]
 }

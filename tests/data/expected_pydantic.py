@@ -338,3 +338,11 @@ class Ontology(Enum):
     ECO = "https://www.evidenceontology.org/term/"
     GO = "https://amigo.geneontology.org/amigo/term/"
     SIO = "http://semanticscience.org/resource/"
+
+
+# Rebuild all the classes within this file
+for cls in [
+    Test,
+    Test2,
+]:
+    cls.model_rebuild()

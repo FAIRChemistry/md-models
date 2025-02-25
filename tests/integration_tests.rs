@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ extern crate mdmodels;
 mod tests {
     use mdmodels::{self, datamodel::DataModel};
     use pretty_assertions::assert_eq;
+    use serde_json::Value;
     use std::path::Path;
 
     #[test]
@@ -350,6 +351,23 @@ mod tests {
     }
 
     #[test]
+    fn test_invalid_xml_wrapped_length() {
+        let path = Path::new("tests/data/model_invalid_xml_wrapped.md");
+        let result = DataModel::from_markdown(path);
+
+        if let Err(e) = result {
+            assert_eq!(
+                e.errors.len(),
+                1,
+                "Expected 1 error, got {}",
+                e.errors.len()
+            );
+        } else {
+            panic!("Expected error, but got success");
+        }
+    }
+
+    #[test]
     fn test_multiple_types() {
         let path = Path::new("tests/data/model_multiple_types.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
@@ -407,5 +425,120 @@ mod tests {
             .expect("Could not validate JSON");
 
         assert_eq!(validation.len(), 0);
+    }
+
+    #[test]
+    fn test_meta_model() {
+        let path = Path::new("tests/data/model_meta.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        let expected: Value = serde_json::from_str(
+            &std::fs::read_to_string("tests/data/expected_meta_json_schema.json").unwrap(),
+        )
+        .expect("Could not parse expected meta model");
+
+        let schema = model
+            .json_schema(Some("Test".to_string()), false)
+            .expect("Could not generate JSON schema");
+        let schema: serde_json::Value = serde_json::from_str(&schema).unwrap();
+
+        assert_eq!(schema, expected);
+    }
+
+    #[test]
+    fn test_compact_model() {
+        let path = Path::new("tests/data/model_compact.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+
+        assert_eq!(model.objects.len(), 1);
+        assert_eq!(model.objects[0].attributes.len(), 5);
+
+        let name = model.objects[0]
+            .attributes
+            .iter()
+            .find(|a| a.name == "name")
+            .unwrap();
+        assert!(name.required, "name should be required");
+        assert_eq!(
+            name.dtypes.len(),
+            1,
+            "Expected 1 datatype, got {}",
+            name.dtypes.len()
+        );
+        assert_eq!(
+            name.dtypes[0], "string",
+            "Expected datatype string, got {}",
+            name.dtypes[0]
+        );
+        assert_eq!(name.is_array, false, "Expected non-array, got array");
+
+        let references = model.objects[0]
+            .attributes
+            .iter()
+            .find(|a| a.name == "references")
+            .unwrap();
+        assert_eq!(
+            references.required, false,
+            "references should not be required"
+        );
+        assert_eq!(
+            references.dtypes.len(),
+            1,
+            "Expected 1 datatype, got {}",
+            references.dtypes.len()
+        );
+        assert_eq!(
+            references.dtypes[0], "string",
+            "Expected datatype string, got {}",
+            references.dtypes[0]
+        );
+        assert_eq!(references.is_array, true, "Expected array, got non-array");
+
+        let created = model.objects[0]
+            .attributes
+            .iter()
+            .find(|a| a.name == "created")
+            .unwrap();
+        assert_eq!(created.required, false, "created should not be required");
+        assert_eq!(
+            created.dtypes.len(),
+            2,
+            "Expected 2 datatypes, got {}",
+            created.dtypes.len()
+        );
+        assert_eq!(
+            created.dtypes[0], "string",
+            "Expected datatype string, got {}",
+            created.dtypes[0]
+        );
+        assert_eq!(
+            created.dtypes[1], "float",
+            "Expected datatype float, got {}",
+            created.dtypes[1]
+        );
+        assert_eq!(created.is_array, false, "Expected array, got non-array");
+
+        let verbose = model.objects[0]
+            .attributes
+            .iter()
+            .find(|a| a.name == "verbose")
+            .unwrap();
+        assert_eq!(verbose.required, true, "verbose should be required");
+        assert_eq!(verbose.dtypes.len(), 1);
+        assert_eq!(verbose.dtypes[0], "boolean");
+        assert_eq!(verbose.is_array, true, "Expected non-array, got array");
+
+        let overrides = model.objects[0]
+            .attributes
+            .iter()
+            .find(|a| a.name == "overrides")
+            .unwrap();
+        assert_eq!(
+            overrides.required, false,
+            "overrides should not be required"
+        );
+        assert_eq!(overrides.dtypes.len(), 1);
+        assert_eq!(overrides.dtypes[0], "string");
+        assert_eq!(overrides.is_array, false, "Expected non-array, got array");
     }
 }

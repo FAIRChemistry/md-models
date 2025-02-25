@@ -42,6 +42,10 @@ export const JsonLdSchema = z.object({
 });
 
 // Model Type definitions
+// Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+// eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+// ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+// aliquip ex ea commodo consequat.
 export const TestSchema = z.lazy(() => JsonLdSchema.extend({
   name: z.string().describe(`
     The name of the test. This is a unique identifier that helps track
