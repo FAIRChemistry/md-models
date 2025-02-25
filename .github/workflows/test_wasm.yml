@@ -1,0 +1,44 @@
+name: Test WASM build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - src/**
+
+jobs:
+  bundler:
+    name: Bundler
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
+
+      - name: Build WASM for npm (bundle)
+        run: wasm-pack build --target bundler --features wasm --no-default-features
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
+
+      - name: Build WASM for npm (bundle)
+        run: wasm-pack build --features wasm --no-default-features
