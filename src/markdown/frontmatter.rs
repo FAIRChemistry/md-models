@@ -156,11 +156,10 @@ impl ImportType {
     ///
     /// # Returns
     /// A Result containing the parsed DataModel or an error.
-    fn fetch_remote_model(&self, url: &str) -> Result<DataModel, Box<dyn Error>> {
-        let response = reqwest::blocking::get(url)?;
-        let data = response.text()?;
-        let model = DataModel::from_markdown_string(&data)?;
-        Ok(model)
+    fn fetch_remote_model(&self, _: &str) -> Result<DataModel, Box<dyn Error>> {
+        unimplemented!(
+            "Fetching remote models is not supported yet due to incompatibility with WASM"
+        );
     }
 
     /// Fetches and parses a model from a local file path.
