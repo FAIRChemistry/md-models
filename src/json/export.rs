@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -558,6 +558,7 @@ mod tests {
             xml: None,
             is_enum: false,
             position: None,
+            import_prefix: None,
         };
 
         let property: schema::Property =
@@ -592,6 +593,7 @@ mod tests {
             xml: None,
             is_enum: false,
             position: None,
+            import_prefix: None,
         };
 
         let property: schema::Property =
