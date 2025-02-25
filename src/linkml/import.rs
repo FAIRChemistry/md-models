@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -86,7 +86,7 @@ impl From<LinkML> for DataModel {
         // Create config from LinkML metadata
         let config = FrontMatter {
             prefix: linkml.id,
-            prefixes: Some(linkml.prefixes),
+            prefixes: Some(linkml.prefixes.into_iter().collect()),
             ..Default::default()
         };
 
@@ -210,6 +210,7 @@ impl From<AttributeDefinition> for Attribute {
             is_enum: false,
             position: None,
             xml: None,
+            import_prefix: None,
         }
     }
 }
