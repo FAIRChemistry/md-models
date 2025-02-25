@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 
 use crate::{datamodel::DataModel, exporters::Templates};
 use colored::Colorize;
+use convert_case::Casing;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -71,7 +72,18 @@ struct GenSpecs {
     #[serde(rename = "per-spec")]
     per_spec: Option<bool>,
     #[serde(flatten)]
+    #[serde(deserialize_with = "deserialize_config_map")]
     config: HashMap<String, String>,
+    #[serde(rename = "fname-case", default)]
+    fname_case: Option<NameCase>,
+}
+
+fn deserialize_config_map<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let map: HashMap<String, toml::Value> = HashMap::deserialize(deserializer)?;
+    Ok(map.into_iter().map(|(k, v)| (k, v.to_string())).collect())
 }
 
 impl GenSpecs {
@@ -131,7 +143,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::JsonSchemaAll => {
@@ -143,7 +156,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Shex => {
@@ -152,7 +166,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Shacl => {
@@ -161,7 +176,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Markdown => {
@@ -170,7 +186,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::CompactMarkdown => {
@@ -179,7 +196,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::PythonDataclass => {
@@ -188,7 +206,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::PythonPydantic => {
@@ -197,7 +216,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::PythonPydanticXML => {
@@ -206,7 +226,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::XmlSchema => {
@@ -215,7 +236,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Typescript => {
@@ -224,7 +246,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::TypescriptZod => {
@@ -233,7 +256,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Rust => {
@@ -242,7 +266,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Golang => {
@@ -251,7 +276,18 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
+                )?;
+            }
+            Templates::Julia => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Protobuf => {
@@ -260,7 +296,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Graphql => {
@@ -269,7 +306,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::MkDocs => {
@@ -285,7 +323,8 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     paths,
                     &merge_state,
                     &template,
-                    Some(&specs.config),
+                    &specs.config,
+                    &specs.fname_case,
                 )?;
             }
             Templates::Internal => {
@@ -433,14 +472,15 @@ fn serialize_by_template(
     specs: &[PathBuf],
     merge_state: &MergeState,
     template: &Templates,
-    config: Option<&HashMap<String, String>>,
+    config: &HashMap<String, String>,
+    case: &Option<NameCase>,
 ) -> Result<(), Box<dyn Error>> {
     match merge_state {
         MergeState::Merge => {
             print_render_msg(out, template);
 
             let mut model = build_models(specs)?;
-            let content = model.convert_to(template, config)?;
+            let content = model.convert_to(template, Some(config))?;
 
             return save_to_file(out, content.as_str());
         }
@@ -457,11 +497,17 @@ fn serialize_by_template(
                     return Err(format!("Path does not exist: {:?}", spec).into());
                 }
 
-                let path = replace_wildcard(out, get_file_name(spec).as_str());
+                let mut fname = get_file_name(spec);
+
+                if let Some(case) = case {
+                    fname = casify_filename(fname, case.into());
+                }
+
+                let path = replace_wildcard(out, &fname);
                 print_render_msg(&path, template);
 
                 let mut model = DataModel::from_markdown(spec)?;
-                let content = model.convert_to(template, config)?;
+                let content = model.convert_to(template, Some(config))?;
 
                 save_to_file(&path, content.as_str())?;
             }
@@ -469,6 +515,27 @@ fn serialize_by_template(
     }
 
     Ok(())
+}
+
+/// Converts a filename to the specified case format.
+///
+/// # Arguments
+///
+/// * `name` - The filename to convert
+/// * `case` - The case format to convert to
+///
+/// # Returns
+///
+/// The converted filename as a String
+fn casify_filename(name: String, case: Option<convert_case::Case>) -> String {
+    if let Some(c) = case {
+        let (name, _) = name.split_once('.').unwrap_or((name.as_str(), ""));
+        let new_name = name.to_case(c);
+
+        format!("{}", new_name)
+    } else {
+        name
+    }
 }
 
 /// Checks if the given path has a wildcard file name.
@@ -545,6 +612,67 @@ fn print_render_msg(out: &Path, template: &Templates) {
     );
 }
 
+/// Represents different case styles for naming files.
+///
+/// Supports common case conventions used in programming:
+/// - Pascal case (e.g. "MyFileName")
+/// - Snake case (e.g. "my_file_name")
+/// - Kebab case (e.g. "my-file-name")
+/// - Camel case (e.g. "myFileName")
+/// - None (no case transformation)
+#[derive(Debug, Deserialize, Serialize)]
+enum NameCase {
+    Pascal,
+    Snake,
+    Kebab,
+    Camel,
+    None,
+}
+
+impl FromStr for NameCase {
+    type Err = String;
+
+    /// Converts a string to a NameCase variant.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to convert
+    ///
+    /// # Returns
+    ///
+    /// A Result containing the NameCase variant or an error string if invalid.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pascal" => Ok(NameCase::Pascal),
+            "snake" => Ok(NameCase::Snake),
+            "kebab" => Ok(NameCase::Kebab),
+            "camel" => Ok(NameCase::Camel),
+            _ => Err("Invalid name case".to_string()),
+        }
+    }
+}
+
+impl From<&NameCase> for Option<convert_case::Case> {
+    /// Converts a NameCase variant to the corresponding convert_case::Case variant.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The NameCase variant to convert
+    ///
+    /// # Returns
+    ///
+    /// An Option containing the convert_case::Case variant, or None if no transformation needed.
+    fn from(value: &NameCase) -> Self {
+        match value {
+            NameCase::Pascal => Some(convert_case::Case::Pascal),
+            NameCase::Snake => Some(convert_case::Case::Snake),
+            NameCase::Kebab => Some(convert_case::Case::Kebab),
+            NameCase::Camel => Some(convert_case::Case::Camel),
+            NameCase::None => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -590,6 +718,7 @@ mod tests {
                     root: None,
                     per_spec: None,
                     config: HashMap::new(),
+                    fname_case: None,
                 },
             )]),
         };
