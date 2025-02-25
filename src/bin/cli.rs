@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,9 @@ use mdmodels::{
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr};
+use std::{
+    collections::HashMap, error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr,
+};
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
@@ -90,6 +92,10 @@ struct ConvertArgs {
         help = "Root object to start rendering from (required for JSON Schema)"
     )]
     root: Option<String>,
+
+    /// Whether to generate a builder.
+    #[arg(long, help = "Whether to generate a builder")]
+    builder: bool,
 }
 
 /// Arguments for the pipeline subcommand.
