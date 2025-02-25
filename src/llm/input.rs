@@ -30,6 +30,7 @@ use crate::datamodel::DataModel;
 /// Represents different types of models that can be used.
 ///
 /// `ModelType` can be constructed from a local file path, a remote URL, or a `DataModel` instance.
+#[allow(clippy::large_enum_variant)]
 pub enum ModelType {
     Path(PathBuf),
     Remote(Url),

@@ -215,8 +215,8 @@ fn process_model_components(
 /// * `path` - Optional path to the markdown file
 fn merge_imports(model: &mut DataModel, imports: HashMap<String, ImportType>, path: Option<&Path>) {
     for (_prefix, import) in imports {
-        let mut model_to_merge = import.fetch(path).unwrap();
-        model.merge(&mut model_to_merge);
+        let model_to_merge = import.fetch(path).unwrap();
+        model.merge(&model_to_merge);
     }
 }
 
@@ -227,6 +227,7 @@ fn merge_imports(model: &mut DataModel, imports: HashMap<String, ImportType>, pa
 ///
 /// # Returns
 /// * `Result<(), Validator>` - Ok if valid, Err with validator if invalid
+#[allow(clippy::result_large_err)]
 fn validate_model(model: &DataModel) -> Result<(), Validator> {
     let mut validator = Validator::new();
     validator.validate(model);
@@ -450,7 +451,7 @@ fn handle_inheritance(objects: &mut [Object], iterator: &mut pulldown_cmark::Off
 fn handle_list_start(
     content: &str,
     iterator: &mut pulldown_cmark::OffsetIter,
-    objects: &mut Vec<Object>,
+    objects: &mut [Object],
     line_offsets: &[usize],
     range: std::ops::Range<usize>,
 ) {
@@ -486,7 +487,7 @@ fn handle_list_start(
 fn handle_list_item(
     content: &str,
     iterator: &mut pulldown_cmark::OffsetIter,
-    objects: &mut Vec<Object>,
+    objects: &mut [Object],
     line_offsets: &[usize],
     range: std::ops::Range<usize>,
 ) {

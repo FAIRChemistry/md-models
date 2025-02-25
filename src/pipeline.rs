@@ -532,7 +532,7 @@ fn casify_filename(name: String, case: Option<convert_case::Case>) -> String {
         let (name, _) = name.split_once('.').unwrap_or((name.as_str(), ""));
         let new_name = name.to_case(c);
 
-        format!("{}", new_name)
+        new_name.to_string()
     } else {
         name
     }

@@ -632,9 +632,7 @@ impl Validator {
                     message: "XML wrapped option can only contain two types.".into(),
                     object: Some(object_name.to_string()),
                     attribute: Some(attribute_name.to_string()),
-                    solution: Some(format!(
-                        "Reduce the depth of the wrapped option to two types and create a new object for the third type.",
-                    )),
+                    solution: Some("Reduce the depth of the wrapped option to two types and create a new object for the third type.".to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::XMLError,
                     positions: vec![],
@@ -821,7 +819,7 @@ fn starts_with_character(name: &str) -> Result<(), (String, String)> {
         Some(c) if c.is_alphabetic() => Ok(()),
         _ => Err((
             format!("Name '{}' must start with a letter.", name),
-            format!("{}", name[1..].to_string()),
+            name[1..].to_string(),
         )),
     }
 }
@@ -845,7 +843,7 @@ fn contains_white_space(name: &str) -> Result<(), (String, String)> {
                     "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
                     name
                 ),
-                format!("{}", name.replace(" ", "_")),
+                name.replace(" ", "_").to_string(),
             ))
         })
         .unwrap_or(Ok(()))
@@ -868,7 +866,7 @@ fn contains_special_characters(name: &str, allow_slash: bool) -> Result<(), (Str
     }).then(
         || Err((
             format!("Name '{}' contains special characters, which are not valid except for underscores.", name),
-            format!("{}", name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect::<String>()),
+            name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect::<String>().to_string(),
         ))
     ).unwrap_or(Ok(()))
 }
