@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
  *
  */
 
-use std::collections::HashMap;
+use std::{collections::HashMap, error::Error, path::Path};
 
 use gray_matter::{engine::YAML, Matter};
 use serde::{Deserialize, Serialize};
@@ -32,12 +32,16 @@ use pyo3::pyclass;
 #[cfg(feature = "wasm")]
 use tsify_next::Tsify;
 
+use crate::prelude::DataModel;
+
 /// Represents the front matter data of a markdown file.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[cfg_attr(feature = "python", pyclass(get_all))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct FrontMatter {
+    /// Identifier field of the model.
+    pub id: Option<String>,
     /// A boolean field with a default value, renamed from `id-field`.
     #[serde(default = "default_id_field", rename = "id-field")]
     pub id_field: bool,
@@ -51,16 +55,25 @@ pub struct FrontMatter {
     /// A string field with a default value representing the prefix.
     #[serde(default = "default_prefix")]
     pub prefix: String,
+    /// Import remote or local models.
+    #[serde(default)]
+    pub imports: HashMap<String, ImportType>,
+    /// Allow empty models.
+    #[serde(default = "default_allow_empty", rename = "allow-empty")]
+    pub allow_empty: bool,
 }
 
 impl FrontMatter {
     pub fn new() -> Self {
         FrontMatter {
+            id: None,
             id_field: default_id_field(),
             prefixes: None,
             nsmap: None,
             repo: default_repo(),
             prefix: default_prefix(),
+            imports: HashMap::new(),
+            allow_empty: false,
         }
     }
 
@@ -91,6 +104,85 @@ impl FrontMatter {
     /// A reference to an optional hashmap of the namespace map.
     pub fn nsmap(&self) -> &Option<HashMap<String, String>> {
         &self.nsmap
+    }
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "wasm", derive(Tsify))]
+#[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
+/// Represents different types of model imports.
+///
+/// Can be either a remote URL or a local file path.
+pub enum ImportType {
+    /// A remote URL pointing to a model
+    Remote(String),
+    /// A local file path to a model
+    Local(String),
+}
+
+impl<'de> Deserialize<'de> for ImportType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+
+        // Check if string starts with http:// or https://
+        if s.starts_with("http://") || s.starts_with("https://") {
+            Ok(ImportType::Remote(s))
+        } else {
+            Ok(ImportType::Local(s))
+        }
+    }
+}
+
+impl ImportType {
+    /// Fetches and parses the model from either remote or local source.
+    ///
+    /// # Returns
+    /// A Result containing the parsed DataModel or an error.
+    pub fn fetch(&self, dirpath: Option<&Path>) -> Result<DataModel, Box<dyn Error>> {
+        match self {
+            ImportType::Remote(url) => self.fetch_remote_model(url),
+            ImportType::Local(path) => self.fetch_local_model(path, dirpath),
+        }
+    }
+
+    /// Fetches and parses a model from a remote URL.
+    ///
+    /// # Arguments
+    /// * `url` - The URL to fetch the model from
+    ///
+    /// # Returns
+    /// A Result containing the parsed DataModel or an error.
+    fn fetch_remote_model(&self, url: &str) -> Result<DataModel, Box<dyn Error>> {
+        let response = reqwest::blocking::get(url)?;
+        let data = response.text()?;
+        let model = DataModel::from_markdown_string(&data)?;
+        Ok(model)
+    }
+
+    /// Fetches and parses a model from a local file path.
+    ///
+    /// # Arguments
+    /// * `path` - The file path to read the model from
+    ///
+    /// # Returns
+    /// A Result containing the parsed DataModel or an error.
+    fn fetch_local_model(
+        &self,
+        path: &str,
+        dirpath: Option<&Path>,
+    ) -> Result<DataModel, Box<dyn Error>> {
+        let path = if let Some(dirpath) = dirpath {
+            dirpath.parent().unwrap().join(path).display().to_string()
+        } else {
+            path.to_string()
+        };
+        let data = std::fs::read_to_string(path)?;
+        let model = DataModel::from_markdown_string(&data)?;
+        Ok(model)
     }
 }
 
@@ -126,6 +218,14 @@ fn default_prefix() -> String {
 /// A string with the default value `"http://mdmodel.net/"`.
 fn default_repo() -> String {
     "http://mdmodel.net/".to_string()
+}
+
+/// Provides the default value for the `allow_empty`.
+///
+/// # Returns
+/// A boolean with the default value `false`.
+fn default_allow_empty() -> bool {
+    false
 }
 
 /// Parses the front matter from the given content.
