@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jan Range
+ * Copyright (c) 2025 Jan Range
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 use crate::{
     attribute::Attribute,
     datamodel::DataModel,
-    markdown::position::Position,
+    markdown::{frontmatter::FrontMatter, position::Position},
     object::{Enumeration, Object},
     xmltype::XMLType,
 };
@@ -52,6 +52,7 @@ pub struct ValidationError {
     pub object: Option<String>,
     pub attribute: Option<String>,
     pub location: String,
+    pub solution: Option<String>,
     pub error_type: ErrorType,
     pub positions: Vec<Position>,
 }
@@ -70,7 +71,7 @@ impl Display for ValidationError {
 
         write!(
             f,
-            "{}[{}{}] {}: {}",
+            "{}[{}{}] {}:\n\t└── {}\n\t    {}",
             line,
             self.object.clone().unwrap_or("Global".into()).bold(),
             match &self.attribute {
@@ -79,6 +80,7 @@ impl Display for ValidationError {
             },
             self.error_type.to_string().bold(),
             self.message.red().bold(),
+            self.solution.clone().unwrap_or("".into()).yellow().bold(),
         )?;
         Ok(())
     }
@@ -93,6 +95,8 @@ pub enum ErrorType {
     TypeError,
     DuplicateError,
     GlobalError,
+    XMLError,
+    ObjectError,
 }
 
 impl Display for ErrorType {
@@ -103,6 +107,8 @@ impl Display for ErrorType {
             ErrorType::TypeError => write!(f, "TypeError"),
             ErrorType::DuplicateError => write!(f, "DuplicateError"),
             ErrorType::GlobalError => write!(f, "GlobalError"),
+            ErrorType::XMLError => write!(f, "XMLError"),
+            ErrorType::ObjectError => write!(f, "ObjectError"),
         }
     }
 }
@@ -197,7 +203,7 @@ impl Validator {
 
         // Validate the objects and enums
         for object in &model.objects {
-            self.validate_object(object, &types);
+            self.validate_object(object, &types, &model.clone().config.unwrap_or_default());
         }
 
         self.sort_errors();
@@ -224,6 +230,10 @@ impl Validator {
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
+                    solution: Some(format!(
+                        "Rename the object(s) at lines {} to be unique.",
+                        get_line_numbers(self.object_positions.get(name).unwrap_or(&vec![]))
+                    )),
                     positions: self
                         .object_positions
                         .get(name)
@@ -263,12 +273,11 @@ impl Validator {
                     attribute: None,
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
-                    positions: self
-                        .enum_positions
-                        .get(name)
-                        .cloned()
-                        .unwrap_or_default()
-                        .clone(),
+                    solution: Some(format!(
+                        "Rename the enumeration(s) at lines {} to be unique.",
+                        get_line_numbers(self.enum_positions.get(name).unwrap_or(&vec![]))
+                    )),
+                    positions: self.enum_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
         }
@@ -280,9 +289,14 @@ impl Validator {
     ///
     /// * `object` - A reference to the `Object` to be validated.
     /// * `types` - A slice of type names that are valid within the model.
-    fn validate_object(&mut self, object: &Object, types: &[&str]) {
+    /// * `frontmatter` - A reference to the `FrontMatter` to be validated.
+    fn validate_object(&mut self, object: &Object, types: &[&str], frontmatter: &FrontMatter) {
         self.validate_object_name(&object.name);
-        self.check_has_attributes(object);
+
+        if !frontmatter.allow_empty {
+            self.check_has_attributes(object);
+        }
+
         self.check_duplicate_attributes(object);
 
         // Validate the attributes of the object
@@ -317,6 +331,10 @@ impl Validator {
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::DuplicateError,
+                    solution: Some(format!(
+                        "Rename the property(ies) at lines {} to be unique.",
+                        get_line_numbers(attribute_positions.get(name).unwrap_or(&vec![]))
+                    )),
                     positions: attribute_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
@@ -335,7 +353,8 @@ impl Validator {
                 object: Some(object.name.clone()),
                 attribute: None,
                 location: "Global".into(),
-                error_type: ErrorType::TypeError,
+                error_type: ErrorType::ObjectError,
+                solution: Some(format!("Add a property to the object '{}'.", object.name)),
                 positions: self
                     .object_positions
                     .get(&object.name)
@@ -351,18 +370,17 @@ impl Validator {
     ///
     /// * `name` - The name of the object to be validated.
     fn validate_object_name(&mut self, name: &str) {
-        let checks = vec![
-            starts_with_character,
-            contains_white_space,
-            contains_special_characters,
-        ];
+        let checks = vec![starts_with_character, contains_white_space, |name: &str| {
+            contains_special_characters(name, false)
+        }];
 
         for check in checks {
-            if let Err(e) = check(name) {
+            if let Err((e, solution)) = check(name) {
                 self.add_error(ValidationError {
                     message: e,
                     object: Some(name.to_string()),
                     attribute: None,
+                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
                     positions: self.object_positions.get(name).cloned().unwrap_or_default(),
@@ -382,6 +400,7 @@ impl Validator {
                 message: "This model has no definitions.".into(),
                 object: Some("Model".into()),
                 attribute: None,
+                solution: Some("Add an object to the model.".into()),
                 location: "Global".into(),
                 error_type: ErrorType::GlobalError,
                 positions: vec![],
@@ -408,6 +427,10 @@ impl Validator {
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
+                solution: Some(format!(
+                    "Add a type to the property '{}' using '- {}: <TYPE>'.",
+                    attribute.name, attribute.name
+                )),
                 positions: attribute_positions
                     .get(&attribute.name)
                     .cloned()
@@ -426,6 +449,9 @@ impl Validator {
                 }
                 XMLType::Element { name, .. } => {
                     self.validate_xml_element_option(name, &object.name, &attribute.name);
+                }
+                XMLType::Wrapped { name, wrapped, .. } => {
+                    self.validate_xml_wrapped_option(name, &object.name, &attribute.name, wrapped);
                 }
             }
         }
@@ -458,6 +484,10 @@ impl Validator {
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
+                solution: Some(format!(
+                    "Add a type to the property '{}' using '- {}: TYPE' after the property name.",
+                    attribute.name, attribute.name
+                )),
                 positions: attribute_positions
                     .get(&attribute.name)
                     .cloned()
@@ -470,13 +500,17 @@ impl Validator {
         if !types.contains(&dtype) && !BASIC_TYPES.contains(&dtype) {
             self.add_error(ValidationError {
                 message: format!(
-                    "Type '{}' of property '{}' not found. Either define the type or use a base type.",
+                    "Type '{}' of property '{}' not found.",
                     dtype, attribute.name
                 ),
                 object: Some(object.name.clone()),
                 attribute: Some(attribute.name.clone()),
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
+                solution: Some(format!(
+                    "Add the type '{}' to the model or use a base type.",
+                    dtype
+                )),
                 positions: attribute_positions
                     .get(&attribute.name)
                     .cloned()
@@ -492,22 +526,21 @@ impl Validator {
     /// * `name` - The name of the attribute to be validated.
     /// * `obj_name` - The name of the object that contains the attribute.
     fn validate_attribute_name(&mut self, name: &str, object: &Object) {
-        let checks = vec![
-            starts_with_character,
-            contains_white_space,
-            contains_special_characters,
-        ];
+        let checks = vec![starts_with_character, contains_white_space, |name: &str| {
+            contains_special_characters(name, false)
+        }];
 
         let attribute_positions = extract_attribute_positions(object);
 
         for check in checks {
-            if let Err(e) = check(name) {
+            if let Err((e, solution)) = check(name) {
                 self.add_error(ValidationError {
                     message: e,
                     object: Some(object.name.clone()),
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
+                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
                     positions: attribute_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
@@ -536,20 +569,103 @@ impl Validator {
                 object: Some(object_name.to_string()),
                 attribute: Some(attribute_name.to_string()),
                 location: "Global".into(),
-                error_type: ErrorType::GlobalError,
+                error_type: ErrorType::XMLError,
+                solution: Some(format!(
+                    "Add an XML option to the property '{}' using '- XML: <TAG_NAME>' in a sub-list below the property name.",
+                    attribute_name
+                )),
                 positions: vec![],
             });
         }
 
         let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
         for opt in options {
-            if contains_special_characters(opt.trim()).is_err() {
+            if let Err((e, solution)) = contains_special_characters(opt.trim(), false) {
                 self.add_error(ValidationError {
-                    message: format!("XML option '{}' contains special characters.", opt),
+                    message: e,
                     object: Some(object_name.to_string()),
                     attribute: Some(attribute_name.to_string()),
                     location: "Global".into(),
-                    error_type: ErrorType::GlobalError,
+                    error_type: ErrorType::XMLError,
+                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    positions: vec![],
+                });
+            }
+        }
+    }
+
+    /// Validates a wrapped XML element option string.
+    ///
+    /// # Arguments
+    ///
+    /// * `option` - The XML element option string to validate. Can contain multiple comma-separated values.
+    ///
+    /// Checks that:
+    /// - The option string is not empty
+    /// - Each comma-separated value contains no special characters
+    fn validate_xml_wrapped_option(
+        &mut self,
+        option: &str,
+        object_name: &str,
+        attribute_name: &str,
+        wrapped: &Option<Vec<String>>,
+    ) {
+        let option = option.trim();
+        if option.is_empty() {
+            self.add_error(ValidationError {
+                message: "XML option is not defined.".into(),
+                object: Some(object_name.to_string()),
+                attribute: Some(attribute_name.to_string()),
+                solution: Some(format!(
+                    "Add an XML option to the property '{}' using '- XML: <TAG_NAME>' in a sub-list below the property name.",
+                    attribute_name
+                )),
+                location: "Global".into(),
+                error_type: ErrorType::XMLError,
+                positions: vec![],
+            });
+        }
+
+        if let Some(wrapped_types) = wrapped {
+            if wrapped_types.len() > 2 {
+                self.add_error(ValidationError {
+                    message: "XML wrapped option can only contain two types.".into(),
+                    object: Some(object_name.to_string()),
+                    attribute: Some(attribute_name.to_string()),
+                    solution: Some(format!(
+                        "Reduce the depth of the wrapped option to two types and create a new object for the third type.",
+                    )),
+                    location: "Global".into(),
+                    error_type: ErrorType::XMLError,
+                    positions: vec![],
+                });
+            }
+
+            wrapped_types.iter().for_each(|wrapped_type| {
+                if let Err((e, solution)) = contains_special_characters(wrapped_type, true) {
+                    self.add_error(ValidationError {
+                        message: e,
+                        object: Some(object_name.to_string()),
+                        attribute: Some(attribute_name.to_string()),
+                        solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                        location: "Global".into(),
+                        error_type: ErrorType::XMLError,
+                        positions: vec![],
+                    });
+                }
+            });
+        }
+
+        let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
+        for opt in options {
+            if let Err((e, solution)) = contains_special_characters(opt.trim(), false) {
+                self.add_error(ValidationError {
+                    message: e,
+                    object: Some(object_name.to_string()),
+                    attribute: Some(attribute_name.to_string()),
+                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    location: "Global".into(),
+                    error_type: ErrorType::XMLError,
                     positions: vec![],
                 });
             }
@@ -585,24 +701,26 @@ impl Validator {
                 message: "XML attribute option is not defined.".into(),
                 object: Some(object_name.to_string()),
                 attribute: Some(attribute_name.to_string()),
+                solution: Some(format!(
+                    "Add an XML option to the property '{}' using '- XML: @<ATTRIBUTE_NAME>' in a sub-list below the property name.",
+                    attribute_name
+                )),
                 location: "Global".into(),
-                error_type: ErrorType::GlobalError,
+                error_type: ErrorType::XMLError,
                 positions: vec![],
             });
         }
 
         let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
         for opt in options {
-            if contains_special_characters(opt).is_err() {
+            if let Err((e, solution)) = contains_special_characters(opt, false) {
                 self.add_error(ValidationError {
-                    message: format!(
-                        "XML attribute option '{}' contains special characters.",
-                        opt
-                    ),
+                    message: e,
                     object: Some(object_name.to_string()),
                     attribute: Some(attribute_name.to_string()),
+                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
                     location: "Global".into(),
-                    error_type: ErrorType::GlobalError,
+                    error_type: ErrorType::XMLError,
                     positions: vec![],
                 });
             }
@@ -697,11 +815,14 @@ fn get_duplicates<'a>(collection: &'a [&'a str]) -> Vec<&'a str> {
 ///
 /// A `Result` which is:
 /// - `Ok(())` if the name starts with an alphabetic character.
-/// - `Err(String)` if the name does not start with an alphabetic character.
-fn starts_with_character(name: &str) -> Result<(), String> {
+/// - `Err((String, String))` if the name does not start with an alphabetic character.
+fn starts_with_character(name: &str) -> Result<(), (String, String)> {
     match name.chars().next() {
         Some(c) if c.is_alphabetic() => Ok(()),
-        _ => Err(format!("Name '{}' must start with a letter.", name)),
+        _ => Err((
+            format!("Name '{}' must start with a letter.", name),
+            format!("{}", name[1..].to_string()),
+        )),
     }
 }
 
@@ -716,12 +837,15 @@ fn starts_with_character(name: &str) -> Result<(), String> {
 /// A `Result` which is:
 /// - `Ok(())` if the name does not contain whitespace.
 /// - `Err(String)` if the name contains whitespace.
-fn contains_white_space(name: &str) -> Result<(), String> {
+fn contains_white_space(name: &str) -> Result<(), (String, String)> {
     name.contains(' ')
         .then(|| {
-            Err(format!(
-                "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
-                name
+            Err((
+                format!(
+                    "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
+                    name
+                ),
+                format!("{}", name.replace(" ", "_")),
             ))
         })
         .unwrap_or(Ok(()))
@@ -738,9 +862,14 @@ fn contains_white_space(name: &str) -> Result<(), String> {
 /// A `Result` which is:
 /// - `Ok(())` if the name does not contain special characters.
 /// - `Err(String)` if the name contains special characters.
-fn contains_special_characters(name: &str) -> Result<(), String> {
-    name.chars().any(|c| !c.is_alphanumeric() && c != '_' && c != ' ').then(
-        || Err(format!("Name '{}' contains special characters, which are not valid except for underscores.", name))
+fn contains_special_characters(name: &str, allow_slash: bool) -> Result<(), (String, String)> {
+    name.chars().any(|c| {
+        !c.is_alphanumeric() && c != '_' && c != ' ' && (!allow_slash || c != '/')
+    }).then(
+        || Err((
+            format!("Name '{}' contains special characters, which are not valid except for underscores.", name),
+            format!("{}", name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect::<String>()),
+        ))
     ).unwrap_or(Ok(()))
 }
 
@@ -817,4 +946,21 @@ fn extract_attribute_positions(object: &Object) -> HashMap<String, Vec<Position>
         }
     }
     positions
+}
+
+/// Extracts line numbers from a slice of Position objects.
+///
+/// # Arguments
+///
+/// * `positions` - A slice of Position objects containing line number information.
+///
+/// # Returns
+///
+/// A string containing the line numbers.
+fn get_line_numbers(positions: &[Position]) -> String {
+    positions
+        .iter()
+        .map(|p| p.line.to_string())
+        .collect::<Vec<String>>()
+        .join(", ")
 }
