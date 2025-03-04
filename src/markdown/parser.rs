@@ -671,15 +671,32 @@ fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
             }
             Event::Text(text) if text.to_string() == "[" => {
                 let last_option = options.last_mut().unwrap();
-                *last_option = format!("{}[]", last_option);
+                let lower = last_option.to_lowercase();
+                if lower.contains("pattern:") || lower.contains("regex:") {
+                    *last_option = format!("{}[", last_option);
+                } else {
+                    *last_option = format!("{}[]", last_option.trim());
+                }
+            }
+            Event::Text(text) if text.to_string() == "]" => {
+                let last_option = options.last_mut().unwrap();
+                let lower = last_option.to_lowercase();
+                if lower.contains("pattern:") || lower.contains("regex:") {
+                    *last_option = format!("{}]", last_option);
+                }
             }
             Event::Text(text) if text.to_string() != "]" => {
                 let last_option = options.last_mut().unwrap();
-                if last_option.to_lowercase().contains("description:") {
+                let lower = last_option.to_lowercase();
+                if lower.contains("description:") {
                     *last_option = format!("{} {}", last_option.trim(), text);
+                } else if lower.contains("pattern:") || lower.contains("regex:") {
+                    *last_option = format!("{}{}", last_option.trim(), text);
                 }
             }
-            _ => {}
+            other => {
+                println!("{:?}", other);
+            }
         }
     }
     options
