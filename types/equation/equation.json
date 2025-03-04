@@ -1,76 +1,95 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JR-1991/md-models",
   "title": "Equation",
   "type": "object",
+  "description": "Represents an equation that can be used in a data model.",
   "properties": {
     "equation": {
       "title": "equation",
-      "description": "The equation that is used in the data model.",
-      "type": "string"
-    },
-    "variables": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/EqVariable"
-      }
+      "type": "string",
+      "description": "The equation that is used in the data model."
     },
     "parameters": {
-      "type": "array",
+      "title": "parameters",
+      "description": "List of parameters that are used in the equation.",
+      "$ref": "#/$defs/EqParameter",
       "items": {
-        "$ref": "#/definitions/EqParameter"
+        "$ref": "#/$defs/EqParameter"
+      }
+    },
+    "variables": {
+      "title": "variables",
+      "description": "List of variables that are used in the equation.",
+      "$ref": "#/$defs/EqVariable",
+      "items": {
+        "$ref": "#/$defs/EqVariable"
       }
     }
   },
-  "description": "Represents an equation that can be used in a data model.",
-  "definitions": {
+  "$defs": {
     "EqParameter": {
       "title": "EqParameter",
       "type": "object",
+      "description": "Represents a parameter that is used in the equation.",
       "properties": {
         "id": {
           "title": "id",
-          "description": "Unique identifier for the parameter.",
-          "type": "string"
+          "type": "string",
+          "description": "Unique identifier for the parameter."
         },
         "name": {
           "title": "name",
-          "description": "Name of the parameter.",
-          "type": "string"
+          "type": "string",
+          "description": "Name of the parameter."
         },
         "symbol": {
           "title": "symbol",
-          "description": "Symbol of the parameter.",
-          "type": "string"
+          "type": "string",
+          "description": "Symbol of the parameter."
         },
         "value": {
           "title": "value",
-          "description": "Value of the parameter.",
-          "type": "number"
+          "type": "number",
+          "description": "Value of the parameter."
         }
       },
-      "description": "Represents a parameter that is used in the equation."
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
     },
     "EqVariable": {
       "title": "EqVariable",
       "type": "object",
+      "description": "Represents a variable that is used in the equation.",
       "properties": {
         "id": {
           "title": "id",
-          "description": "Unique identifier for the variable.",
-          "type": "string"
+          "type": "string",
+          "description": "Unique identifier for the variable."
         },
         "name": {
           "title": "name",
-          "description": "Name of the variable.",
-          "type": "string"
+          "type": "string",
+          "description": "Name of the variable."
         },
         "symbol": {
           "title": "symbol",
-          "description": "Symbol of the variable.",
-          "type": "string"
+          "type": "string",
+          "description": "Symbol of the variable."
         }
       },
-      "description": "Represents a variable that is used in the equation."
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
     }
-  }
+  },
+  "required": [
+    "equation"
+  ],
+  "additionalProperties": false
 }

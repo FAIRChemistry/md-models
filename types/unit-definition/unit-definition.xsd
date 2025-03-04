@@ -39,7 +39,7 @@
 
     <!-- BaseUnit Definition -->
     <xs:complexType name="BaseUnitType">
-        <xs:attribute name="kind" type="xs:UnitType"  use="required">
+        <xs:attribute name="kind" type="UnitTypeType"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     Kind of the base unit (e.g., meter, kilogram, second).

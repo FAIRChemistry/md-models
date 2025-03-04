@@ -17,9 +17,21 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "id"
+            "name": "id",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 15,
+            "column": {
+              "start": 1,
+              "end": 5
+            },
+            "offset": {
+              "start": 605,
+              "end": 876
+            }
+          }
         },
         {
           "name": "name",
@@ -34,9 +46,21 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "name"
+            "name": "name",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 19,
+            "column": {
+              "start": 1,
+              "end": 7
+            },
+            "offset": {
+              "start": 699,
+              "end": 791
+            }
+          }
         },
         {
           "name": "base_units",
@@ -51,12 +75,35 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "base_units"
+            "name": "base_units",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": true,
+          "position": {
+            "line": 23,
+            "column": {
+              "start": 1,
+              "end": 13
+            },
+            "offset": {
+              "start": 791,
+              "end": 876
+            }
+          }
         }
       ],
-      "docstring": "Represents a unit definition that is based on the SI unit system."
+      "docstring": "Represents a unit definition that is based on the SI unit system.",
+      "position": {
+        "line": 11,
+        "column": {
+          "start": 1,
+          "end": 19
+        },
+        "offset": {
+          "start": 518,
+          "end": 537
+        }
+      }
     },
     {
       "name": "BaseUnit",
@@ -74,9 +121,21 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "kind"
+            "name": "kind",
+            "wrapped": null
           },
-          "is_enum": true
+          "is_enum": true,
+          "position": {
+            "line": 31,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 938,
+              "end": 1398
+            }
+          }
         },
         {
           "name": "exponent",
@@ -91,9 +150,21 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "exponent"
+            "name": "exponent",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 35,
+            "column": {
+              "start": 1,
+              "end": 15
+            },
+            "offset": {
+              "start": 1055,
+              "end": 1174
+            }
+          }
         },
         {
           "name": "multiplier",
@@ -108,9 +179,21 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "multiplier"
+            "name": "multiplier",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 39,
+            "column": {
+              "start": 1,
+              "end": 13
+            },
+            "offset": {
+              "start": 1174,
+              "end": 1293
+            }
+          }
         },
         {
           "name": "scale",
@@ -125,12 +208,35 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "scale"
+            "name": "scale",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 43,
+            "column": {
+              "start": 1,
+              "end": 8
+            },
+            "offset": {
+              "start": 1293,
+              "end": 1398
+            }
+          }
         }
       ],
-      "docstring": "Represents a base unit in the unit definition."
+      "docstring": "Represents a base unit in the unit definition.",
+      "position": {
+        "line": 27,
+        "column": {
+          "start": 1,
+          "end": 13
+        },
+        "offset": {
+          "start": 876,
+          "end": 889
+        }
+      }
     }
   ],
   "enums": [
@@ -172,14 +278,28 @@
         "WATT": "watt",
         "WEBER": "weber"
       },
-      "docstring": ""
+      "docstring": "",
+      "position": {
+        "line": 50,
+        "column": {
+          "start": 1,
+          "end": 13
+        },
+        "offset": {
+          "start": 1415,
+          "end": 1428
+        }
+      }
     }
   ],
   "config": {
+    "id": null,
     "id-field": true,
     "prefixes": null,
     "nsmap": null,
     "repo": "https://github.com/JR-1991/md-models",
-    "prefix": "md"
+    "prefix": "md",
+    "imports": {},
+    "allow-empty": false
   }
 }

@@ -17,9 +17,21 @@
           "required": true,
           "xml": {
             "is_attr": false,
-            "name": "equation"
+            "name": "equation",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 13,
+            "column": {
+              "start": 1,
+              "end": 15
+            },
+            "offset": {
+              "start": 340,
+              "end": 713
+            }
+          }
         },
         {
           "name": "variables",
@@ -34,9 +46,21 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "list_of_variables"
+            "name": "list_of_variables",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": true,
+          "position": {
+            "line": 17,
+            "column": {
+              "start": 1,
+              "end": 12
+            },
+            "offset": {
+              "start": 452,
+              "end": 580
+            }
+          }
         },
         {
           "name": "parameters",
@@ -51,12 +75,35 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "list_of_parameters"
+            "name": "list_of_parameters",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": true,
+          "position": {
+            "line": 21,
+            "column": {
+              "start": 1,
+              "end": 13
+            },
+            "offset": {
+              "start": 580,
+              "end": 713
+            }
+          }
         }
       ],
-      "docstring": "Represents an equation that can be used in a data model."
+      "docstring": "Represents an equation that can be used in a data model.",
+      "position": {
+        "line": 9,
+        "column": {
+          "start": 1,
+          "end": 13
+        },
+        "offset": {
+          "start": 268,
+          "end": 281
+        }
+      }
     },
     {
       "name": "EqVariable",
@@ -74,9 +121,21 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "id"
+            "name": "id",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 30,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 782,
+              "end": 1045
+            }
+          }
         },
         {
           "name": "name",
@@ -91,9 +150,21 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "name"
+            "name": "name",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 34,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 878,
+              "end": 960
+            }
+          }
         },
         {
           "name": "symbol",
@@ -108,12 +179,35 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "symbol"
+            "name": "symbol",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 38,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 960,
+              "end": 1045
+            }
+          }
         }
       ],
-      "docstring": "Represents a variable that is used in the equation."
+      "docstring": "Represents a variable that is used in the equation.",
+      "position": {
+        "line": 26,
+        "column": {
+          "start": 1,
+          "end": 15
+        },
+        "offset": {
+          "start": 713,
+          "end": 728
+        }
+      }
     },
     {
       "name": "EqParameter",
@@ -131,9 +225,21 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "id"
+            "name": "id",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 47,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 1116,
+              "end": 1462
+            }
+          }
         },
         {
           "name": "name",
@@ -148,9 +254,21 @@
           "required": true,
           "xml": {
             "is_attr": true,
-            "name": "name"
+            "name": "name",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 51,
+            "column": {
+              "start": 1,
+              "end": 11
+            },
+            "offset": {
+              "start": 1213,
+              "end": 1296
+            }
+          }
         },
         {
           "name": "symbol",
@@ -165,9 +283,21 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "symbol"
+            "name": "symbol",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 55,
+            "column": {
+              "start": 1,
+              "end": 9
+            },
+            "offset": {
+              "start": 1296,
+              "end": 1381
+            }
+          }
         },
         {
           "name": "value",
@@ -182,20 +312,46 @@
           "required": false,
           "xml": {
             "is_attr": true,
-            "name": "value"
+            "name": "value",
+            "wrapped": null
           },
-          "is_enum": false
+          "is_enum": false,
+          "position": {
+            "line": 59,
+            "column": {
+              "start": 1,
+              "end": 8
+            },
+            "offset": {
+              "start": 1381,
+              "end": 1462
+            }
+          }
         }
       ],
-      "docstring": "Represents a parameter that is used in the equation."
+      "docstring": "Represents a parameter that is used in the equation.",
+      "position": {
+        "line": 43,
+        "column": {
+          "start": 1,
+          "end": 16
+        },
+        "offset": {
+          "start": 1045,
+          "end": 1061
+        }
+      }
     }
   ],
   "enums": [],
   "config": {
+    "id": null,
     "id-field": true,
     "prefixes": null,
     "nsmap": null,
     "repo": "https://github.com/JR-1991/md-models",
-    "prefix": "md"
+    "prefix": "md",
+    "imports": {},
+    "allow-empty": false
   }
 }
