@@ -97,7 +97,7 @@ struct ConvertArgs {
     #[arg(
         short = 'O',
         long,
-        value_parser, 
+        value_parser,
         num_args = 1.., value_delimiter = ',',
         help = "Options to pass to the template"
     )]
