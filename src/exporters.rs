@@ -234,6 +234,7 @@ pub fn render_jinja_template(
     env.add_filter("cap_first", cap_first);
     env.add_filter("split_path_pairs", split_path_pairs);
     env.add_filter("pascal_case", pascal_case);
+    env.add_filter("camel_case", camel_case);
     env.add_filter("snake_case", snake_case);
     env.add_filter("replace_lower", replace_lower);
 
@@ -431,6 +432,12 @@ fn split_path_pairs(path: String, initial: Option<String>) -> Vec<Vec<String>> {
 /// Converts a string to PascalCase.
 fn pascal_case(s: String) -> String {
     s.to_case(Case::Pascal)
+}
+
+/// Filter use only for Jinja templates.
+/// Converts a string to camelCase.
+fn camel_case(s: String) -> String {
+    s.to_case(Case::Camel)
 }
 
 /// Filter use only for Jinja templates.
