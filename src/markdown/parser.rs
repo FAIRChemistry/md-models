@@ -694,9 +694,7 @@ fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
                     *last_option = format!("{}{}", last_option.trim(), text);
                 }
             }
-            other => {
-                println!("{:?}", other);
-            }
+            _ => {}
         }
     }
     options
