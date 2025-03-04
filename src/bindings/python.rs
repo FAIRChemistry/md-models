@@ -54,10 +54,10 @@ impl DataModel {
     /// A new instance of `DataModel`.
     #[classmethod]
     #[pyo3(signature = (path))]
-    fn from_markdown(_cls: &Bound<'_, PyType>, path: String) -> PyResult<Self> {
-        Ok(Self {
+    fn from_markdown(_cls: &Bound<'_, PyType>, path: String) -> Self {
+        Self {
             model: datamodel::DataModel::from_markdown(Path::new(&path)).unwrap(),
-        })
+        }
     }
 
     /// Creates a new `DataModel` instance from a markdown string.
@@ -71,10 +71,10 @@ impl DataModel {
     /// A new instance of `DataModel`.
     #[classmethod]
     #[pyo3(signature = (content))]
-    fn from_markdown_string(_cls: &Bound<'_, PyType>, content: String) -> PyResult<Self> {
-        Ok(Self {
+    fn from_markdown_string(_cls: &Bound<'_, PyType>, content: String) -> Self {
+        Self {
             model: datamodel::DataModel::from_markdown_string(&content).unwrap(),
-        })
+        }
     }
 
     /// Returns a string representation of the `DataModel` instance.
