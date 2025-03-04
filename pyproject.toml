@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "mdmodels_core"
-version = "0.2.1"
+version = "0.2.2"
 description = "A tool to generate models, code and schemas from markdown files"
 requires-python = ">=3.8"
 classifiers = [
