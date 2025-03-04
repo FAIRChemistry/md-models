@@ -104,7 +104,7 @@ list[{{ type(attr, true) }}]
 {%- if attr.multiple -%}
  = []
 {%- elif 'default' in attr -%}
- = {%- if attr.default is boolean -%}
+ = {%- if attr.default is true or attr.default is false -%}
     {{ attr.default | capitalize }}
     {%- elif attr.default is false -%}
     False
