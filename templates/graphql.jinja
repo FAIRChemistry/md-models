@@ -88,7 +88,7 @@ type Query {
   all{{ object.name }}s: [{{ object.name }}]
   {%- for attr in object.attributes %}
   {%- if not attr.multiple and attr.dtypes | length == 1 and attr.dtypes[0] not in object_names %}
-  {{ object.name | lower }}By{{ attr.name | capitalize }}({{ attr.name }}: {{ get_type(attr) }}): [{{ object.name }}]
+  {{ object.name | lower }}By{{ attr.name | pascal_case }}({{ attr.name }}: {{ get_type(attr) }}): [{{ object.name }}]
   {%- endif %}
   {%- endfor %}
   {%- endfor %}
