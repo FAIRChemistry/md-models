@@ -32,11 +32,22 @@
 {%- endmacro -%}
 
 {#
+    This macro determines whether an attribute/element is a reference to an object or enum.
+#}
+{%- macro is_reference(attribute) -%}
+    {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
+        {{ attribute.dtypes[0] }}Type
+    {%- else -%}
+        xs:{{ attribute.dtypes[0] }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
     This macro creates an entry in the XML schema for a given attribute.
 #}
 {%- macro create_attribute(attribute) -%}
         {%- if attribute.docstring | length > 0 %}
-        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}"
+        <xs:attribute name="{{ attribute.name }}" type="{{ is_reference(attribute) }}"
             {%- if is_required(attribute) %} {{ is_required(attribute) }}{%- endif -%}
             {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
             >
@@ -47,7 +58,7 @@
             </xs:annotation>
         </xs:attribute>
         {%- else -%}
-        <xs:attribute name="{{ attribute.name }}" type="xs:{{ attribute.dtypes[0] }}"
+        <xs:attribute name="{{ attribute.name }}" type="{{ is_reference(attribute) }}"
         {%- if is_required(attribute) %} {{ is_required(attribute) }}{%- endif -%}
         {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
         />
