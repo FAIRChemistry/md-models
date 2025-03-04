@@ -29,22 +29,7 @@ WARNING: This is an auto-generated file.
 Do not edit directly - any changes will be overwritten.
 """
 
-{#
-    This macro determines whether a given attributes default is a string
-#}
-{%- macro get_default(default) -%}
-    {%- if default == "false" or default == "true" -%}
-        {{ default | capitalize }}
-    {%- elif default == "False" or default == "True" -%}
-        {{ default | capitalize }}
-    {%- elif default is string -%}
-        "{{ default }}"
-    {%- else -%}
-        {{ default | capitalize }}
-    {%- endif -%}
-{%- endmacro -%}
 
-{% import "python-macros.jinja" as utils %}
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
@@ -53,9 +38,7 @@ from typing import Optional, Generic, TypeVar
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
-{%- if config.astropy %}
 from mdmodels.units.annotation import UnitDefinitionAnnot
-{%- endif %}
 
 # Filter Wrapper definition used to filter a list of objects
 # based on their attributes
@@ -116,73 +99,35 @@ def validate_prefix(term: str | dict, prefix: str):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
 
 # Model Definitions
-{% for object in objects %}
-{%- if not (astropy and object.name in ["UnitDefinition", "BaseUnit"]) %}
-class {{ object.name }}(BaseModel):
+
+class UnitTest(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
         validate_assigment = True,
     ) # type: ignore
-    {% for attribute in object.attributes %}
-    {%- if attribute.multiple is true %}
-    {{ attribute.name }}: list[{{ attribute.dtypes[0] }}] = Field(default_factory=list)
-    {%- elif 'default' in attribute%}
-    {{ attribute.name }}: {{ attribute.dtypes[0] }} = {{ get_default(attribute.default) }}
-    {%- elif attribute.required is true %}
-    {{ attribute.name }}: {{ attribute.dtypes[0] }}
-    {%- else %}
-    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = Field(default=None)
-    {%- endif %}
-    {%- endfor %}
+
+    units: list[UnitDefinitionAnnot] = Field(default_factory=list)
+    optional_unit: Optional[UnitDefinitionAnnot] = Field(default=None)
+    unit: Optional[UnitDefinitionAnnot] = Field(default=None)
 
     # JSON-LD fields
     ld_id: str = Field(
         serialization_alias="@id",
-        default_factory=lambda: "{{ prefix }}:{{ object.name }}/" + str(uuid4())
+        default_factory=lambda: "md:UnitTest/" + str(uuid4())
     )
     ld_type: list[str] = Field(
         serialization_alias="@type",
         default_factory = lambda: [
-            "{{ prefix }}:{{ object.name }}",
-            {%- if object.term -%}"{{ object.term }}"{%- endif %}
+            "md:UnitTest",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
         default_factory = lambda: {
-            "{{ prefix }}": "{{ repo }}",
-            {%- for prefix, address in prefixes %}
-            "{{ prefix }}": "{{ address }}",
-            {%- endfor %}
-            {%- for attribute in object.attributes %}
-            {%- if attribute.is_id %}
-            "{{ attribute.name }}": {
-                {%- if attribute.term %}
-                "@id": "{{ attribute.term }}",
-                {%- endif %}
-                "@type": "@id",
-            },
-            {%- elif attribute.term %}
-            "{{ attribute.name }}": "{{ attribute.term }}",
-            {%- endif -%}
-            {%- endfor %}
+            "md": "http://mdmodel.net/",
         }
     )
-    {% for attr in object.attributes -%}
-    {%- if attr.multiple is true and attr.dtypes[0] in object_names %}
-    def filter_{{ attr.name }}(self, **kwargs) -> list[{{ attr.dtypes[0] }}]:
-        """Filters the {{ attr.name }} attribute based on the given kwargs
 
-        Args:
-            **kwargs: The attributes to filter by.
-
-        Returns:
-            list[{{ attr.dtypes[0] }}]: The filtered list of {{ attr.dtypes[0] }} objects
-        """
-
-        return FilterWrapper[{{ attr.dtypes[0] }}](self.{{ attr.name }}, **kwargs).filter()
-    {% endif %}
-    {%- endfor %}
 
     def set_attr_term(
         self,
@@ -250,35 +195,9 @@ class {{ object.name }}(BaseModel):
         add_namespace(self, prefix, iri)
         self.ld_type.append(term)
 
-    {% for attr in object.attributes %}
-    {% for dtype in attr.dtypes %}
-    {%- if dtype in object_names and attr.multiple is true %}
-    def add_to_{{ attr.name }}(
-        {{ utils.signature(objects, dtype) }}
-    ):
-        params = { {{ utils.params(objects, dtype) }}
-        }
 
-        if "id" in kwargs:
-            params["id"] = kwargs["id"]
-
-        self.{{ attr.name }}.append(
-            {{ dtype }}(**params)
-        )
-
-        return self.{{ attr.name }}[-1]
-
-    {%- endif %}
-    {%- endfor %}
-    {% endfor %}
-{%- endif %}
-{%- endfor %}
-
-{%- for enum in enums %}
-class {{ enum.name }}(Enum):
-    {%- for key, value in enum.mappings | dictsort %}
-    {{ key }} = "{{ value }}"
-    {%- endfor %}
-{% endfor %}
-
-{{ utils.rebuild_classes(objects) }}
+# Rebuild all the classes within this file
+for cls in [
+    UnitTest,
+]:
+    cls.model_rebuild()
