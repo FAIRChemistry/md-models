@@ -74,7 +74,7 @@ pub enum AttrOption {
     #[strum(serialize = "maxlength")]
     MaxLength(usize),
     /// Specifies a regular expression pattern that a string attribute must match
-    #[strum(serialize = "pattern")]
+    #[strum(serialize = "pattern", serialize = "regex")]
     Pattern(String),
     /// Specifies whether array items must be unique
     #[strum(serialize = "unique")]
@@ -272,6 +272,11 @@ impl From<AttrOption> for RawOption {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
+    use crate::prelude::DataModel;
+    use pretty_assertions::assert_eq;
+
     use super::*;
 
     #[test]
@@ -285,6 +290,11 @@ mod tests {
             ("maxlength", "20", AttrOption::MaxLength(20)),
             (
                 "pattern",
+                "^[a-z]+$",
+                AttrOption::Pattern("^[a-z]+$".to_string()),
+            ),
+            (
+                "regex",
                 "^[a-z]+$",
                 AttrOption::Pattern("^[a-z]+$".to_string()),
             ),
@@ -387,5 +397,76 @@ mod tests {
         let deserialized: RawOption = serde_json::from_str(serialized).unwrap();
         assert_eq!(deserialized.key(), "minimum");
         assert_eq!(deserialized.value(), "10.5");
+    }
+
+    #[test]
+    fn test_attr_option_from_str() {
+        let path = PathBuf::from("tests/data/model_options.md");
+        let model = DataModel::from_markdown(&path).expect("Failed to parse markdown file");
+        let attr = model.objects.first().unwrap();
+        let attribute = attr.attributes.first().unwrap();
+        let options = attribute
+            .options
+            .iter()
+            .map(|o| o.key())
+            .collect::<Vec<_>>();
+
+        let expected = vec![
+            "minimum",
+            "maximum",
+            "minitems",
+            "maxitems",
+            "minlength",
+            "maxlength",
+            "pattern",
+            "unique",
+            "multipleof",
+            "exclusiveminimum",
+            "exclusivemaximum",
+            "primarykey",
+            "readonly",
+            "recommended",
+        ];
+
+        let mut missing = Vec::new();
+        for expected_option in expected {
+            if !options.contains(&expected_option.to_string()) {
+                missing.push(expected_option);
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "Expected options \n[{}]\nnot found in \n[{}]",
+            missing.join(", "),
+            options.join(", ")
+        );
+
+        // Assert that the content of the options is correct
+        let expected_options = vec![
+            AttrOption::Example("test".to_string()),
+            AttrOption::MinimumValue(0.0),
+            AttrOption::MaximumValue(100.0),
+            AttrOption::MinItems(1),
+            AttrOption::MaxItems(10),
+            AttrOption::MinLength(1),
+            AttrOption::MaxLength(100),
+            AttrOption::Pattern("^[a-zA-Z0-9]+$".to_string()),
+            AttrOption::Pattern("^[a-zA-Z0-9]+$".to_string()),
+            AttrOption::Unique(true),
+            AttrOption::MultipleOf(2),
+            AttrOption::ExclusiveMinimum(0.0),
+            AttrOption::ExclusiveMaximum(100.0),
+            AttrOption::PrimaryKey(true),
+            AttrOption::ReadOnly(true),
+            AttrOption::Recommended(true),
+        ];
+
+        for expected_option in expected_options.iter() {
+            for option in attribute.options.iter() {
+                if option.key() == expected_option.key() {
+                    assert_eq!(option, expected_option);
+                }
+            }
+        }
     }
 }
