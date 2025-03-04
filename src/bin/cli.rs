@@ -33,7 +33,9 @@ use mdmodels::{
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr};
+use std::{
+    collections::HashMap, error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr,
+};
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
@@ -91,9 +93,15 @@ struct ConvertArgs {
     )]
     root: Option<String>,
 
-    /// Whether to generate a builder.
-    #[arg(long, help = "Whether to generate a builder")]
-    builder: bool,
+    /// Options to pass to the template.
+    #[arg(
+        short = 'O',
+        long,
+        value_parser, 
+        num_args = 1.., value_delimiter = ',',
+        help = "Options to pass to the template"
+    )]
+    options: Vec<String>,
 }
 
 /// Arguments for the pipeline subcommand.
@@ -322,10 +330,15 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     }
 
     // Render the template.
+    let config: HashMap<String, String> = args
+        .options
+        .iter()
+        .map(|s| (s.clone(), "true".to_string()))
+        .collect();
     let rendered = match args.template {
         Templates::JsonSchema => model.json_schema(args.root, false)?,
         Templates::Linkml => serialize_linkml(model, args.output.as_ref())?,
-        _ => render_jinja_template(&args.template, &mut model, None)?,
+        _ => render_jinja_template(&args.template, &mut model, Some(&config))?,
     };
 
     // Output the rendered content.
