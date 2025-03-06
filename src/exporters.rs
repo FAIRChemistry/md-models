@@ -23,10 +23,7 @@
 
 use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
-use crate::{
-    datamodel::DataModel, markdown::frontmatter::FrontMatter, object::Object, option::AttrOption,
-    tree, xmltype::XMLType,
-};
+use crate::{markdown::frontmatter::FrontMatter, prelude::DataModel, tree, xmltype::XMLType};
 use clap::ValueEnum;
 use colored::Colorize;
 use convert_case::{Case, Casing};
@@ -222,9 +219,6 @@ pub fn render_jinja_template(
         Templates::Julia => {
             sort_by_dependency(model);
         }
-        Templates::Golang => {
-            add_pk_fields(model);
-        }
         _ => {}
     }
 
@@ -269,6 +263,8 @@ pub fn render_jinja_template(
     if model.config.is_none() {
         model.config = Some(FrontMatter::default());
     }
+
+    println!("{}", pk_objects(model).join(", "));
 
     // Render the template
     let prefixes = get_prefixes(model);
@@ -317,30 +313,6 @@ fn get_objects_with_wrapped(model: &mut DataModel) -> Vec<String> {
         })
         .map(|o| o.name.clone())
         .collect()
-}
-
-/// Helper function to add a primary key field to the object.
-fn add_pk_fields(model: &mut DataModel) {
-    for object in &mut model.objects {
-        if has_pk(object) {
-            continue;
-        }
-        for attribute in &mut object.attributes {
-            if attribute.name == "id" {
-                attribute.options.push(AttrOption::PrimaryKey(true));
-                break;
-            }
-        }
-    }
-}
-
-/// Helper function to check if an object has a primary key.
-fn has_pk(object: &Object) -> bool {
-    object.attributes.iter().any(|a| {
-        a.options
-            .iter()
-            .any(|o| matches!(o, AttrOption::PrimaryKey { .. }))
-    })
 }
 
 /// Replaces all occurrences of a substring with another substring.
@@ -453,19 +425,18 @@ fn remove_multiple_spaces(input: &str) -> String {
 
 /// Checks if an object has a primary key.
 fn pk_objects(model: &mut DataModel) -> Vec<String> {
-    model
-        .objects
-        .iter()
-        .filter(|o| {
-            o.attributes.iter().any(|a| {
-                a.options
-                    .iter()
-                    .any(|o| matches!(o, AttrOption::PrimaryKey { .. }))
-                    || a.name == "id"
-            })
-        })
-        .map(|o| o.name.clone())
-        .collect()
+    let mut pk_objects = Vec::new();
+    for object in &mut model.objects {
+        for attribute in &object.attributes {
+            for option in &attribute.options {
+                if option.key() == "primary key" {
+                    pk_objects.push(object.name.clone());
+                    break;
+                }
+            }
+        }
+    }
+    pk_objects
 }
 
 /// Converts the data types in the model according to the provided type map.
@@ -638,7 +609,7 @@ fn cap_first(s: String) -> String {
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
-    use std::{fs, path::Path};
+    use std::fs;
 
     use crate::markdown::parser::parse_markdown;
 

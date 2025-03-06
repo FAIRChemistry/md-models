@@ -44,6 +44,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
   - Term: schema:one
   - XML: @number
   - Minimum: 0
+  - Primary Key: true
 
 ## Enumerations
 

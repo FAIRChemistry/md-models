@@ -32,9 +32,8 @@ type TestGorm struct {
 
 // Test2
 type Test2 struct {
-    gorm.Model
     Names []string `json:"names,omitempty" xml:"name,omitempty" `
-    Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" `
+    Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" gorm:"primaryKey"`
 }
 
 //

@@ -71,6 +71,7 @@
     {%- if attr.required is false -%},omitempty{%- endif -%}
 {% endmacro %}
 
+
 {# Generates GORM tag for a field if needed #}
 {% macro gorm_tag(attr, parent_name) %}
     {%- if config.gorm -%}
@@ -78,7 +79,7 @@
         gorm:"many2many:{{ parent_name | lower }}_{{ attr.name }};"
     {%- else -%}
     {%- for option in attr.options -%}
-        {%- if option.key == "pk" -%}
+        {%- if option.key == "primary key" -%}
             gorm:"primaryKey"
         {%- endif -%}
     {%- endfor -%}
@@ -155,7 +156,7 @@ import (
 // {{ wrap(object.docstring, 80, "", "// ", None) }}
 {%- endif %}
 type {{ object.name }} struct {
-{%- if config.gorm %}
+{%- if config.gorm and object.name not in pk_objects %}
     gorm.Model
 {%- endif %}
 {%- for attr in object.attributes %}
