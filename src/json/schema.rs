@@ -28,6 +28,8 @@ use std::{
     str::FromStr,
 };
 
+use crate::attribute;
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum SchemaType {
@@ -80,6 +82,8 @@ pub struct Property {
     pub title: String,
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub dtype: Option<DataType>,
+    #[serde(rename = "default", skip_serializing_if = "Option::is_none")]
+    pub default: Option<PrimitiveType>,
     #[serde(skip_serializing_if = "skip_empty_string")]
     pub description: Option<String>,
     #[serde(rename = "$term", skip_serializing_if = "skip_empty_string")]
@@ -230,6 +234,19 @@ impl From<&String> for PrimitiveType {
         }
 
         PrimitiveType::String(s.clone())
+    }
+}
+
+impl From<attribute::DataType> for PrimitiveType {
+    fn from(dtype: attribute::DataType) -> Self {
+        match dtype {
+            attribute::DataType::String(s) => {
+                PrimitiveType::String(s.trim_matches('"').to_string())
+            }
+            attribute::DataType::Integer(i) => PrimitiveType::Integer(i),
+            attribute::DataType::Float(f) => PrimitiveType::Number(f),
+            attribute::DataType::Boolean(b) => PrimitiveType::Boolean(b),
+        }
     }
 }
 

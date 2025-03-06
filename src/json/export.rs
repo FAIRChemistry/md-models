@@ -398,6 +398,7 @@ impl TryFrom<&Attribute> for schema::Property {
         Ok(schema::Property {
             title: attr.name.clone(),
             dtype,
+            default: attr.default.clone().map(|d| d.into()),
             description,
             term: attr.term.clone(),
             reference,

@@ -346,6 +346,7 @@ impl FromStr for DataType {
     /// Converts a string to a DataType (Boolean, Integer, Float, or String).
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let lower_s = s.to_lowercase();
+        let lower_s = lower_s.trim_matches('"');
 
         if let Ok(b) = lower_s.parse::<bool>() {
             Ok(DataType::Boolean(b))
