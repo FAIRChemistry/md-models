@@ -121,7 +121,7 @@ def validate_prefix(term: str | dict, prefix: str):
 class {{ object.name }}(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
-        validate_assigment = True,
+        validate_assignment = True,
     ) # type: ignore
     {% for attribute in object.attributes %}
     {%- if attribute.multiple is true %}

@@ -653,8 +653,11 @@ mod tests {
     /// # Returns
     ///
     /// A string containing the rendered template.
-    fn build_and_convert(template: Templates, config: Option<&HashMap<String, String>>) -> String {
-        let path = Path::new("tests/data/model.md");
+    fn build_and_convert(
+        path: &str,
+        template: Templates,
+        config: Option<&HashMap<String, String>>,
+    ) -> String {
         let content = fs::read_to_string(path).expect("Could not read markdown file");
         let mut model = parse_markdown(&content, None).expect("Failed to parse markdown file");
         render_jinja_template(&template, &mut model, config)
@@ -665,7 +668,7 @@ mod tests {
     #[test]
     fn test_convert_to_shex() {
         // Arrange
-        let rendered = build_and_convert(Templates::Shex, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Shex, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_shex.shex")
@@ -676,7 +679,7 @@ mod tests {
     #[test]
     fn test_convert_to_shacl() {
         // Arrange
-        let rendered = build_and_convert(Templates::Shacl, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Shacl, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_shacl.ttl")
@@ -687,7 +690,7 @@ mod tests {
     #[test]
     fn test_convert_to_python_dc() {
         // Arrange
-        let rendered = build_and_convert(Templates::PythonDataclass, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::PythonDataclass, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_python_dc.py")
@@ -698,7 +701,7 @@ mod tests {
     #[test]
     fn test_convert_to_python_pydantic_xml() {
         // Arrange
-        let rendered = build_and_convert(Templates::PythonPydanticXML, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::PythonPydanticXML, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_python_pydantic_xml.py")
@@ -709,7 +712,7 @@ mod tests {
     #[test]
     fn test_convert_to_xsd() {
         // Arrange
-        let rendered = build_and_convert(Templates::XmlSchema, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::XmlSchema, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_xml_schema.xsd")
@@ -720,7 +723,7 @@ mod tests {
     #[test]
     fn test_convert_to_mkdocs() {
         // Arrange
-        let rendered = build_and_convert(Templates::MkDocs, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::MkDocs, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_mkdocs.md")
@@ -731,7 +734,7 @@ mod tests {
     #[test]
     fn test_convert_to_typescript() {
         // Arrange
-        let rendered = build_and_convert(Templates::Typescript, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Typescript, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_typescript.ts")
@@ -742,7 +745,7 @@ mod tests {
     #[test]
     fn test_convert_to_typescript_zod() {
         // Arrange
-        let rendered = build_and_convert(Templates::TypescriptZod, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::TypescriptZod, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_typescript_zod.ts")
@@ -753,7 +756,7 @@ mod tests {
     #[test]
     fn test_convert_to_pydantic() {
         // Arrange
-        let rendered = build_and_convert(Templates::PythonPydantic, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::PythonPydantic, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_pydantic.py")
@@ -764,19 +767,14 @@ mod tests {
     #[test]
     fn test_convert_to_pydantic_unitdef() {
         // Arrange
-        let path = Path::new("tests/data/model_unitdef.md");
-        let content = fs::read_to_string(path).expect("Could not read markdown file");
-        let mut model = parse_markdown(&content, None).expect("Failed to parse markdown file");
-        let rendered = render_jinja_template(
-            &Templates::PythonPydantic,
-            &mut model,
+        let rendered = build_and_convert(
+            "tests/data/model_unitdef.md",
+            Templates::PythonPydantic,
             Some(&HashMap::from([(
                 "astropy".to_string(),
                 "true".to_string(),
             )])),
-        )
-        .expect("Could not render template")
-        .to_string();
+        );
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_pydantic_unitdef.py")
@@ -787,7 +785,7 @@ mod tests {
     #[test]
     fn test_convert_to_graphql() {
         // Arrange
-        let rendered = build_and_convert(Templates::Graphql, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Graphql, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_graphql.graphql")
@@ -798,7 +796,7 @@ mod tests {
     #[test]
     fn test_convert_to_golang() {
         // Arrange
-        let rendered = build_and_convert(Templates::Golang, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Golang, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_golang.go")
@@ -807,9 +805,24 @@ mod tests {
     }
 
     #[test]
+    fn test_convert_to_golang_gorm() {
+        // Arrange
+        let rendered = build_and_convert(
+            "tests/data/model_golang_gorm.md",
+            Templates::Golang,
+            Some(&HashMap::from([("gorm".to_string(), "true".to_string())])),
+        );
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_golang_gorm.go")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
     fn test_convert_to_rust() {
         // Arrange
-        let rendered = build_and_convert(Templates::Rust, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Rust, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_rust.rs")
@@ -820,7 +833,7 @@ mod tests {
     #[test]
     fn test_convert_to_protobuf() {
         // Arrange
-        let rendered = build_and_convert(Templates::Protobuf, None);
+        let rendered = build_and_convert("tests/data/model.md", Templates::Protobuf, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_protobuf.proto")
