@@ -264,8 +264,6 @@ pub fn render_jinja_template(
         model.config = Some(FrontMatter::default());
     }
 
-    println!("{}", pk_objects(model).join(", "));
-
     // Render the template
     let prefixes = get_prefixes(model);
     let rendered = template.render(context! {
