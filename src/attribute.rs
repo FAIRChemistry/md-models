@@ -142,7 +142,7 @@ impl Attribute {
     /// # Arguments
     ///
     /// * `dtype` - The data type to set.
-    fn set_dtype(&mut self, dtype: String) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn set_dtype(&mut self, dtype: String) -> Result<(), Box<dyn Error>> {
         let mut dtypes = self.break_up_dtypes(&dtype);
 
         self.validate_dtypes(&dtypes)?;
