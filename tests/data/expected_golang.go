@@ -20,18 +20,16 @@ import (
 // incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
 // nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 type Test struct {
-        ID *uint `json:"id,omitempty" xml:"id,attr,omitempty" gorm:"primaryKey,autoIncrement"`
-        Name string `json:"name" xml:"name,attr" `
-        Number TestNumberType `json:"number,omitempty" xml:"number,attr,omitempty" `
-        Test2 []Test2 `json:"test2,omitempty" xml:"SomeTest2,omitempty" gorm:"many2many:test_test2;"`
-        Ontology Ontology `json:"ontology,omitempty" xml:"ontology,omitempty" `
+    Name string `json:"name" xml:"name,attr" `
+    Number TestNumberType `json:"number,omitempty" xml:"number,attr,omitempty" `
+    Test2 []Test2 `json:"test2,omitempty" xml:"SomeTest2,omitempty" `
+    Ontology Ontology `json:"ontology,omitempty" xml:"ontology,omitempty" `
 }
 
 // Test2
 type Test2 struct {
-        ID *uint `json:"id,omitempty" xml:"id,attr,omitempty" gorm:"primaryKey,autoIncrement"`
-        Names []string `json:"names,omitempty" xml:"name,omitempty" `
-        Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" `
+    Names []string `json:"names,omitempty" xml:"name,omitempty" `
+    Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" `
 }
 
 //

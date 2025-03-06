@@ -103,7 +103,7 @@ def validate_prefix(term: str | dict, prefix: str):
 class UnitTest(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
-        validate_assigment = True,
+        validate_assignment = True,
     ) # type: ignore
 
     units: list[UnitDefinitionAnnot] = Field(default_factory=list)

@@ -8,29 +8,30 @@ nsmap:
   tst: http://example.com/test/
 ---
 
-### Test
+### TestGorm
 
-- **name**
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+- __name__
   - Type: Identifier
   - Term: schema:hello
-  - Description: A test description
-  - Default: "test"
+  - Description: The name of the test. This is a unique identifier 
+    that helps track individual test cases across the system. 
+    It should be descriptive and follow the standard naming conventions.
+  - XML: @name
 - number
   - Type: float
   - Term: schema:one
-  - Minimum: 0
-- array_valued
+  - XML: @number
+  - Default: 1.0
+- test2_multiple
   - Type: [Test2](#test2)[]
   - Term: schema:something
-- single_valued
+- test2_single
   - Type: [Test2](#test2)
+  - Term: schema:something
 - ontology
   - Type: Ontology
-- multiple_types
-  - Type: float, Test2
-- multiple_types_array
-  - Type: float, Test2
-  - Multiple: true
 
 ### Test2
 
