@@ -1,4 +1,5 @@
 ---
+
 id-field: true
 repo: "https://www.github.com/my/repo/"
 prefix: "tst"
@@ -44,7 +45,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
   - Term: schema:one
   - XML: @number
   - Minimum: 0
-  - Primary Key: true
+  - PrimaryKey: true
 
 ## Enumerations
 

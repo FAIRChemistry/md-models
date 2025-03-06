@@ -23,7 +23,10 @@
 
 use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
-use crate::{markdown::frontmatter::FrontMatter, prelude::DataModel, tree, xmltype::XMLType};
+use crate::{
+    attribute::Attribute, markdown::frontmatter::FrontMatter, object::Object, option::AttrOption,
+    prelude::DataModel, tree, xmltype::XMLType,
+};
 use clap::ValueEnum;
 use colored::Colorize;
 use convert_case::{Case, Casing};
@@ -218,6 +221,13 @@ pub fn render_jinja_template(
         }
         Templates::Julia => {
             sort_by_dependency(model);
+        }
+        Templates::Golang => {
+            if let Some(config) = config {
+                if config.contains_key("gorm") {
+                    add_id_pks(model);
+                }
+            }
         }
         _ => {}
     }
@@ -422,13 +432,16 @@ fn remove_multiple_spaces(input: &str) -> String {
 }
 
 /// Checks if an object has a primary key.
-fn pk_objects(model: &mut DataModel) -> Vec<String> {
-    let mut pk_objects = Vec::new();
+fn pk_objects(model: &mut DataModel) -> HashMap<String, (String, String)> {
+    let mut pk_objects = HashMap::new();
     for object in &mut model.objects {
         for attribute in &object.attributes {
             for option in &attribute.options {
-                if option.key() == "primary key" {
-                    pk_objects.push(object.name.clone());
+                if let AttrOption::PrimaryKey(true) = option {
+                    pk_objects.insert(
+                        object.name.clone(),
+                        (attribute.name.clone(), attribute.dtypes[0].clone()),
+                    );
                     break;
                 }
             }
@@ -457,6 +470,83 @@ fn convert_model_types(
                 .collect();
         }
     }
+}
+
+/// Adds an ID field to objects in the model that don't have a primary key.
+///
+/// This function ensures that each object has a primary key by either:
+/// 1. Adding a new 'id' attribute if the object has no primary key and no 'id' field
+/// 2. Making an existing 'id' field a primary key if one exists but isn't already a primary key
+///
+/// # Arguments
+///
+/// * `model` - The data model to modify
+fn add_id_pks(model: &mut DataModel) {
+    for object in &mut model.objects {
+        match (has_primary_key(object), has_id(object)) {
+            (false, false) => {
+                object.attributes.insert(0, id_attribute());
+            }
+            (false, true) => {
+                object
+                    .attributes
+                    .iter_mut()
+                    .find(|a| a.name == "id")
+                    .unwrap()
+                    .options
+                    .push(AttrOption::PrimaryKey(true));
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Creates a new ID attribute with primary key option.
+///
+/// This function creates a new Attribute instance representing an ID field
+/// with the following properties:
+/// - Name: "id"
+/// - Required: false
+/// - Type: integer
+/// - Primary key option enabled
+///
+/// # Returns
+///
+/// A new Attribute configured as an ID field
+fn id_attribute() -> Attribute {
+    let mut attr = Attribute::new("id".to_string(), true);
+    attr.options.push(AttrOption::PrimaryKey(true));
+    attr.set_dtype("integer".to_string()).unwrap();
+    attr
+}
+
+/// Checks if an object has any attribute marked as a primary key.
+///
+/// # Arguments
+///
+/// * `object` - The object to check for primary key attributes
+///
+/// # Returns
+///
+/// `true` if the object has an attribute with primary key option, `false` otherwise
+fn has_primary_key(object: &Object) -> bool {
+    object
+        .attributes
+        .iter()
+        .any(|a| a.options.iter().any(|o| o.key() == "primary key"))
+}
+
+/// Checks if an object has an attribute named "id".
+///
+/// # Arguments
+///
+/// * `object` - The object to check for an ID attribute
+///
+/// # Returns
+///
+/// `true` if the object has an attribute named "id", `false` otherwise
+fn has_id(object: &Object) -> bool {
+    object.attributes.iter().any(|a| a.name == "id")
 }
 
 /// Converts the data types in the model according to the provided type map.

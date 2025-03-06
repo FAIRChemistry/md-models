@@ -33,6 +33,8 @@
         {{ parent_name }}{{ attr.name | capitalize }}Type
     {%- elif attr.dtypes[0] in object_names -%}
         {{ attr.dtypes[0] }}
+    {%- elif attr.dtypes[0] in enum_names -%}
+        {{ attr.dtypes[0] }}
     {%- else -%}
         {{ convert_basic_type(attr.dtypes[0]) }}
     {%- endif -%}
@@ -59,6 +61,7 @@
 
 {# Generates XML tag for a field #}
 {% macro xml_tag(attr) %}
+    {%- if config.xml -%}
     {%- if attr.xml.wrapped -%}
         {{- attr.xml.wrapped | join('>') -}}>
     {%- endif -%}
@@ -69,28 +72,31 @@
     {%- endif -%}
     {%- if attr.xml.is_attr -%},attr{%- endif -%}
     {%- if attr.required is false -%},omitempty{%- endif -%}
+    {%- endif -%}
 {% endmacro %}
 
 
 {# Generates GORM tag for a field if needed #}
 {% macro gorm_tag(attr, parent_name) %}
     {%- if config.gorm -%}
-    {%- if attr.multiple and attr.dtypes[0] in object_names -%}
+    {%- if attr.multiple is true and attr.dtypes[0] in object_names -%}
         gorm:"many2many:{{ parent_name | lower }}_{{ attr.name }};"
+    {%- elif attr.multiple is false and attr.dtypes[0] in object_names -%}
+        gorm:"foreignKey:{{ attr.name | pascal_case }}ID;"
+    {%- elif attr.multiple is true 
+        and attr.dtypes[0] not in enum_names 
+        and attr.dtypes[0] not in object_names -%}
+        gorm:"serializer:json;"
     {%- else -%}
     {%- for option in attr.options -%}
-        {%- if option.key == "primary key" -%}
+        {%- if option.key == "pk" and attr.dtypes[0] == "integer" -%}
+            gorm:"primaryKey;autoIncrement"
+        {%- elif option.key == "pk" -%}
             gorm:"primaryKey"
         {%- endif -%}
+
     {%- endfor -%}
     {%- endif -%}
-    {%- endif -%}
-{% endmacro %}
-
-{# Add ID field if no PK exists #}
-{% macro add_id_field(object) %}
-    {%- if object.name not in pk_objects %}
-        ID *uint `json:"id,omitempty" xml:"id,attr,omitempty" gorm:"primaryKey,autoIncrement"`
     {%- endif -%}
 {% endmacro %}
 
@@ -100,7 +106,6 @@
         gorm:"many2many:{{ parent_name | lower }}_{{ attr.name }};"
     {%- endif -%}
 {% endmacro %}
-
 
 
 {# ============================================================================ #}
@@ -123,13 +128,6 @@
 
 package {% if title -%}{{ title | replace_lower(" ", "_") }}{% else %}model{% endif %}
 
-import (
-    {%- if config.gorm %}
-    "gorm.io/gorm"
-    {%- endif %}
-	"encoding/json"
-	"fmt"
-)
 {%- set has_multiple_types = false -%}
 {% for object in objects -%}
     {% for attr in object.attributes -%}
@@ -156,18 +154,15 @@ import (
 // {{ wrap(object.docstring, 80, "", "// ", None) }}
 {%- endif %}
 type {{ object.name }} struct {
-{%- if config.gorm and object.name not in pk_objects %}
-    gorm.Model
-{%- endif %}
 {%- for attr in object.attributes %}
     {%- if config.gorm 
         and attr.multiple is false 
         and attr.dtypes | length == 1 
         and attr.dtypes[0] in object_names 
     %}
-    {{ wrap_type(attr, object.name) }}ID int
+    {{ attr.name | pascal_case }}ID {{ convert_basic_type(pk_objects[object.name][1]) }}
     {%- endif %}
-    {{ attr.name | pascal_case }} {{ wrap_type(attr, object.name) }} `json:"{{ json_tag(attr) }}" xml:"{{ xml_tag(attr) }}" {{ gorm_tag(attr, object.name) }}`
+    {{ attr.name | pascal_case }} {{ wrap_type(attr, object.name) }} `json:"{{ json_tag(attr) }}"{% if config.xml %} xml:"{{ xml_tag(attr) }}"{% endif %} {{ gorm_tag(attr, object.name) }}`
 {%- endfor %}
 }
 {% endfor %}

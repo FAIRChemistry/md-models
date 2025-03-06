@@ -5,12 +5,6 @@
 
 package model
 
-import (
-    "gorm.io/gorm"
-	"encoding/json"
-	"fmt"
-)
-
 //
 // Type definitions
 //
@@ -21,19 +15,20 @@ import (
 // incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
 // nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 type TestGorm struct {
-    gorm.Model
-    Name string `json:"name" xml:"name,attr" `
-    Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" `
-    Test2Multiple []Test2 `json:"test2_multiple,omitempty" xml:"test2_multiple,omitempty" gorm:"many2many:testgorm_test2_multiple;"`
-    Test2ID int
-    Test2Single Test2 `json:"test2_single,omitempty" xml:"test2_single,omitempty" `
-    Ontology Ontology `json:"ontology,omitempty" xml:"ontology,omitempty" `
+    Id int64 `json:"id" gorm:"primaryKey;autoIncrement"`
+    Name string `json:"name" `
+    Number float64 `json:"number,omitempty" `
+    Test2Multiple []Test2 `json:"test2_multiple,omitempty" gorm:"many2many:testgorm_test2_multiple;"`
+    Test2SingleID int64
+    Test2Single Test2 `json:"test2_single,omitempty" gorm:"foreignKey:Test2SingleID;"`
+    Ontology Ontology `json:"ontology,omitempty" `
 }
 
 // Test2
 type Test2 struct {
-    Names []string `json:"names,omitempty" xml:"name,omitempty" `
-    Number float64 `json:"number,omitempty" xml:"number,attr,omitempty" gorm:"primaryKey"`
+    Id int64 `json:"id" gorm:"primaryKey;autoIncrement"`
+    Names []string `json:"names,omitempty" gorm:"serializer:json;"`
+    Number float64 `json:"number,omitempty" `
 }
 
 //
