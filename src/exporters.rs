@@ -199,6 +199,12 @@ pub fn render_jinja_template(
     let mut env = Environment::new();
     minijinja_embed::load_templates!(&mut env);
 
+    // Keep track of fields that are artificially added,
+    // but not part of the original model. Mainly used for
+    // Database migrations and objects which do not have
+    // a primary key.
+    let mut artificial_fields = HashMap::new();
+
     // Perform type conversions and filtering based on the template
     match template {
         Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
@@ -225,7 +231,7 @@ pub fn render_jinja_template(
         Templates::Golang => {
             if let Some(config) = config {
                 if config.contains_key("gorm") {
-                    add_id_pks(model);
+                    add_id_pks(model, &mut artificial_fields);
                 }
             }
         }
@@ -289,6 +295,7 @@ pub fn render_jinja_template(
         config => config,
         objects_with_wrapped => get_objects_with_wrapped(model),
         pk_objects => pk_objects(model),
+        artificial_fields => artificial_fields,
     });
 
     match rendered {
@@ -432,7 +439,7 @@ fn remove_multiple_spaces(input: &str) -> String {
 }
 
 /// Checks if an object has a primary key.
-fn pk_objects(model: &mut DataModel) -> HashMap<String, (String, String)> {
+fn pk_objects(model: &mut DataModel) -> HashMap<String, (String, String, bool)> {
     let mut pk_objects = HashMap::new();
     for object in &mut model.objects {
         for attribute in &object.attributes {
@@ -440,7 +447,7 @@ fn pk_objects(model: &mut DataModel) -> HashMap<String, (String, String)> {
                 if let AttrOption::PrimaryKey(true) = option {
                     pk_objects.insert(
                         object.name.clone(),
-                        (attribute.name.clone(), attribute.dtypes[0].clone()),
+                        (attribute.name.clone(), attribute.dtypes[0].clone(), true),
                     );
                     break;
                 }
@@ -481,11 +488,12 @@ fn convert_model_types(
 /// # Arguments
 ///
 /// * `model` - The data model to modify
-fn add_id_pks(model: &mut DataModel) {
+fn add_id_pks(model: &mut DataModel, artificially_added_fields: &mut HashMap<String, String>) {
     for object in &mut model.objects {
         match (has_primary_key(object), has_id(object)) {
             (false, false) => {
                 object.attributes.insert(0, id_attribute());
+                artificially_added_fields.insert(object.name.clone(), "id".to_string());
             }
             (false, true) => {
                 object

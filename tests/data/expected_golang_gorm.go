@@ -15,7 +15,7 @@ package model
 // incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
 // nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 type TestGorm struct {
-    Id int64 `json:"id" gorm:"primaryKey;autoIncrement"`
+    Id int64 `json:"-" gorm:"primaryKey;autoIncrement"`
     Name string `json:"name" `
     Number float64 `json:"number,omitempty" `
     Test2Multiple []Test2 `json:"test2_multiple,omitempty" gorm:"many2many:testgorm_test2_multiple;"`
@@ -26,7 +26,7 @@ type TestGorm struct {
 
 // Test2
 type Test2 struct {
-    Id int64 `json:"id" gorm:"primaryKey;autoIncrement"`
+    Id int64 `json:"-" gorm:"primaryKey;autoIncrement"`
     Names []string `json:"names,omitempty" gorm:"serializer:json;"`
     Number float64 `json:"number,omitempty" `
 }

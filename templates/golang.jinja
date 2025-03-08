@@ -54,8 +54,12 @@
 {# ============================================================================ #}
 
 {# Generates JSON tag for a field #}
-{% macro json_tag(attr) %}
-    {{- attr.name -}}
+{% macro json_tag(attr, object_name) %}
+    {%- if attr.name in artificial_fields[object_name] -%}
+        -
+    {%- else -%}
+        {{- attr.name -}}
+    {%- endif -%}
     {%- if attr.required is false -%},omitempty{%- endif -%}
 {% endmacro %}
 
@@ -162,7 +166,7 @@ type {{ object.name }} struct {
     %}
     {{ attr.name | pascal_case }}ID {{ convert_basic_type(pk_objects[object.name][1]) }}
     {%- endif %}
-    {{ attr.name | pascal_case }} {{ wrap_type(attr, object.name) }} `json:"{{ json_tag(attr) }}"{% if config.xml %} xml:"{{ xml_tag(attr) }}"{% endif %} {{ gorm_tag(attr, object.name) }}`
+    {{ attr.name | pascal_case }} {{ wrap_type(attr, object.name) }} `json:"{{ json_tag(attr, object.name) }}"{% if config.xml %} xml:"{{ xml_tag(attr) }}"{% endif %} {{ gorm_tag(attr, object.name) }}`
 {%- endfor %}
 }
 {% endfor %}
