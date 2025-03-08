@@ -19,7 +19,7 @@ type TestGorm struct {
     Name string `json:"name" `
     Number float64 `json:"number,omitempty" `
     Test2Multiple []Test2 `json:"test2_multiple,omitempty" gorm:"many2many:testgorm_test2_multiple;"`
-    Test2SingleID int64
+    Test2SingleID int64 `json:"-"`
     Test2Single Test2 `json:"test2_single,omitempty" gorm:"foreignKey:Test2SingleID;"`
     Ontology Ontology `json:"ontology,omitempty" `
 }
