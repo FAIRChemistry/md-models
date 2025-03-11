@@ -57,7 +57,7 @@ prefixes:
 In order to install the command line tool, you can use the following command:
 
 ```bash
-git clone https://github.com/JR-1991/md-models
+git clone https://github.com/FAIRChemistry/md-models
 cd md-models
 cargo install --path .
 ```
