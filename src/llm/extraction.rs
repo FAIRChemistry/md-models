@@ -52,7 +52,7 @@ pub async fn query_openai(
     api_key: Option<String>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
     let response_format = prepare_response_format(data_model, root, multiple)?;
-    let client = prepare_client(api_key)?;
+    let mut client = prepare_client(api_key)?;
     let messages = vec![create_chat_message(pre_prompt), create_chat_message(prompt)];
     let req = chat_completion::ChatCompletionRequest::new(model.to_string(), messages)
         .response_format(response_format)
