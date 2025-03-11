@@ -123,6 +123,13 @@ impl From<Value> for DatasetInput {
     }
 }
 
+impl From<&mut Value> for DatasetInput {
+    /// Converts a Value into a DatasetInput.
+    fn from(value: &mut Value) -> Self {
+        DatasetInput::Value(value.clone())
+    }
+}
+
 impl From<String> for DatasetInput {
     /// Converts a String into a DatasetInput.
     fn from(string: String) -> Self {
