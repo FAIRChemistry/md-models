@@ -59,8 +59,10 @@ pub(crate) mod markdown {
 
 #[cfg(feature = "openai")]
 pub mod llm {
+    pub mod embedding;
     pub mod extraction;
     pub mod input;
+    pub mod patch;
 }
 
 pub mod bindings {
