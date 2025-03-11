@@ -49,7 +49,7 @@
             "name": "list_of_variables",
             "wrapped": null
           },
-          "is_enum": true,
+          "is_enum": false,
           "position": {
             "line": 17,
             "column": {
@@ -78,7 +78,7 @@
             "name": "list_of_parameters",
             "wrapped": null
           },
-          "is_enum": true,
+          "is_enum": false,
           "position": {
             "line": 21,
             "column": {
