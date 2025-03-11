@@ -29,10 +29,11 @@ use mdmodels::{
     exporters::{render_jinja_template, Templates},
     json::validation::validate_json,
     linkml::export::serialize_linkml,
-    llm::extraction::query_openai,
+    llm::extraction::{patch_openai, query_openai},
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::{
     collections::HashMap, error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr,
 };
@@ -156,6 +157,14 @@ struct ExtractArgs {
     /// Whether to extract multiple objects.
     #[arg(long, help = "Whether to extract multiple objects")]
     multiple: bool,
+
+    /// Prediction to use for extraction.
+    #[arg(
+        short,
+        long,
+        help = "If you aim to mutate a dataset, provide the path to the file here. The file will be used to reduce response times by re-using the already existing dataset."
+    )]
+    dataset: Option<PathBuf>,
 }
 
 /// Arguments for the dataset subcommand.
@@ -289,15 +298,29 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
             .clone(),
     };
 
-    let response = tokio::runtime::Runtime::new()?.block_on(query_openai(
-        &prompt,
-        &pre_prompt,
-        &model,
-        &root,
-        &llm_model,
-        args.multiple,
-        None,
-    ))?;
+    let response = if let Some(dataset) = args.dataset {
+        let dataset = std::fs::read_to_string(&dataset)?;
+        let dataset: Value = serde_json::from_str(&dataset)?;
+        tokio::runtime::Runtime::new()?.block_on(patch_openai(
+            &prompt,
+            &dataset,
+            Some(&pre_prompt),
+            &model,
+            &root,
+            &llm_model,
+            None,
+        ))?
+    } else {
+        tokio::runtime::Runtime::new()?.block_on(query_openai(
+            &prompt,
+            &pre_prompt,
+            &model,
+            &root,
+            &llm_model,
+            args.multiple,
+            None,
+        ))?
+    };
 
     match args.output {
         Some(ref output) => {
