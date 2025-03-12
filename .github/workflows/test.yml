@@ -12,6 +12,7 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'templates/**'
+      - '.github/workflows/test.yml'
   pull_request:
     paths:
       - 'src/**'
@@ -19,7 +20,7 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'templates/**'
-
+      - '.github/workflows/test.yml'
 env:
   CARGO_TERM_COLOR: always
 
