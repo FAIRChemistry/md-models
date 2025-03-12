@@ -75,9 +75,9 @@ Union[
 #}
 {%- macro get_type(attr) -%}
 {%- if attr.multiple is true -%}
-list[{{ type(attr, true) }}]
+ list[{{ type(attr, true) }}]
 {%- else -%}
-{{ type(attr) }}
+ {{ type(attr) }}
 {%- endif -%}
 {%- endmacro -%}
 
@@ -104,16 +104,10 @@ list[{{ type(attr, true) }}]
 {%- if attr.multiple -%}
  = []
 {%- elif 'default' in attr -%}
- = {%- if attr.default is true or attr.default is false -%}
+ = {% if attr.default is true or attr.default is false -%}
     {{ attr.default | capitalize }}
-    {%- elif attr.default is false -%}
-    False
-    {%- elif attr.default is number -%}
-    {{ attr.default }}
-    {%- elif attr.default is string -%}
-    "{{ attr.default }}"
     {%- else -%}
-    {{ attr.default | capitalize }}
+    {{ default_value(attr) }}
     {%- endif -%}
 {%- elif attr.required is false -%}
  = None

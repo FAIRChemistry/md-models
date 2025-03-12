@@ -19,6 +19,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
     that helps track individual test cases across the system. 
     It should be descriptive and follow the standard naming conventions.
   - XML: @name
+  - Default: "2.0"
 - number
   - Type: float, string
   - Term: schema:one

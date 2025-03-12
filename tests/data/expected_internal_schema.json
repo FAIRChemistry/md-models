@@ -14,6 +14,7 @@
           "options": [],
           "term": "schema:hello",
           "required": true,
+          "default": 2.0,
           "xml": {
             "is_attr": true,
             "name": "name",
@@ -28,7 +29,7 @@
             },
             "offset": {
               "start": 399,
-              "end": 864
+              "end": 883
             }
           }
         },
@@ -52,14 +53,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 22,
+            "line": 23,
             "column": {
               "start": 1,
               "end": 9
             },
             "offset": {
-              "start": 673,
-              "end": 761
+              "start": 692,
+              "end": 780
             }
           }
         },
@@ -81,14 +82,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 27,
+            "line": 28,
             "column": {
               "start": 1,
               "end": 8
             },
             "offset": {
-              "start": 761,
-              "end": 833
+              "start": 780,
+              "end": 852
             }
           }
         },
@@ -110,14 +111,14 @@
           },
           "is_enum": true,
           "position": {
-            "line": 31,
+            "line": 32,
             "column": {
               "start": 1,
               "end": 11
             },
             "offset": {
-              "start": 833,
-              "end": 864
+              "start": 852,
+              "end": 883
             }
           }
         }
@@ -156,14 +157,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 36,
+            "line": 37,
             "column": {
               "start": 1,
               "end": 8
             },
             "offset": {
-              "start": 875,
-              "end": 1019
+              "start": 894,
+              "end": 1038
             }
           }
         },
@@ -190,28 +191,28 @@
           },
           "is_enum": false,
           "position": {
-            "line": 40,
+            "line": 41,
             "column": {
               "start": 1,
               "end": 9
             },
             "offset": {
-              "start": 939,
-              "end": 1019
+              "start": 958,
+              "end": 1038
             }
           }
         }
       ],
       "docstring": "",
       "position": {
-        "line": 34,
+        "line": 35,
         "column": {
           "start": 1,
           "end": 10
         },
         "offset": {
-          "start": 864,
-          "end": 874
+          "start": 883,
+          "end": 893
         }
       }
     }
@@ -226,14 +227,14 @@
       },
       "docstring": "",
       "position": {
-        "line": 49,
+        "line": 50,
         "column": {
           "start": 1,
           "end": 13
         },
         "offset": {
-          "start": 1036,
-          "end": 1049
+          "start": 1055,
+          "end": 1068
         }
       }
     }

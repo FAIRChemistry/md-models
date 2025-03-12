@@ -27,7 +27,7 @@ use std::{
 };
 
 use crate::{
-    attribute::Attribute,
+    attribute::{self, Attribute},
     datamodel::DataModel,
     markdown::frontmatter::FrontMatter,
     object::{Enumeration, Object},
@@ -395,10 +395,17 @@ impl TryFrom<&Attribute> for schema::Property {
             dtype = None;
         }
 
+        // Make sure that the default matches the datatype
+        let default: Option<PrimitiveType> = if let Some(default) = attr.default.clone() {
+            process_default(default, &dtype)
+        } else {
+            None
+        };
+
         Ok(schema::Property {
             title: attr.name.clone(),
             dtype,
-            default: attr.default.clone().map(|d| d.into()),
+            default,
             description,
             term: attr.term.clone(),
             reference,
@@ -407,6 +414,29 @@ impl TryFrom<&Attribute> for schema::Property {
             items,
             enum_values,
         })
+    }
+}
+
+/// Processes the default value of an attribute.
+///
+/// # Arguments
+///
+/// * `default` - A reference to the default value of the attribute.
+/// * `dtype` - A reference to the data type of the attribute.
+///
+/// # Returns
+///
+/// A `Result` containing the processed default value or an error message.
+fn process_default(
+    default: attribute::DataType,
+    dtype: &Option<schema::DataType>,
+) -> Option<PrimitiveType> {
+    if matches!(dtype, Some(schema::DataType::String)) {
+        default
+            .as_string()
+            .map(|d| PrimitiveType::String(d.trim_matches('"').to_string()))
+    } else {
+        Some(default.into())
     }
 }
 

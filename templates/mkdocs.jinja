@@ -33,7 +33,7 @@ list[{{ dtype }}]
 {%- endmacro %}
 {#################}
 
-{%- if config == none or config.nav == "false" %}
+{%- if not config.nav %}
 ---
 hide:
     - navigation

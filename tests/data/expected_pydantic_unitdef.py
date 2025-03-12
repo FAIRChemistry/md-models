@@ -34,7 +34,7 @@ Do not edit directly - any changes will be overwritten.
 
 from __future__ import annotations
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Generic, TypeVar
+from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
@@ -107,8 +107,8 @@ class UnitTest(BaseModel):
     ) # type: ignore
 
     units: list[UnitDefinitionAnnot] = Field(default_factory=list)
-    optional_unit: Optional[UnitDefinitionAnnot] = Field(default=None)
-    unit: Optional[UnitDefinitionAnnot] = Field(default=None)
+    optional_unit: Optional[Optional[UnitDefinitionAnnot]] = Field(default=None)
+    unit: Optional[Optional[UnitDefinitionAnnot]] = Field(default=None)
 
     # JSON-LD fields
     ld_id: str = Field(

@@ -29,27 +29,12 @@ WARNING: This is an auto-generated file.
 Do not edit directly - any changes will be overwritten.
 """
 
-{#
-    This macro determines whether a given attributes default is a string
-#}
-{%- macro get_default(default) -%}
-    {%- if default == "false" or default == "true" -%}
-        {{ default | capitalize }}
-    {%- elif default == "False" or default == "True" -%}
-        {{ default | capitalize }}
-    {%- elif default is string -%}
-        "{{ default }}"
-    {%- else -%}
-        {{ default | capitalize }}
-    {%- endif -%}
-{%- endmacro -%}
-
 {% import "python-macros.jinja" as utils %}
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Generic, TypeVar
+from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
@@ -125,13 +110,13 @@ class {{ object.name }}(BaseModel):
     ) # type: ignore
     {% for attribute in object.attributes %}
     {%- if attribute.multiple is true %}
-    {{ attribute.name }}: list[{{ attribute.dtypes[0] }}] = Field(default_factory=list)
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(default_factory=list)
     {%- elif 'default' in attribute%}
-    {{ attribute.name }}: {{ attribute.dtypes[0] }} = {{ get_default(attribute.default) }}
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} {{ utils.get_default(attribute) }}
     {%- elif attribute.required is true %}
-    {{ attribute.name }}: {{ attribute.dtypes[0] }}
+    {{ attribute.name }}: {{ utils.get_type(attribute) }}
     {%- else %}
-    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = Field(default=None)
+    {{ attribute.name }}: Optional[{{ utils.get_type(attribute) }}] = Field(default=None)
     {%- endif %}
     {%- endfor %}
 

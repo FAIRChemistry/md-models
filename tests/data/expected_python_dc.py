@@ -28,7 +28,7 @@ Do not edit directly - any changes will be overwritten.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses_json import config, dataclass_json
-from typing import List, Optional
+from typing import List, Optional, Union
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
@@ -37,9 +37,9 @@ from datetime import date, datetime
 @dataclass_json
 @dataclass
 class Test:
-    name: str
-    number: float = 1.0
-    test2: List[Test2] = field(default_factory=list)
+    name: str = "2"
+    number: Union[None,float,str] = 1
+    test2: list[Test2] = field(default_factory=list)
     ontology: Optional[Ontology] = field(default=None, metadata=config(exclude=lambda x: x is None))
 
     # JSON-LD fields
@@ -92,7 +92,7 @@ class Test:
 @dataclass_json
 @dataclass
 class Test2:
-    names: List[str] = field(default_factory=list)
+    names: list[str] = field(default_factory=list)
     number: Optional[float] = field(default=None, metadata=config(exclude=lambda x: x is None))
 
     # JSON-LD fields
