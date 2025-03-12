@@ -1,3 +1,0 @@
-# Continuous integration
-
-🚧 **Under Construction** 🚧

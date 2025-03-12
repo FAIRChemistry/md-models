@@ -1,0 +1,6 @@
+[book]
+authors = ["Jan Range"]
+language = "en"
+multilingual = false
+src = "src"
+title = "MD-Models"
