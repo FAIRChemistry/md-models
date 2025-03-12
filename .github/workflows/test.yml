@@ -4,6 +4,7 @@ name: Tests
 # to ensure cross-platform compatibility and functionality
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'src/**'
@@ -25,10 +26,12 @@ env:
 jobs:
   # Runs the core Rust unit tests for the project
   unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -144,6 +147,7 @@ jobs:
   # Tests WASM build for npm bundler target
   bundler:
     name: Bundler
+    needs: unit-tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -164,6 +168,7 @@ jobs:
   # Tests WASM build for web target
   web:
     name: Web
+    needs: unit-tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
