@@ -5,23 +5,55 @@
 name: Test Code Generation
 
 on:
-  # Allow manual triggering
   workflow_dispatch:
-  # Run on pushes that modify relevant source files
   push:
     paths:
-      - src/** # Core implementation
-      - templates/** # Code generation templates
-      - tests/** # Test files and environments
+      - src/**
+      - templates/**
+      - tests/**
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build library
+        run: cargo build --release
+
+      - name: Cache build artifacts
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
   # Test Go code generation
   golang:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+      - name: Restore cached build
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Generate Go code
+        run: |
+          md-models convert \
+            -i tests/data/model.md \
+            -o tests/envs/go/generated.go \
+            -t golang
+
       - name: Build Docker image
         run: docker build -t gotests -f tests/envs/go/Dockerfile .
       - name: Run tests
@@ -29,11 +61,36 @@ jobs:
 
   # Test Python code generation
   python:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+      - name: Restore cached build
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Generate Python code
+        run: |
+          md-models convert \
+            -i tests/data/model.md \
+            -o tests/envs/python/gen_dataclasses.py \
+            -t python-dataclass
+
+          md-models convert \
+            -i tests/data/model.md \
+            -o tests/envs/python/gen_pydantic.py \
+            -t python-pydantic
+
+          md-models convert \
+            -i tests/data/model.md \
+            -o tests/envs/python/gen_pydantic_xml.py \
+            -t python-pydantic-xml
+
       - name: Build Docker image
         run: docker build -t pythontests -f tests/envs/python/Dockerfile .
       - name: Run tests
@@ -41,11 +98,26 @@ jobs:
 
   # Test TypeScript code generation
   typescript:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+      - name: Restore cached build
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Generate TypeScript code
+        run: |
+          md-models convert \
+            -i tests/data/model.md \
+            -o tests/envs/typescript/generated.ts \
+            -t typescript-zod
+
       - name: Build Docker image
         run: docker build -t tstests -f tests/envs/typescript/Dockerfile .
       - name: Run tests
@@ -53,11 +125,26 @@ jobs:
 
   # Test Rust code generation
   rust:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
+      - name: Restore cached build
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Generate Rust code
+        run: |
+          md-models convert \
+            -i tests/data/model.md \
+            -o tests/envs/rust/src/generated.rs \
+            -t rust
+
       - name: Build Docker image
         run: docker build -t rusttests -f tests/envs/rust/Dockerfile .
       - name: Run tests
