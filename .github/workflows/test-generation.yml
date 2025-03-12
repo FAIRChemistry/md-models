@@ -49,7 +49,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Generate Go code
         run: |
-          md-models convert \
+          cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/go/generated.go \
             -t golang
@@ -76,17 +76,17 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Generate Python code
         run: |
-          md-models convert \
+          cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/python/gen_dataclasses.py \
             -t python-dataclass
 
-          md-models convert \
+          cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/python/gen_pydantic.py \
             -t python-pydantic
 
-          md-models convert \
+          cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/python/gen_pydantic_xml.py \
             -t python-pydantic-xml
@@ -113,7 +113,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Generate TypeScript code
         run: |
-          md-models convert \
+          cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/typescript/generated.ts \
             -t typescript-zod
@@ -140,7 +140,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Generate Rust code
         run: |
-          md-models convert \
+          cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/rust/src/generated.rs \
             -t rust
