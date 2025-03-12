@@ -203,13 +203,3 @@ pre-commit install
 ```
 
 Once the pre-commit hooks are installed, they will run on every commit. This will ensure that the code is formatted and linted correctly. And the clippy CI will not complain about warnings.
-
-### Testing generated code
-
-The generated code is tested using GitHub Actions. The tests can be run locally using the following command:
-
-```bash
-docker compose -f docker-compose-tests.yml up --build
-```
-
-This will start a container for each language and run the tests. Tests are built into the build process of the containers.
