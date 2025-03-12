@@ -19,11 +19,11 @@ jobs:
   golang:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # Continue testing other languages if one fails
+      fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t gotests -f tests/envs/go/Dockerfile
+        run: docker build -t gotests -f tests/envs/go/Dockerfile .
       - name: Run tests
         run: docker run --rm gotests
 
@@ -33,9 +33,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t pythontests -f tests/envs/python/Dockerfile
+        run: docker build -t pythontests -f tests/envs/python/Dockerfile .
       - name: Run tests
         run: docker run --rm pythontests
 
@@ -45,9 +45,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t tstests -f tests/envs/typescript/Dockerfile
+        run: docker build -t tstests -f tests/envs/typescript/Dockerfile .
       - name: Run tests
         run: docker run --rm tstests
 
@@ -57,8 +57,8 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build Docker image
-        run: docker build -t rusttests -f tests/envs/rust/Dockerfile
+        run: docker build -t rusttests -f tests/envs/rust/Dockerfile .
       - name: Run tests
         run: docker run --rm rusttests
