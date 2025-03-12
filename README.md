@@ -32,7 +32,7 @@ We built MD-Models to solve a common frustration in data modeling: juggling mult
 
 Instead of dealing with all these separate pieces, MD-Models gives you one clear source of truth. Write it once, use it everywhere! ✨
 
-Ready to see it in action? Check out our interactive [documentation and graph editor](https://mdmodels.vercel.app/?about) to get started.
+Ready to see it in action? Check out our [book](https://fairchemistry.github.io/md-models/) for a deeper dive into the framework and [graph editor](https://mdmodels.vercel.app/?about) to get started.
 
 ### Schema Design 🎨
 
