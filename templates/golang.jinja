@@ -132,19 +132,13 @@
 
 package {% if title -%}{{ title | replace_lower(" ", "_") }}{% else %}model{% endif %}
 
-{%- set has_multiple_types = false -%}
-{% for object in objects -%}
-    {% for attr in object.attributes -%}
-        {% if attr.dtypes | length > 1 -%}
-            {% set has_multiple_types = true -%}
-        {% endif -%}
-    {% endfor -%}
-{% endfor -%}
+{%- if has_union_types %}
 
 import (
     "encoding/json"
     "fmt"
 )
+{%- endif %}
 
 //
 // Type definitions

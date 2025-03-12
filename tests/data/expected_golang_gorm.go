@@ -3,10 +3,7 @@
 // WARNING: This is an auto-generated file.
 // Do not edit directly - any changes will be overwritten.
 
-package modelimport (
-    "encoding/json"
-    "fmt"
-)
+package model
 
 //
 // Type definitions
