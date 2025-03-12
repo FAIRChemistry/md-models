@@ -1,0 +1,64 @@
+# This workflow tests code generation for multiple programming languages
+# It builds and runs Docker containers for each language to validate
+# that the generated code compiles and passes tests
+
+name: Test Code Generation
+
+on:
+  # Allow manual triggering
+  workflow_dispatch:
+  # Run on pushes that modify relevant source files
+  push:
+    paths:
+      - src/** # Core implementation
+      - templates/** # Code generation templates
+      - tests/** # Test files and environments
+
+jobs:
+  # Test Go code generation
+  golang:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Continue testing other languages if one fails
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t gotests -f tests/envs/go/Dockerfile
+      - name: Run tests
+        run: docker run --rm gotests
+
+  # Test Python code generation
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t pythontests -f tests/envs/python/Dockerfile
+      - name: Run tests
+        run: docker run --rm pythontests
+
+  # Test TypeScript code generation
+  typescript:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t tstests -f tests/envs/typescript/Dockerfile
+      - name: Run tests
+        run: docker run --rm tstests
+
+  # Test Rust code generation
+  rust:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t rusttests -f tests/envs/rust/Dockerfile
+      - name: Run tests
+        run: docker run --rm rusttests

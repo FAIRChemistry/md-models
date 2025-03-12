@@ -1,0 +1,24 @@
+services:
+  golang:
+    build:
+      context: .
+      dockerfile: tests/envs/go/Dockerfile
+    image: gotests
+
+  python:
+    build:
+      context: .
+      dockerfile: tests/envs/python/Dockerfile
+    image: pythontests
+
+  typescript:
+    build:
+      context: .
+      dockerfile: tests/envs/typescript/Dockerfile
+    image: tstests
+
+  rust:
+    build:
+      context: .
+      dockerfile: tests/envs/rust/Dockerfile
+    image: rusttests

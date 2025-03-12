@@ -43,6 +43,7 @@ from datetime import date, datetime
 # based on their attributes
 Cls = TypeVar("Cls")
 
+
 class FilterWrapper(Generic[Cls]):
     """Wrapper class to filter a list of objects based on their attributes"""
 
@@ -79,7 +80,8 @@ def add_namespace(obj, prefix: str | None, iri: str | None):
     elif iri and prefix is None:
         raise ValueError("If iri is provided, prefix must also be provided")
 
-    obj.ld_context[prefix] = iri # type: ignore
+    obj.ld_context[prefix] = iri  # type: ignore
+
 
 def validate_prefix(term: str | dict, prefix: str):
     """Validates that a term is prefixed with a given prefix
@@ -97,33 +99,33 @@ def validate_prefix(term: str | dict, prefix: str):
     elif isinstance(term, str) and not term.startswith(prefix + ":"):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
 
+
 # Model Definitions
 
-class Test(BaseModel):
 
-    model_config: ConfigDict = ConfigDict( # type: ignore
-        validate_assignment = True,
-    ) # type: ignore
+class Test(BaseModel):
+    model_config: ConfigDict = ConfigDict(  # type: ignore
+        validate_assignment=True,
+    )  # type: ignore
 
     name: str = "2"
-    number: Union[None,float,str] = 1
+    number: Union[None, float, str] = 1
     test2: list[Test2] = Field(default_factory=list)
     ontology: Optional[Optional[Ontology]] = Field(default=None)
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
-        default_factory=lambda: "tst:Test/" + str(uuid4())
+        serialization_alias="@id", default_factory=lambda: "tst:Test/" + str(uuid4())
     )
     ld_type: list[str] = Field(
         serialization_alias="@type",
-        default_factory = lambda: [
+        default_factory=lambda: [
             "tst:Test",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
-        default_factory = lambda: {
+        default_factory=lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "name": {
@@ -132,7 +134,7 @@ class Test(BaseModel):
             },
             "number": "schema:one",
             "test2": "schema:something",
-        }
+        },
     )
 
     def filter_test2(self, **kwargs) -> list[Test2]:
@@ -147,13 +149,12 @@ class Test(BaseModel):
 
         return FilterWrapper[Test2](self.test2, **kwargs).filter()
 
-
     def set_attr_term(
         self,
         attr: str,
         term: str | dict,
         prefix: str | None = None,
-        iri: str | None = None
+        iri: str | None = None,
     ):
         """Sets the term for a given attribute in the JSON-LD object
 
@@ -175,7 +176,9 @@ class Test(BaseModel):
             AssertionError: If the attribute is not found in the model
         """
 
-        assert attr in self.model_fields, f"Attribute {attr} not found in {self.__class__.__name__}"
+        assert attr in self.model_fields, (
+            f"Attribute {attr} not found in {self.__class__.__name__}"
+        )
 
         if prefix:
             validate_prefix(term, prefix)
@@ -184,10 +187,7 @@ class Test(BaseModel):
         self.ld_context[attr] = term
 
     def add_type_term(
-        self,
-        term: str,
-        prefix: str | None = None,
-        iri: str | None = None
+        self, term: str, prefix: str | None = None, iri: str | None = None
     ):
         """Adds a term to the @type field of the JSON-LD object
 
@@ -214,65 +214,56 @@ class Test(BaseModel):
         add_namespace(self, prefix, iri)
         self.ld_type.append(term)
 
-
     def add_to_test2(
         self,
-        names: list[str]= [],
-        number: Optional[float]= None,
+        names: list[str] = [],
+        number: Optional[float] = None,
         **kwargs,
     ):
-        params = {
-            "names": names,
-            "number": number
-        }
+        params = {"names": names, "number": number}
 
         if "id" in kwargs:
             params["id"] = kwargs["id"]
 
-        self.test2.append(
-            Test2(**params)
-        )
+        self.test2.append(Test2(**params))
 
         return self.test2[-1]
 
 
 class Test2(BaseModel):
-
-    model_config: ConfigDict = ConfigDict( # type: ignore
-        validate_assignment = True,
-    ) # type: ignore
+    model_config: ConfigDict = ConfigDict(  # type: ignore
+        validate_assignment=True,
+    )  # type: ignore
 
     names: list[str] = Field(default_factory=list)
     number: Optional[Optional[float]] = Field(default=None)
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
-        default_factory=lambda: "tst:Test2/" + str(uuid4())
+        serialization_alias="@id", default_factory=lambda: "tst:Test2/" + str(uuid4())
     )
     ld_type: list[str] = Field(
         serialization_alias="@type",
-        default_factory = lambda: [
+        default_factory=lambda: [
             "tst:Test2",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
-        default_factory = lambda: {
+        default_factory=lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "names": "schema:hello",
             "number": "schema:one",
-        }
+        },
     )
-
 
     def set_attr_term(
         self,
         attr: str,
         term: str | dict,
         prefix: str | None = None,
-        iri: str | None = None
+        iri: str | None = None,
     ):
         """Sets the term for a given attribute in the JSON-LD object
 
@@ -294,7 +285,9 @@ class Test2(BaseModel):
             AssertionError: If the attribute is not found in the model
         """
 
-        assert attr in self.model_fields, f"Attribute {attr} not found in {self.__class__.__name__}"
+        assert attr in self.model_fields, (
+            f"Attribute {attr} not found in {self.__class__.__name__}"
+        )
 
         if prefix:
             validate_prefix(term, prefix)
@@ -303,10 +296,7 @@ class Test2(BaseModel):
         self.ld_context[attr] = term
 
     def add_type_term(
-        self,
-        term: str,
-        prefix: str | None = None,
-        iri: str | None = None
+        self, term: str, prefix: str | None = None, iri: str | None = None
     ):
         """Adds a term to the @type field of the JSON-LD object
 
