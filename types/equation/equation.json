@@ -12,16 +12,16 @@
     },
     "parameters": {
       "title": "parameters",
+      "type": "array",
       "description": "List of parameters that are used in the equation.",
-      "$ref": "#/$defs/EqParameter",
       "items": {
         "$ref": "#/$defs/EqParameter"
       }
     },
     "variables": {
       "title": "variables",
+      "type": "array",
       "description": "List of variables that are used in the equation.",
-      "$ref": "#/$defs/EqVariable",
       "items": {
         "$ref": "#/$defs/EqVariable"
       }

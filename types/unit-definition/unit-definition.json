@@ -7,8 +7,8 @@
   "properties": {
     "base_units": {
       "title": "base_units",
+      "type": "array",
       "description": "Base units that define the unit.",
-      "$ref": "#/$defs/BaseUnit",
       "items": {
         "$ref": "#/$defs/BaseUnit"
       }

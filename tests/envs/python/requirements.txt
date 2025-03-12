@@ -1,0 +1,4 @@
+dataclasses-json==0.6.7
+pydantic-xml==2.14.3
+pydantic==2.10.6
+lxml

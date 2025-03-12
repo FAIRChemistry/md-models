@@ -24,14 +24,19 @@
 use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
 use crate::{
-    attribute::Attribute, markdown::frontmatter::FrontMatter, object::Object, option::AttrOption,
-    prelude::DataModel, tree, xmltype::XMLType,
+    attribute::{Attribute, DataType},
+    markdown::frontmatter::FrontMatter,
+    object::Object,
+    option::AttrOption,
+    prelude::DataModel,
+    tree,
+    xmltype::XMLType,
 };
 use clap::ValueEnum;
 use colored::Colorize;
 use convert_case::{Case, Casing};
 use lazy_static::lazy_static;
-use minijinja::{context, Environment};
+use minijinja::{context, value::ViaDeserialize, Environment};
 use textwrap::wrap;
 
 #[cfg(feature = "python")]
@@ -241,6 +246,7 @@ pub fn render_jinja_template(
     // Add custom functions to the Jinja environment
     env.add_function("wrap", wrap_text);
     env.add_function("replace", replace);
+    env.add_function("default_value", default_value);
     env.add_filter("cap_first", cap_first);
     env.add_filter("split_path_pairs", split_path_pairs);
     env.add_filter("pascal_case", pascal_case);
@@ -296,6 +302,7 @@ pub fn render_jinja_template(
         objects_with_wrapped => get_objects_with_wrapped(model),
         pk_objects => pk_objects(model),
         artificial_fields => artificial_fields,
+        has_union_types => has_union_types(model),
     });
 
     match rendered {
@@ -700,6 +707,66 @@ fn cap_first(s: String) -> String {
         Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
         None => s.to_string(),
     }
+}
+
+/// Formats the default value of an attribute.
+///
+/// # Arguments
+///
+/// * `default` - The default value of an attribute.
+///
+/// # Returns
+fn default_value(attribute: ViaDeserialize<Attribute>) -> String {
+    match &attribute.default {
+        Some(DataType::String(s)) => format!("\"{}\"", s),
+        Some(DataType::Integer(i)) => {
+            if contains_numeric_type(&attribute) {
+                i.to_string()
+            } else {
+                format!("\"{}\"", i)
+            }
+        }
+        Some(DataType::Float(f)) => {
+            if contains_numeric_type(&attribute) {
+                f.to_string()
+            } else {
+                format!("\"{}\"", f)
+            }
+        }
+        _ => "".to_string(),
+    }
+}
+
+/// Checks if an attribute contains a numeric type.
+///
+/// # Arguments
+///
+/// * `attribute` - The attribute to check.
+///
+/// # Returns
+///
+/// `true` if the attribute contains a numeric type, `false` otherwise.
+fn contains_numeric_type(attribute: &Attribute) -> bool {
+    attribute
+        .dtypes
+        .iter()
+        .any(|t| t == "integer" || t == "float")
+}
+
+/// Checks if an object has multiple types.
+///
+/// # Arguments
+///
+/// * `object` - The object to check.
+///
+/// # Returns
+///
+/// `true` if the object has union types, `false` otherwise.
+fn has_union_types(model: &mut DataModel) -> bool {
+    model
+        .objects
+        .iter()
+        .any(|o| o.attributes.iter().any(|a| a.dtypes.len() > 1))
 }
 
 #[cfg(test)]

@@ -58,6 +58,7 @@ class Test(
     consequat.
     """
     name: str = attr(
+        default= "2",
         tag="name",
         description="""The name of the test. This is a unique identifier that helps track individual
             test cases across the system. It should be descriptive and follow
@@ -65,7 +66,7 @@ class Test(
         json_schema_extra=dict(term = "schema:hello",),
     )
     number: Union[None,float,str] = attr(
-        default=1.0,
+        default= 1,
         tag="number",
         json_schema_extra=dict(term = "schema:one",),
     )
@@ -75,7 +76,7 @@ class Test(
         json_schema_extra=dict(term = "schema:something",),
     )
     ontology: Optional[Ontology] = element(
-        default=None,
+        default= None,
         tag="ontology",
         json_schema_extra=dict(),
     )
@@ -129,7 +130,7 @@ class Test2(
         json_schema_extra=dict(term = "schema:hello",),
     )
     number: Optional[float] = attr(
-        default=None,
+        default= None,
         tag="number",
         json_schema_extra=dict(term = "schema:one",minimum = "0",),
     )

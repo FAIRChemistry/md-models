@@ -26,7 +26,7 @@
         {%- if attribute.multiple is false%}
         sh:maxCount 1 ;
         {%- endif %}
-    ] {%- if not loop.last -%};{%- else -%}.{% endif %}
+    ];
     {%- endif %}
-    {%- endfor %}
+    {%- endfor %} .
 {% endfor %}

@@ -78,7 +78,7 @@
             "name": "base_units",
             "wrapped": null
           },
-          "is_enum": true,
+          "is_enum": false,
           "position": {
             "line": 23,
             "column": {

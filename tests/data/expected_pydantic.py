@@ -34,7 +34,7 @@ Do not edit directly - any changes will be overwritten.
 
 from __future__ import annotations
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Generic, TypeVar
+from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
@@ -105,10 +105,10 @@ class Test(BaseModel):
         validate_assignment = True,
     ) # type: ignore
 
-    name: str
-    number: float = 1.0
+    name: str = "2"
+    number: Union[None,float,str] = 1
     test2: list[Test2] = Field(default_factory=list)
-    ontology: Optional[Ontology] = Field(default=None)
+    ontology: Optional[Optional[Ontology]] = Field(default=None)
 
     # JSON-LD fields
     ld_id: str = Field(
@@ -243,7 +243,7 @@ class Test2(BaseModel):
     ) # type: ignore
 
     names: list[str] = Field(default_factory=list)
-    number: Optional[float] = Field(default=None)
+    number: Optional[Optional[float]] = Field(default=None)
 
     # JSON-LD fields
     ld_id: str = Field(

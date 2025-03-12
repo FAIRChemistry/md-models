@@ -652,7 +652,7 @@ impl FromStr for NameCase {
     }
 }
 
-impl From<&NameCase> for Option<convert_case::Case> {
+impl<'a> From<&'a NameCase> for Option<convert_case::Case<'a>> {
     /// Converts a NameCase variant to the corresponding convert_case::Case variant.
     ///
     /// # Arguments
