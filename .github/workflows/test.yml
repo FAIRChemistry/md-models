@@ -1,5 +1,8 @@
 name: Tests
 
+# This workflow runs various tests across different languages and environments
+# to ensure cross-platform compatibility and functionality
+
 on:
   push:
     paths:
@@ -20,6 +23,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Runs the core Rust unit tests for the project
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -33,6 +37,7 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
+  # Tests Go code generation and validates the output
   golang:
     name: Go
     needs: unit-tests
@@ -60,6 +65,10 @@ jobs:
       - name: Run tests
         run: docker run --rm gotests
 
+  # Tests Python code generation for multiple Python frameworks:
+  # - dataclasses
+  # - pydantic
+  # - pydantic with XML support
   python:
     name: Python
     needs: unit-tests
@@ -90,6 +99,7 @@ jobs:
       - name: Run tests
         run: docker run --rm pythontests
 
+  # Tests TypeScript code generation with Zod schema validation
   typescript:
     name: TypeScript Zod
     needs: unit-tests
@@ -110,6 +120,7 @@ jobs:
       - name: Run tests
         run: docker run --rm tstests
 
+  # Tests Rust code generation and validates the output
   rust:
     name: Rust
     needs: unit-tests
@@ -129,3 +140,43 @@ jobs:
         run: docker build -t rusttests -f tests/envs/rust/Dockerfile .
       - name: Run tests
         run: docker run --rm rusttests
+
+  # Tests WASM build for npm bundler target
+  bundler:
+    name: Bundler
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build WASM for npm (bundle)
+        run: wasm-pack build --target bundler --features wasm --no-default-features
+
+  # Tests WASM build for web target
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build WASM for npm (bundle)
+        run: wasm-pack build --features wasm --no-default-features
