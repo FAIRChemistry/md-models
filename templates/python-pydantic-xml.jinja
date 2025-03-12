@@ -7,21 +7,11 @@
 {# Type Generation Macros                                                        #}
 {# ============================================================================ #}
 
-{%- macro default_value(attr) -%}
-{%- if attr.default is true or attr.default is false -%}
-    {{ attr.default | capitalize }}
-{%- elif attr.default is number -%}
-    {{ attr.default }}
-{%- else -%}
-    None
-{%- endif -%}
-{%- endmacro -%}
-
 {# Creates the inner type definition for an attribute with XML configuration #}
 {%- macro create_inner_type(attr) -%}
     {{ utils.xml_type(attr.xml) }}(
-        {%- if attr.required is false and attr.multiple is false %}
-        default={{- default_value(attr) -}},
+        {%- if attr.multiple is false %}
+        default {{- utils.get_default(attr) -}},
         {%- endif %}
         {%- if attr.multiple is true %}
         default_factory=list,{%- endif %}

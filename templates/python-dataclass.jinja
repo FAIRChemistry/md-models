@@ -22,28 +22,13 @@ WARNING: This is an auto-generated file.
 Do not edit directly - any changes will be overwritten.
 """
 
-{#
-    This macro determines whether a given attributes default is a string
-#}
-{%- macro get_default(default) -%}
-    {%- if default == "false" or default == "true" -%}
-        {{ default | capitalize }}
-    {%- elif default == "False" or default == "True" -%}
-        {{ default | capitalize }}
-    {%- elif default is string -%}
-        "{{ default }}"
-    {%- else -%}
-        {{ default | capitalize }}
-    {%- endif -%}
-{%- endmacro -%}
-
 {% import "python-macros.jinja" as utils %}
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses_json import config, dataclass_json
-from typing import List, Optional
+from typing import List, Optional, Union
 from enum import Enum
 from uuid import uuid4
 from datetime import date, datetime
@@ -56,13 +41,13 @@ class {{ object.name }}:
     {%- for attribute in object.attributes %}
     {%- if attribute.name == "id" -%}
     {%- elif attribute.multiple is true %}
-    {{ attribute.name }}: List[{{ attribute.dtypes[0] }}] = field(default_factory=list)
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = field(default_factory=list)
     {%- elif 'default' in attribute%}
-    {{ attribute.name }}: {{ attribute.dtypes[0] }} = {{ get_default(attribute.default) }}
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} {{ utils.get_default(attribute) }}
     {%- elif attribute.required is true %}
-    {{ attribute.name }}: {{ attribute.dtypes[0] }}
+    {{ attribute.name }}: {{ utils.get_type(attribute) }}
     {%- else %}
-    {{ attribute.name }}: Optional[{{ attribute.dtypes[0] }}] = field(default=None, metadata=config(exclude=lambda x: x is None))
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = field(default=None, metadata=config(exclude=lambda x: x is None))
     {%- endif %}
     {%- endfor %}
 
