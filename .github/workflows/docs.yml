@@ -1,62 +1,33 @@
-name: Documentation
-
+name: Deploy Book
 on:
   push:
-    branches:
-      - "main"
-    paths:
-      - "docs/**"
-      - "types/**"
-      - "mkdocs.yml"
-  workflow_dispatch:
-
-permissions:
-  id-token: write
-  pages: write
-  contents: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install MD-Models
-        run: cargo install --path .
-
-      - name: Run the generation pipeline
-        run: sh .github/scripts/generate_types.sh
-
-      - name: "Update docs"
-        shell: "bash"
+      - name: Install latest mdbook
         run: |
-          if [[ `git status --porcelain` ]]; then
-              git add --all
-              git config --global user.name 'MD-Models Bot'
-              git config --global user.email 'mdmodels@bot.com'
-              git commit -am "Doc update"
-              git push
-          else
-            echo "Nothing changed!"
-          fi
-
-      - uses: actions/setup-python@v4
+          tag=$(curl 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+          url="https://github.com/rust-lang/mdbook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+          mkdir mdbook
+          curl -sSL $url | tar -xz --directory=./mdbook
+          echo `pwd`/mdbook >> $GITHUB_PATH
+      - name: Build Book
+        run: |
+          cd docs
+          mdbook build
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          python-version: 3.x
-
-      - uses: actions/cache@v2
-        with:
-          path: .cache
-          key: ${{ github.ref }}
-
-      - name: Install dependencies
-        run: pip install mkdocs-material jupyter nbconvert mkdocs-jupyter
-
-      - name: Deploy Documentation
-        run: mkdocs gh-deploy --force
+          path: 'book'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
