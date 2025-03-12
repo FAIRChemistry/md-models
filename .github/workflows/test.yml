@@ -1,27 +1,41 @@
 name: Tests
 
+# This workflow runs various tests across different languages and environments
+# to ensure cross-platform compatibility and functionality
+
 on:
+  workflow_dispatch:
   push:
     paths:
-      - "src/**"
-      - "tests/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "templates/**"
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'templates/**'
+      - '.github/workflows/test.yml'
   pull_request:
     paths:
-      - "src/**"
-      - "tests/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "templates/**"
-
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'templates/**'
+      - '.github/workflows/test.yml'
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  # Runs the core Rust unit tests for the project
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows works, but breaks minijinja
+        # iterators and thus some content is
+        # rendered in a different order *sigh*
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -29,3 +43,149 @@ jobs:
         run: cargo build --verbose
       - name: Run tests
         run: cargo test --verbose
+
+  # Tests Go code generation and validates the output
+  golang:
+    name: Go
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cached build
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Generate Go code
+        run: |
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/go/generated.go \
+            -t golang
+
+      - name: Build Docker image
+        run: docker build -t gotests -f tests/envs/go/Dockerfile .
+      - name: Run tests
+        run: docker run --rm gotests
+
+  # Tests Python code generation for multiple Python frameworks:
+  # - dataclasses
+  # - pydantic
+  # - pydantic with XML support
+  python:
+    name: Python
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Python code
+        run: |
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/python/gen_dataclasses.py \
+            -t python-dataclass
+
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/python/gen_pydantic.py \
+            -t python-pydantic
+
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/python/gen_pydantic_xml.py \
+            -t python-pydantic-xml
+
+      - name: Build Docker image
+        run: docker build -t pythontests -f tests/envs/python/Dockerfile .
+      - name: Run tests
+        run: docker run --rm pythontests
+
+  # Tests TypeScript code generation with Zod schema validation
+  typescript:
+    name: TypeScript Zod
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate TypeScript code
+        run: |
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/typescript/generated.ts \
+            -t typescript-zod
+
+      - name: Build Docker image
+        run: docker build -t tstests -f tests/envs/typescript/Dockerfile .
+      - name: Run tests
+        run: docker run --rm tstests
+
+  # Tests Rust code generation and validates the output
+  rust:
+    name: Rust
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Rust code
+        run: |
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/rust/src/generated.rs \
+            -t rust
+
+      - name: Build Docker image
+        run: docker build -t rusttests -f tests/envs/rust/Dockerfile .
+      - name: Run tests
+        run: docker run --rm rusttests
+
+  # Tests WASM build for npm bundler target
+  bundler:
+    name: Bundler
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build WASM for npm (bundle)
+        run: wasm-pack build --target bundler --features wasm --no-default-features
+
+  # Tests WASM build for web target
+  web:
+    name: Web
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build WASM for npm (bundle)
+        run: wasm-pack build --features wasm --no-default-features

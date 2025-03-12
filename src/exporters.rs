@@ -302,6 +302,7 @@ pub fn render_jinja_template(
         objects_with_wrapped => get_objects_with_wrapped(model),
         pk_objects => pk_objects(model),
         artificial_fields => artificial_fields,
+        has_union_types => has_union_types(model),
     });
 
     match rendered {
@@ -750,6 +751,22 @@ fn contains_numeric_type(attribute: &Attribute) -> bool {
         .dtypes
         .iter()
         .any(|t| t == "integer" || t == "float")
+}
+
+/// Checks if an object has multiple types.
+///
+/// # Arguments
+///
+/// * `object` - The object to check.
+///
+/// # Returns
+///
+/// `true` if the object has union types, `false` otherwise.
+fn has_union_types(model: &mut DataModel) -> bool {
+    model
+        .objects
+        .iter()
+        .any(|o| o.attributes.iter().any(|a| a.dtypes.len() > 1))
 }
 
 #[cfg(test)]
