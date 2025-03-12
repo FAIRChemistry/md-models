@@ -5,7 +5,9 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/mdmodels-core)](https://pypi.org/project/mdmodels-core/)
 [![Build Status](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml/badge.svg)](https://github.com/JR-1991/sdrdm.rs/actions/workflows/test.yml)
 
-Welcome to Markdown Models (MD-Models)! 📝 We've created this advanced framework to make research data management more intuitive and accessible while maintaining professional standards. Our approach uses markdown-based schema definitions to transform complex data modeling into something you'll actually enjoy working with.
+*Welcome to Markdown Models (MD-Models)!* 📝 
+
+We've created this framework to make research data management more intuitive and accessible while maintaining professional standards. Our approach uses markdown-based schema definitions to transform complex data modeling into something you'll actually enjoy working with.
 
 The framework does the heavy lifting for you - automatically generating technical schemas and programming language implementations from your markdown files. This means you can focus on designing your data structures in a format that makes sense, while we handle the technical translations. ⚙️
 
