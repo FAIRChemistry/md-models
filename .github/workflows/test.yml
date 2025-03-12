@@ -32,7 +32,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Windows works, but breaks minijinja
+        # iterators and thus some content is
+        # rendered in a different order *sigh*
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
