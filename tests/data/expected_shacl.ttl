@@ -24,7 +24,7 @@ tst:TestShape
         sh:path schema:something ;
         sh:node md:Test2Shape ;
         sh:minCount 0 ;
-    ];
+    ]; .
 
 tst:Test2Shape
     a sh:NodeShape ;
@@ -40,4 +40,4 @@ tst:Test2Shape
         sh:datatype xsd:double ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
-    ].
+    ]; .

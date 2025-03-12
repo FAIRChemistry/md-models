@@ -17,7 +17,7 @@
             </xs:element>
             <xs:element name="ontology" type="OntologyType"/>
         </xs:sequence>
-        <xs:attribute name="name" type="xs:string"  use="required">
+        <xs:attribute name="name" type="xs:string"  use="required" default="2.0">
             <xs:annotation>
                 <xs:documentation>
                     The name of the test. This is a unique identifier that helps track

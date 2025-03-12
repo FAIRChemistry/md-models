@@ -35,6 +35,7 @@ __name__* `string`
 
 - The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.
 
+- `Default`: 2.0
 
 __number__ `float``string`
 
