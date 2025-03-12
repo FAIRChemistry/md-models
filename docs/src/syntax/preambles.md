@@ -5,7 +5,6 @@ The preamble is the first section of your data model. It is used to provide meta
 ```markdown
 ---
 id: my-data-model
-id-field: true
 prefix: md
 repo: http://mdmodel.net/
 prefixes:
@@ -14,7 +13,6 @@ nsmap:
   tst: http://example.com/test/
 imports:
   common.md: common.md
-allow-empty: false
 ---
 ```
 
@@ -27,13 +25,6 @@ The frontmatter section of your MD-Models document supports several configuratio
 - **Type**: String (Optional)
 - **Description**: A unique identifier for your data model. This can be used to reference your model from other models or systems.
 - **Example**: `id: my-data-model`
-
-### `id-field`
-
-- **Type**: Boolean
-- **Default**: `true`
-- **Description**: Controls whether an ID field should be automatically generated for objects in your model. When set to `true`, objects will have an implicit ID property.
-- **Example**: `id-field: true`
 
 ### `prefixes`
 

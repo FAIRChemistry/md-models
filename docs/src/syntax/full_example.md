@@ -4,7 +4,7 @@ The following is a full example of an MD-Models files that defines a data model 
 
 ```md
 ---
-title: ResearchPublication
+id: research-publication
 prefix: rpub
 description: This model represents a scientific publication with its core metadata, authors, 
              and citations.
