@@ -141,12 +141,10 @@ package {% if title -%}{{ title | replace_lower(" ", "_") }}{% else %}model{% en
     {% endfor -%}
 {% endfor -%}
 
-{% if has_multiple_types %}
 import (
     "encoding/json"
     "fmt"
 )
-{% endif %}
 
 //
 // Type definitions
