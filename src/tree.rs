@@ -22,8 +22,10 @@
  */
 
 use std::collections::{HashMap, HashSet};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::{attribute::Attribute, datamodel::DataModel, object::Object};
+use petgraph::visit::EdgeRef;
 use petgraph::{
     graph::{DiGraph, NodeIndex},
     Direction,
@@ -184,6 +186,14 @@ pub enum Node<T> {
     },
 }
 
+impl<T> Hash for Node<T> {
+    // Hash the name and description of the node
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name().hash(state);
+        self.description().hash(state);
+    }
+}
+
 impl<T> Node<T> {
     /// Returns the name of the node, whether it's an Object or Attribute.
     ///
@@ -259,6 +269,44 @@ pub fn model_tree<T>(root_object: &Object, model: &DataModel) -> DiGraph<Node<T>
     process_queue(&mut graph, &mut queue, model);
 
     graph
+}
+
+/// Hashes a directed graph.
+///
+/// This function hashes a directed graph by first sorting the nodes and edges by their name and target/source indices, respectively.
+/// It then hashes each node and edge in turn, using their respective hash functions.
+///
+/// # Arguments
+///
+/// * `graph` - The directed graph to hash
+///
+/// # Returns
+///
+/// A u64 hash value
+#[allow(dead_code)]
+pub(crate) fn hash_graph<T>(graph: &DiGraph<Node<T>, ()>) -> u64 {
+    let mut hasher = DefaultHasher::new();
+
+    let mut nodes = graph.node_weights().collect::<Vec<_>>();
+    nodes.sort_by_key(|n| n.name());
+
+    for node in nodes {
+        node.hash(&mut hasher);
+    }
+
+    let mut edges = graph.edge_references().collect::<Vec<_>>();
+    edges.sort_by_key(|e| (e.source().index(), e.target().index()));
+
+    for edge in edges {
+        {
+            edge.target().hash(&mut hasher);
+        }
+        {
+            edge.source().hash(&mut hasher);
+        }
+    }
+
+    hasher.finish()
 }
 
 /// Maps over a tree structure and collects nodes that match a given predicate into a HashMap.
@@ -492,8 +540,7 @@ mod tests {
 
     fn load_model() -> DataModel {
         let path = Path::new("tests/data/model.md");
-        let model = DataModel::from_markdown(path).expect("Failed to load model");
-        model
+        DataModel::from_markdown(path).expect("Failed to load model")
     }
 
     #[test]
@@ -567,5 +614,33 @@ mod tests {
                 assert_eq!(node.weight.data(), &None);
             }
         }
+    }
+
+    #[test]
+    fn test_hash_graph_same() {
+        let model = load_model();
+        let tree = model_tree::<()>(&model.objects[0], &model);
+        let hash = hash_graph(&tree);
+        println!("Hash: {}", hash);
+
+        let tree2 = model_tree::<()>(&model.objects[0], &model);
+        let hash2 = hash_graph(&tree2);
+        println!("Hash2: {}", hash2);
+
+        assert_eq!(hash, hash2);
+    }
+
+    #[test]
+    fn test_hash_graph_different() {
+        let model = load_model();
+        let tree = model_tree::<()>(&model.objects[0], &model);
+        let hash = hash_graph(&tree);
+        println!("Hash: {}", hash);
+
+        let tree2 = model_tree::<()>(&model.objects[1], &model);
+        let hash2 = hash_graph(&tree2);
+        println!("Hash2: {}", hash2);
+
+        assert_ne!(hash, hash2);
     }
 }

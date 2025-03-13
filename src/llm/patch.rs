@@ -308,7 +308,7 @@ mod tests {
             .expect("Expected error");
 
         // Assert
-        assert!(result.len() > 0);
+        assert!(!result.is_empty());
 
         // Verify we get the expected validation error (missing required field)
         let error = result.first().unwrap();

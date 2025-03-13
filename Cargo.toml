@@ -2,7 +2,7 @@
 name = "mdmodels"
 authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
 description = "A tool to generate models, code and schemas from markdown files"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/FAIRChemistry/md-models"
@@ -44,6 +44,7 @@ petgraph = { version = "0.7.1", features = ["serde"] }
 schemars = { version = "0.8.22", features = ["derive_json_schema"] }
 json-patch = "4.0.0"
 thiserror = "2.0.12"
+derive_builder = "0.20.2"
 
 [features]
 default = ["openai"]
