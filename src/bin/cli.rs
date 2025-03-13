@@ -165,6 +165,10 @@ struct ExtractArgs {
         help = "If you aim to mutate a dataset, provide the path to the file here. The file will be used to reduce response times by re-using the already existing dataset."
     )]
     dataset: Option<PathBuf>,
+
+    /// Base URL for the LLM provider.
+    #[arg(short, long, help = "Base URL for the LLM provider")]
+    base_url: Option<String>,
 }
 
 /// Arguments for the dataset subcommand.
@@ -309,6 +313,7 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
             &root,
             &llm_model,
             None,
+            &args.base_url,
         ))?
     } else {
         tokio::runtime::Runtime::new()?.block_on(query_openai(
@@ -319,6 +324,7 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
             &llm_model,
             args.multiple,
             None,
+            &args.base_url,
         ))?
     };
 

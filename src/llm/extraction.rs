@@ -57,18 +57,16 @@ pub async fn query_openai(
     model: &str,
     multiple: bool,
     api_key: Option<String>,
+    base_url: &Option<String>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
     // Prepare the response format
     let schema = serde_json::to_value(to_json_schema(data_model, root, true)?)?;
     let response_format = prepare_response_format(&schema, root, multiple)?;
-    let mut client = prepare_client(api_key)?;
-
-    // Refine the prompt
-    let refined_prompt = refine_query(prompt, model).await?;
+    let mut client = prepare_client(api_key, base_url)?;
 
     let messages = vec![
         create_chat_message(pre_prompt, chat_completion::MessageRole::system),
-        create_chat_message(&refined_prompt, chat_completion::MessageRole::user),
+        create_chat_message(prompt, chat_completion::MessageRole::user),
     ];
 
     let req = chat_completion::ChatCompletionRequest::new(model.to_string(), messages)
@@ -93,12 +91,13 @@ pub async fn patch_openai(
     root: &str,
     model: &str,
     api_key: Option<String>,
+    base_url: &Option<String>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
     // Copy the dataset
     let mut dataset = dataset.clone();
 
     // Prepare the response format
-    let mut client = prepare_client(api_key)?;
+    let mut client = prepare_client(api_key, base_url)?;
     let response_format = prepare_response_format(&JSONPatch::schema(), root, false)?;
 
     // Refine the prompt and reduce the schema
@@ -117,7 +116,7 @@ pub async fn patch_openai(
     let schema = serde_json::to_value(to_json_schema(data_model, root, true)?)?;
 
     // Refine the prompt
-    let refined_prompt = refine_query(prompt, model).await?;
+    let refined_prompt = refine_query(prompt, model, base_url).await?;
     let prompt = UPDATE_PROMPT
         .replace("{dataset}", &dataset.to_string())
         .replace("{prompt}", &refined_prompt)
@@ -159,8 +158,12 @@ pub async fn patch_openai(
     }
 }
 
-pub async fn refine_query(query: &str, model: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let mut client = prepare_client(None)?;
+pub async fn refine_query(
+    query: &str,
+    model: &str,
+    base_url: &Option<String>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let mut client = prepare_client(None, base_url)?;
 
     let prompt = REFINE_PROMPT.replace("{query}", query);
 
@@ -233,13 +236,23 @@ fn prepare_response_format(
 /// # Returns
 ///
 /// A `Result` containing an `OpenAIClient`, or an error if the operation fails.
-pub fn prepare_client(api_key: Option<String>) -> Result<OpenAIClient, Box<dyn std::error::Error>> {
+pub fn prepare_client(
+    api_key: Option<String>,
+    base_url: &Option<String>,
+) -> Result<OpenAIClient, Box<dyn std::error::Error>> {
     let api_key = match api_key {
         Some(api_key) => api_key,
         None => env::var("OPENAI_API_KEY")?,
     };
 
-    OpenAIClient::builder().with_api_key(api_key).build()
+    if let Some(base_url) = base_url {
+        OpenAIClient::builder()
+            .with_api_key(api_key)
+            .with_endpoint(base_url)
+            .build()
+    } else {
+        OpenAIClient::builder().with_api_key(api_key).build()
+    }
 }
 
 /// Creates a chat message.
