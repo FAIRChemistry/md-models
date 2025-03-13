@@ -12,7 +12,7 @@ prefixes:
   - schema: https://schema.org/
 ---
 
-### ResearchPublication
+### ResearchPublication (schema:Publication)
 
 This model represents a scientific publication with its core metadata, authors, 
 and citations.
@@ -28,7 +28,7 @@ and citations.
   - Description: The main title of the publication
 - authors
   - Type: [Author](#author)[]
-  - Term: schema:author
+  - Term: schema:authored
   - Description: List of authors who contributed to the publication
 - publication_year
   - Type: integer
@@ -43,7 +43,7 @@ and citations.
   - Default: 0
 
 
-### Author
+### Author (schema:Person)
 
 The `Author` object is a simple object that has a name and an email address.
 
