@@ -5,7 +5,7 @@ MD-Models supports a variety of semantic annotations to help you add meaning to 
 
 ## Ontologies
 
-Ontologies are a way to add semantic meaning to your data model. They are a collection of concepts and relationships between them and are specific to the domain of your data model. For instance, the [Schema.org](https://schema.org/) ontology is a collection of concepts and relationships between them for the domain of product information. This is very useful when you want to connect to other data models that employ similar concepts, but use different names for them.
+Ontologies are a way to add semantic meaning to your data model. They are a collection of concepts and relationships between them and are specific to the domain of your data model. For instance, the [schema.org](https://schema.org/) ontology is a collection of concepts and relationships that span across many domains. This is very useful when you want to connect to other data models that employ similar concepts, but use different names for them.
 
 Typically these relations are defined as triples, consisting of a subject, predicate and object. For instance, the statement "John is a person" can be represented as the triple `(John, is a, person)`. The first element of the triple is the subject, the second is the predicate and the third is the object. With our properties and objects, we already have a subject and a predicate, we just need to add the object.
 
