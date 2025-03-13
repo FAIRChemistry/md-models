@@ -15,7 +15,7 @@ With MD-Models, you can define the `is a` predicate as an object annotation for 
 
 Objects are annotated at the level 3 heading of the object definition. The annotation is followed by a whitespace and enclosed in parentheses. Typically, these annotations are expressed in the form of a URI, which points to a definition of the concept in the ontology. But this is a verbose way and can be simplified by using a prefix. We will be using the `schema` prefix in the following examples. More on how to use prefixes can be found in the [preambles section](./preambles.md).
 
-We want to express "A `Product` is a `schema:Product`".
+We want to express - *"A `Product` is a `schema:Product`"*.
 
 ```markdown
 ### Product (schema:Product)
@@ -33,7 +33,7 @@ Properties are annotated using an option, as defined in the [Property Options](.
 
 ### Object-valued properties
 
-We want to express "A `Product` is ordered by a `Person`".
+We want to express - *"A `Product` is ordered by a `Person`"*.
 
 ```markdown
 ### Product
@@ -47,7 +47,7 @@ The annotation effectively describes the relationship between the `orders` prope
 
 ### Primitive-valued properties
 
-We want to express "The `name` of a `Product` is a `schema:name`".
+We want to express - *"The `name` of a `Product` is a `schema:name`"*.
 
 ```markdown
 ### Product
