@@ -15,7 +15,7 @@ With MD-Models, you can define the `is a` predicate as an object annotation for 
 
 Objects are annotated at the level 3 heading of the object definition. The annotation is followed by a whitespace and enclosed in parentheses. Typically, these annotations are expressed in the form of a URI, which points to a definition of the concept in the ontology. But this is a verbose way and can be simplified by using a prefix. We will be using the `schema` prefix in the following examples. More on how to use prefixes can be found in the [preambles section](./preambles.md).
 
-We want to express that a `Product` *is a* `schema:Product`.
+We want to express "A `Product` is a `schema:Product`".
 
 ```markdown
 ### Product (schema:Product)
@@ -28,12 +28,12 @@ We want to express that a `Product` *is a* `schema:Product`.
 
 Properties are annotated using an option, as defined in the [Property Options](./property-options.md) section. We utilize the keyword `term` to add a semantic type to the property. Properties can function in one of two ways:
 
-1. If the type of the property is a primitive type, the `term` option describes the characteristics of the object (type).
-2. If the type of the property is an object, the `term` option describes the relationship (predicate) between the subject (object) and the object (type).
+1. If the type of the property is a primitive type, the `term` option describes an `is a` relationship and thus the *object* in the sense of the triple.
+2. If the type of the property is an object or an array of objects, the `term` option describes the relationship (predicate) between the subject (object) and the object (type).
 
 ### Object-valued properties
 
-We want to express that the `orders` property is `ordered_by` a `Person`.
+We want to express "A `Product` is ordered by a `Person`".
 
 ```markdown
 ### Product
@@ -47,7 +47,7 @@ The annotation effectively describes the relationship between the `orders` prope
 
 ### Primitive-valued properties
 
-We want to express that the `name` property `is a` string and `schema:name`.
+We want to express "The `name` of a `Product` is a `schema:name`".
 
 ```markdown
 ### Product
@@ -56,6 +56,8 @@ We want to express that the `name` property `is a` string and `schema:name`.
   - type: string
   - term: schema:name
 ```
+
+> Naturally, since the `name` property is part of the `Product` object, it builds the relationship "A `Product` has a `name`". In terms of triples, this is represented as `(Product, has, name)`.
 
 Once these annotations are defined, they are automatically added to the generated code and schemes, if supported. Semantic annotations are currently supported in the following language templates:
 
