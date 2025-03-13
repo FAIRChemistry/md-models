@@ -81,13 +81,13 @@ pub async fn embed_model(
 ///
 /// Returns an APIError if the embedding request fails
 pub async fn embed_texts(
-    texts: &Vec<String>,
+    texts: &[String],
     client: &mut OpenAIClient,
     model: &str,
 ) -> Result<Vec<EmbeddingData>, APIError> {
     let request = EmbeddingRequest {
         model: model.to_string(),
-        input: texts.clone(),
+        input: texts.to_vec(),
         dimensions: Some(800),
         encoding_format: Some(EncodingFormat::Float),
         user: None,

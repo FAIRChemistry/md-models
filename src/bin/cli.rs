@@ -29,7 +29,7 @@ use mdmodels::{
     exporters::{render_jinja_template, Templates},
     json::validation::validate_json,
     linkml::export::serialize_linkml,
-    llm::extraction::{patch_openai, query_openai},
+    llm::extraction::{patch_openai, query_openai, QueryArgs},
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
@@ -37,6 +37,32 @@ use serde_json::Value;
 use std::{
     collections::HashMap, error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr,
 };
+
+/// Main entry point of the application.
+///
+/// Initializes the logger, parses command line arguments, and dispatches to the appropriate
+/// subcommand handler based on the provided arguments.
+///
+/// # Returns
+///
+/// A Result indicating success or an error wrapped in a Box.
+fn main() -> Result<(), Box<dyn Error>> {
+    // Initialize the logger.
+    pretty_env_logger::init();
+
+    // Parse the command line arguments.
+    let args = Cli::parse();
+
+    match args.cmd {
+        Commands::Validate(args) => validate(args),
+        Commands::Convert(args) => convert(args),
+        Commands::Pipeline(args) => process_pipeline(&args.input),
+        Commands::Extract(args) => query_llm(args),
+        Commands::Dataset(args) => match args.command {
+            DatasetCommands::Validate(args) => validate_ds(args),
+        },
+    }
+}
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
@@ -211,6 +237,14 @@ impl FromStr for InputType {
     type Err = String;
 
     /// Converts a string to an InputType (Remote or Local).
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The string to convert.
+    ///
+    /// # Returns
+    ///
+    /// An InputType or an error message.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("http") {
             Ok(InputType::Remote(s.to_string()))
@@ -222,6 +256,14 @@ impl FromStr for InputType {
 
 impl Display for InputType {
     /// Display the input type.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - The formatter to write to.
+    ///
+    /// # Returns
+    ///
+    /// A formatting result.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             InputType::Remote(url) => write!(f, "{}", url),
@@ -230,30 +272,15 @@ impl Display for InputType {
     }
 }
 
-/// Main entry point of the application.
-fn main() -> Result<(), Box<dyn Error>> {
-    // Initialize the logger.
-    pretty_env_logger::init();
-
-    // Parse the command line arguments.
-    let args = Cli::parse();
-
-    match args.cmd {
-        Commands::Validate(args) => validate(args),
-        Commands::Convert(args) => convert(args),
-        Commands::Pipeline(args) => process_pipeline(&args.input),
-        Commands::Extract(args) => query_llm(args),
-        Commands::Dataset(args) => match args.command {
-            DatasetCommands::Validate(args) => validate_ds(args),
-        },
-    }
-}
-
 /// Validates the markdown model specified in the arguments.
 ///
 /// # Arguments
 ///
 /// * `args` - Arguments for the 'validate' subcommand.
+///
+/// # Returns
+///
+/// A Result indicating success or an error wrapped in a Box.
 fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
     println!("\n Validating model {} ...", args.input.to_string().bold());
 
@@ -275,6 +302,7 @@ fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
 /// Prints the result of the validation.
 ///
 /// # Arguments
+///
 /// * `result` - The result of the validation.
 fn print_validation_result(result: bool) {
     let message = if result {
@@ -286,49 +314,26 @@ fn print_validation_result(result: bool) {
     println!(" └── {}\n", message);
 }
 
+/// Queries a large language model with the provided arguments.
+///
+/// # Arguments
+///
+/// * `args` - Arguments for the 'extract' subcommand.
+///
+/// # Returns
+///
+/// A Result indicating success or an error wrapped in a Box.
 fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
-    let path = resolve_input_path(&args.model);
-    let model = DataModel::from_markdown(&path)?;
-    let prompt = std::fs::read_to_string(&args.input)?;
-    let pre_prompt = args.pre_prompt;
-    let llm_model = args.llm_model;
-    let root = match args.root {
-        Some(root) => root,
-        None => model
-            .objects
-            .first()
-            .ok_or("No objects found in model".to_string())?
-            .name
-            .clone(),
-    };
+    let output = args.output.clone();
+    let query_args = QueryArgs::try_from(args)?;
 
-    let response = if let Some(dataset) = args.dataset {
-        let dataset = std::fs::read_to_string(&dataset)?;
-        let dataset: Value = serde_json::from_str(&dataset)?;
-        tokio::runtime::Runtime::new()?.block_on(patch_openai(
-            &prompt,
-            &dataset,
-            Some(&pre_prompt),
-            &model,
-            &root,
-            &llm_model,
-            None,
-            &args.base_url,
-        ))?
+    let response = if query_args.dataset.is_some() {
+        tokio::runtime::Runtime::new()?.block_on(patch_openai(query_args))?
     } else {
-        tokio::runtime::Runtime::new()?.block_on(query_openai(
-            &prompt,
-            &pre_prompt,
-            &model,
-            &root,
-            &llm_model,
-            args.multiple,
-            None,
-            &args.base_url,
-        ))?
+        tokio::runtime::Runtime::new()?.block_on(query_openai(query_args))?
     };
 
-    match args.output {
+    match output {
         Some(ref output) => {
             let json_string = serde_json::to_string_pretty(&response)?;
             std::fs::write(output, json_string).expect("Failed to write output");
@@ -347,6 +352,10 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
 /// # Arguments
 ///
 /// * `args` - Arguments for the convert subcommand.
+///
+/// # Returns
+///
+/// A Result indicating success or an error wrapped in a Box.
 fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
@@ -414,6 +423,15 @@ fn resolve_input_path(input: &InputType) -> PathBuf {
 }
 
 /// Renders all JSON Schemas for the model.
+///
+/// # Arguments
+///
+/// * `model` - The data model to render schemas for.
+/// * `outdir` - The output directory to write the schemas to.
+///
+/// # Returns
+///
+/// A Result indicating success or an error wrapped in a Box.
 fn render_all_json_schemes(
     model: &DataModel,
     outdir: &Option<PathBuf>,
@@ -438,6 +456,14 @@ fn render_all_json_schemes(
 }
 
 /// Validates a dataset against a markdown model.
+///
+/// # Arguments
+///
+/// * `args` - Arguments for the 'validate dataset' subcommand.
+///
+/// # Returns
+///
+/// A Result indicating success or an error wrapped in a Box.
 fn validate_ds(args: ValidateDatasetArgs) -> Result<(), Box<dyn Error>> {
     let model_path = resolve_input_path(&args.model);
     let model = DataModel::from_markdown(&model_path)?;
@@ -449,6 +475,60 @@ fn validate_ds(args: ValidateDatasetArgs) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+impl TryFrom<ExtractArgs> for QueryArgs {
+    type Error = Box<dyn Error>;
+
+    /// Attempts to convert ExtractArgs into QueryArgs.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The ExtractArgs to convert.
+    ///
+    /// # Returns
+    ///
+    /// A Result containing QueryArgs or an error wrapped in a Box.
+    fn try_from(input: ExtractArgs) -> Result<Self, Self::Error> {
+        let prompt = std::fs::read_to_string(&input.input)?;
+        let pre_prompt = Some(input.pre_prompt);
+        let root = input.root;
+        let model = input.llm_model;
+        let multiple = input.multiple;
+        let api_key = None;
+        let base_url = input.base_url;
+        let data_model = DataModel::from_markdown(&resolve_input_path(&input.model))?;
+
+        let dataset = if let Some(dataset) = input.dataset {
+            let dataset = std::fs::read_to_string(&dataset)?;
+            let dataset: Value = serde_json::from_str(&dataset)?;
+            Some(dataset)
+        } else {
+            None
+        };
+
+        let root = match root {
+            Some(root) => root,
+            None => data_model
+                .objects
+                .first()
+                .ok_or("No objects found in model".to_string())?
+                .name
+                .clone(),
+        };
+
+        Ok(QueryArgs {
+            prompt,
+            pre_prompt,
+            data_model,
+            root,
+            model,
+            multiple,
+            api_key,
+            base_url,
+            dataset,
+        })
+    }
 }
 
 #[cfg(test)]

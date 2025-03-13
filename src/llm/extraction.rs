@@ -23,6 +23,7 @@
 
 use std::env;
 
+use derive_builder::Builder;
 use log::{error, info};
 use openai_api_rs::v1::{api::OpenAIClient, chat_completion};
 use serde_json::{json, Value};
@@ -34,6 +35,20 @@ use super::patch::JSONPatch;
 const UPDATE_SYSPROMPT: &str = include_str!("update_sysprompt.md");
 const UPDATE_PROMPT: &str = include_str!("update_prompt.md");
 const REFINE_PROMPT: &str = include_str!("refine_prompt.md");
+const DEFAULT_PRE_PROMPT: &str = "You are a helpful assistant that extracts data from text input.";
+
+#[derive(Debug, Clone, Builder)]
+pub struct QueryArgs {
+    pub prompt: String,
+    pub pre_prompt: Option<String>,
+    pub data_model: DataModel,
+    pub root: String,
+    pub model: String,
+    pub multiple: bool,
+    pub api_key: Option<String>,
+    pub base_url: Option<String>,
+    pub dataset: Option<Value>,
+}
 
 /// Queries the OpenAI API with a given prompt and pre-prompt, using a specified data model and root.
 ///
@@ -50,26 +65,24 @@ const REFINE_PROMPT: &str = include_str!("refine_prompt.md");
 ///
 /// A `Result` containing a `serde_json::Value` with the parsed JSON response from the OpenAI API, or an error if the operation fails.
 pub async fn query_openai(
-    prompt: &str,
-    pre_prompt: &str,
-    data_model: &DataModel,
-    root: &str,
-    model: &str,
-    multiple: bool,
-    api_key: Option<String>,
-    base_url: &Option<String>,
+    query: impl Into<QueryArgs>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
+    let query = query.into();
+
     // Prepare the response format
-    let schema = serde_json::to_value(to_json_schema(data_model, root, true)?)?;
-    let response_format = prepare_response_format(&schema, root, multiple)?;
-    let mut client = prepare_client(api_key, base_url)?;
+    let schema = serde_json::to_value(to_json_schema(&query.data_model, &query.root, true)?)?;
+    let response_format = prepare_response_format(&schema, &query.root, query.multiple)?;
+    let mut client = prepare_client(query.api_key, &query.base_url)?;
 
     let messages = vec![
-        create_chat_message(pre_prompt, chat_completion::MessageRole::system),
-        create_chat_message(prompt, chat_completion::MessageRole::user),
+        create_chat_message(
+            &query.pre_prompt.unwrap_or(DEFAULT_PRE_PROMPT.to_string()),
+            chat_completion::MessageRole::system,
+        ),
+        create_chat_message(&query.prompt, chat_completion::MessageRole::user),
     ];
 
-    let req = chat_completion::ChatCompletionRequest::new(model.to_string(), messages)
+    let req = chat_completion::ChatCompletionRequest::new(query.model.to_string(), messages)
         .response_format(response_format)
         .temperature(0.0);
 
@@ -78,27 +91,24 @@ pub async fn query_openai(
         .choices
         .first()
         .and_then(|choice| choice.message.content.as_ref())
-        .ok_or_else(|| format!("No content in response from {}", model))?;
+        .ok_or_else(|| format!("No content in response from {}", query.model))?;
 
     Ok(serde_json::from_str(content)?)
 }
 
 pub async fn patch_openai(
-    prompt: &str,
-    dataset: &Value,
-    pre_prompt: Option<&str>,
-    data_model: &DataModel,
-    root: &str,
-    model: &str,
-    api_key: Option<String>,
-    base_url: &Option<String>,
+    query: impl Into<QueryArgs>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    // Copy the dataset
-    let mut dataset = dataset.clone();
+    let query = query.into();
+
+    let mut dataset = query
+        .dataset
+        .ok_or(format!("Dataset is required for patch operation"))?
+        .clone();
 
     // Prepare the response format
-    let mut client = prepare_client(api_key, base_url)?;
-    let response_format = prepare_response_format(&JSONPatch::schema(), root, false)?;
+    let mut client = prepare_client(query.api_key, &query.base_url)?;
+    let response_format = prepare_response_format(&JSONPatch::schema(), &query.root, false)?;
 
     // Refine the prompt and reduce the schema
     let mut messages = vec![create_chat_message(
@@ -106,17 +116,17 @@ pub async fn patch_openai(
         chat_completion::MessageRole::system,
     )];
 
-    if let Some(pre_prompt) = pre_prompt {
+    if let Some(pre_prompt) = query.pre_prompt {
         messages.push(create_chat_message(
-            pre_prompt,
+            &pre_prompt,
             chat_completion::MessageRole::system,
         ));
     }
 
-    let schema = serde_json::to_value(to_json_schema(data_model, root, true)?)?;
+    let schema = serde_json::to_value(to_json_schema(&query.data_model, &query.root, true)?)?;
 
     // Refine the prompt
-    let refined_prompt = refine_query(prompt, model, base_url).await?;
+    let refined_prompt = refine_query(&query.prompt, &query.model, &query.base_url).await?;
     let prompt = UPDATE_PROMPT
         .replace("{dataset}", &dataset.to_string())
         .replace("{prompt}", &refined_prompt)
@@ -127,31 +137,33 @@ pub async fn patch_openai(
         chat_completion::MessageRole::user,
     ));
 
-    let req = chat_completion::ChatCompletionRequest::new(model.to_string(), messages)
+    let req = chat_completion::ChatCompletionRequest::new(query.model.to_string(), messages)
         .response_format(response_format)
         .temperature(0.0);
-
-    info!("Patching dataset");
 
     let result = client.chat_completion(req).await?;
     let content = result
         .choices
         .first()
         .and_then(|choice| choice.message.content.as_ref())
-        .ok_or_else(|| format!("No content in response from {}", model))?;
+        .ok_or_else(|| format!("No content in response from {}", query.model))?;
 
     // Parse the content as a JSON patch
     let patch = serde_json::from_str::<JSONPatch>(content)?;
 
     // Apply the patch to the dataset
-    let val_errors = patch.apply(&mut dataset, data_model, Some(root.to_string()))?;
+    let val_errors = patch.apply(
+        &mut dataset,
+        &query.data_model,
+        Some(query.root.to_string()),
+    )?;
 
     if !val_errors.is_empty() {
         log::error!("Validation errors: {}", val_errors.len());
         for error in val_errors {
             error!("{}:\n\t└── {}", error.instance_path, error.message);
         }
-        return Err(format!("Response from {} is invalid", model).into());
+        Err(format!("Response from {} is invalid", query.model).into())
     } else {
         log::info!("Patched dataset successfully");
         Ok(dataset)

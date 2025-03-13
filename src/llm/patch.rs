@@ -72,7 +72,7 @@ impl JSONPatch {
         json_patch::patch(dataset, &patch)?;
 
         // Validate the modified dataset against the data model
-        validate_json(dataset, model, root).map_err(|e| PatchError::Other(e.into()))
+        validate_json(dataset, model, root).map_err(PatchError::Other)
     }
 }
 
