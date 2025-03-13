@@ -283,6 +283,7 @@ pub fn model_tree<T>(root_object: &Object, model: &DataModel) -> DiGraph<Node<T>
 /// # Returns
 ///
 /// A u64 hash value
+#[allow(dead_code)]
 pub(crate) fn hash_graph<T>(graph: &DiGraph<Node<T>, ()>) -> u64 {
     let mut hasher = DefaultHasher::new();
 

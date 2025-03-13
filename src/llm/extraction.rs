@@ -103,7 +103,7 @@ pub async fn patch_openai(
 
     let mut dataset = query
         .dataset
-        .ok_or(format!("Dataset is required for patch operation"))?
+        .ok_or("Dataset is required for patch operation")?
         .clone();
 
     // Prepare the response format
