@@ -27,6 +27,22 @@ These options map to standard JSON Schema validation constraints, allowing you t
 | `exclusiveminimum`   | Specifies an exclusive minimum value for a numeric property              | `- exclusiveminimum: 0`       |
 | `exclusivemaximum`   | Specifies an exclusive maximum value for a numeric property              | `- exclusivemaximum: 100`     |
 
+## Format Options
+
+The following options are used to define how the property should be represented in different formats.
+
+| Option | Description                                                     | Example           |
+| ------ | --------------------------------------------------------------- | ----------------- |
+| `xml`  | Specifies that the property should be represented in XML format | `- xml: someName` |
+
+### A note on the `xml` option
+
+The `xml` option has multiple effects:
+
+- `Element` will be set as an element in the XML Schema.
+- `@Name` will be set as an attribute in the XML Schema.
+- `someWrapper/Element` will wrap the element in a parent element called `someWrapper`.
+
 ## SQL Database Options
 
 Database options allow you to specify how properties should be represented in relational database systems. MD-Models supports the following options:
