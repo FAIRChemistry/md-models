@@ -28,12 +28,12 @@ We want to express that a `Product` *is a* `schema:Product`.
 
 Properties are annotated using an option, as defined in the [Property Options](./property-options.md) section. We utilize the keyword `term` to add a semantic type to the property. Properties can function in one of two ways:
 
-1. If the type of the property is a primitive type, the property describes the characteristics of the object (type).
-2. If the type of the property is an object, the property describes the relationship (predicate) between the subject (object) and the object (type).
+1. If the type of the property is a primitive type, the `term` option describes the characteristics of the object (type).
+2. If the type of the property is an object, the `term` option describes the relationship (predicate) between the subject (object) and the object (type).
 
 ### Object-valued properties
 
-We want to express that the `orders` property *is_ordered_by* `Person`.
+We want to express that the `orders` property is `ordered_by` a `Person`.
 
 ```markdown
 ### Product
@@ -47,7 +47,7 @@ The annotation effectively describes the relationship between the `orders` prope
 
 ### Primitive-valued properties
 
-We want to express that the `name` property *is a* `schema:name`.
+We want to express that the `name` property `is a` string and `schema:name`.
 
 ```markdown
 ### Product
