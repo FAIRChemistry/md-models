@@ -15,10 +15,10 @@ Enrich your objects with documentation and communicate intent to domain experts.
 
 This is a simple object definition:
 
-- attribute
+- string_attribute
     - type: string
     - description: A string attribute
-- attribute
+- integer_attribute
     - type: integer
     - description: An integer attribute
 ```
