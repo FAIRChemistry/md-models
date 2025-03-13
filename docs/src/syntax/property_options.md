@@ -45,7 +45,7 @@ The `xml` option has multiple effects:
 
 ## Semantic Options
 
-The following options are used to define how the property should be represented in different formats. Read more about semantic annotations in the [Semantics](./semantics.md) section.
+The following options are used to define semantic annotations. Read more about semantic annotations in the [Semantics](./semantics.md) section.
 
 | Option | Description                                         | Example               |
 | ------ | --------------------------------------------------- | --------------------- |
