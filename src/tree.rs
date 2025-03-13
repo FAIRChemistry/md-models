@@ -540,8 +540,7 @@ mod tests {
 
     fn load_model() -> DataModel {
         let path = Path::new("tests/data/model.md");
-        let model = DataModel::from_markdown(path).expect("Failed to load model");
-        model
+        DataModel::from_markdown(path).expect("Failed to load model")
     }
 
     #[test]
