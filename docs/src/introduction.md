@@ -34,7 +34,7 @@ The primary motivation behind MD-Models is to reduce cognitive overhead and main
 
 This separation frequently leads to documentation drift and increases the cognitive load on both developers and domain experts.
 
-### A little anecdote
+### A Little Anecdote
 
 When I began my journey in research data management, I was frequently overwhelmed by the intricate tools and standards in use. As a researcher suddenly thrown into a blend of software engineering, format creation, and data management, it felt like I was plunged into deep water without a safety net.
 
