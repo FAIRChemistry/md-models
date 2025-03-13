@@ -43,6 +43,14 @@ The `xml` option has multiple effects:
 - `@Name` will be set as an attribute in the XML Schema.
 - `someWrapper/Element` will wrap the element in a parent element called `someWrapper`.
 
+## Semantic Options
+
+The following options are used to define how the property should be represented in different formats. Read more about semantic annotations in the [Semantics](./semantics.md) section.
+
+| Option | Description                                         | Example               |
+| ------ | --------------------------------------------------- | --------------------- |
+| `term` | Specifies the term for the property in the ontology | `- term: schema:name` |
+
 ## SQL Database Options
 
 Database options allow you to specify how properties should be represented in relational database systems. MD-Models supports the following options:
