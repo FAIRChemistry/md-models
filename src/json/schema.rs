@@ -25,19 +25,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     collections::{BTreeMap, HashMap},
+    fmt::{self, Display},
     str::FromStr,
 };
+use variantly::Variantly;
 
 use crate::attribute;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 pub enum SchemaType {
     Object(SchemaObject),
     Enum(EnumObject),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SchemaObject {
     #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
     pub schema: Option<String>,
@@ -54,6 +56,7 @@ pub struct SchemaObject {
         skip_serializing_if = "BTreeMap::is_empty",
         alias = "definitions"
     )]
+    #[serde(default)]
     pub definitions: BTreeMap<String, SchemaType>,
     pub required: Vec<String>,
     #[serde(rename = "additionalProperties", default = "default_false")]
@@ -66,7 +69,7 @@ impl SchemaObject {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EnumObject {
     pub title: String,
     #[serde(rename = "type")]
@@ -77,9 +80,11 @@ pub struct EnumObject {
     pub enum_values: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Property {
+    #[serde(alias = "name")]
     pub title: String,
+    // TODO: This should be either an array or a single type
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub dtype: Option<DataType>,
     #[serde(rename = "default", skip_serializing_if = "Option::is_none")]
@@ -100,12 +105,29 @@ pub struct Property {
     pub enum_values: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Variantly, Clone)]
 #[serde(untagged)]
 pub enum Item {
     ReferenceItem(ReferenceItemType),
     OneOfItem(OneOfItemType),
     DataTypeItem(DataTypeItemType),
+    // TODO: Add PropertyItem?
+}
+
+impl Item {
+    /// Returns a vector of all the types that can be found in the item.
+    /// This is useful for getting all the types that can be found in a property.
+    pub(crate) fn get_types(&self) -> Vec<String> {
+        match self {
+            Item::ReferenceItem(ref_item) => vec![ref_item.reference.clone()],
+            Item::OneOfItem(one_of_item) => one_of_item
+                .one_of
+                .iter()
+                .flat_map(|item| item.get_types())
+                .collect(),
+            Item::DataTypeItem(data_type_item) => vec![data_type_item.dtype.to_string()],
+        }
+    }
 }
 
 impl Serialize for Item {
@@ -121,26 +143,26 @@ impl Serialize for Item {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ReferenceItemType {
     #[serde(rename = "$ref")]
     pub reference: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct OneOfItemType {
     #[serde(rename = "oneOf")]
     pub one_of: Vec<Item>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DataTypeItemType {
     #[serde(rename = "type")]
     pub dtype: DataType,
 }
 
 /// Represents various data types that can be used in a JSON schema.
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Variantly, Clone)]
 pub enum DataType {
     #[serde(rename = "string")]
     String,
@@ -185,6 +207,18 @@ impl FromStr for DataType {
     }
 }
 
+impl Display for DataType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DataType::String => write!(f, "string"),
+            DataType::Number => write!(f, "number"),
+            DataType::Integer => write!(f, "integer"),
+            DataType::Boolean => write!(f, "boolean"),
+            DataType::Object => write!(f, "object"),
+            DataType::Array => write!(f, "array"),
+        }
+    }
+}
 impl TryFrom<&String> for DataType {
     type Error = String;
 
@@ -201,7 +235,7 @@ impl TryFrom<&String> for DataType {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 pub enum PrimitiveType {
     String(String),
@@ -234,6 +268,17 @@ impl From<&String> for PrimitiveType {
         }
 
         PrimitiveType::String(s.clone())
+    }
+}
+
+impl Display for PrimitiveType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PrimitiveType::String(s) => write!(f, "{}", s),
+            PrimitiveType::Number(n) => write!(f, "{}", n),
+            PrimitiveType::Integer(i) => write!(f, "{}", i),
+            PrimitiveType::Boolean(b) => write!(f, "{}", b),
+        }
     }
 }
 
