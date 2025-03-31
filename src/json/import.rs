@@ -505,11 +505,11 @@ mod tests {
         assert_eq!(attribute.dtypes, vec!["number"]);
         assert_eq!(attribute.docstring, "test");
         assert_eq!(attribute.term, Some("http://schema.org/one".to_string()));
-        assert_eq!(attribute.required, false);
+        assert!(!attribute.required);
         assert_eq!(attribute.default, None);
-        assert_eq!(attribute.is_array, false);
+        assert!(!attribute.is_array);
         assert_eq!(attribute.xml, None);
-        assert_eq!(attribute.is_enum, false);
+        assert!(!attribute.is_enum);
         assert_eq!(attribute.position, None);
         assert_eq!(attribute.import_prefix, None);
     }
@@ -544,11 +544,11 @@ mod tests {
         );
         assert_eq!(attribute.docstring, "");
         assert_eq!(attribute.term, None);
-        assert_eq!(attribute.required, false);
+        assert!(!attribute.required);
         assert_eq!(attribute.default, None);
         assert_eq!(attribute.xml, None);
-        assert_eq!(attribute.is_array, false);
-        assert_eq!(attribute.is_enum, false);
+        assert!(!attribute.is_array);
+        assert!(!attribute.is_enum);
         assert_eq!(attribute.position, None);
         assert_eq!(attribute.import_prefix, None);
     }
@@ -571,11 +571,11 @@ mod tests {
         assert_eq!(attribute.dtypes, vec!["Test".to_string()]);
         assert_eq!(attribute.docstring, "");
         assert_eq!(attribute.term, None);
-        assert_eq!(attribute.required, false);
+        assert!(!attribute.required);
         assert_eq!(attribute.default, None);
-        assert_eq!(attribute.is_array, false);
+        assert!(!attribute.is_array);
         assert_eq!(attribute.xml, None);
-        assert_eq!(attribute.is_enum, false);
+        assert!(!attribute.is_enum);
         assert_eq!(attribute.position, None);
         assert_eq!(attribute.import_prefix, None);
     }
@@ -601,11 +601,11 @@ mod tests {
         assert_eq!(attribute.dtypes, vec!["string".to_string()]);
         assert_eq!(attribute.docstring, "");
         assert_eq!(attribute.term, None);
-        assert_eq!(attribute.required, false);
+        assert!(!attribute.required);
         assert_eq!(attribute.default, None);
-        assert_eq!(attribute.is_array, true);
+        assert!(attribute.is_array);
         assert_eq!(attribute.xml, None);
-        assert_eq!(attribute.is_enum, false);
+        assert!(!attribute.is_enum);
         assert_eq!(attribute.position, None);
         assert_eq!(attribute.import_prefix, None);
     }
@@ -631,11 +631,11 @@ mod tests {
         assert_eq!(attribute.dtypes, vec!["string".to_string()]);
         assert_eq!(attribute.docstring, "");
         assert_eq!(attribute.term, None);
-        assert_eq!(attribute.required, false);
+        assert!(!attribute.required);
         assert_eq!(attribute.default, None);
-        assert_eq!(attribute.is_array, true);
+        assert!(attribute.is_array);
         assert_eq!(attribute.xml, None);
-        assert_eq!(attribute.is_enum, false);
+        assert!(!attribute.is_enum);
         assert_eq!(attribute.position, None);
         assert_eq!(attribute.import_prefix, None);
     }
@@ -706,9 +706,9 @@ mod tests {
         assert_eq!(attribute1.dtypes, vec!["number"]);
         assert_eq!(attribute1.docstring, "");
         assert_eq!(attribute1.term, None);
-        assert_eq!(attribute1.required, true);
+        assert!(attribute1.required);
         assert_eq!(attribute1.default, None);
-        assert_eq!(attribute1.is_array, false);
+        assert!(!attribute1.is_array);
 
         let attribute2 = data_model.attributes[1].clone();
 
@@ -716,9 +716,9 @@ mod tests {
         assert_eq!(attribute2.dtypes, vec!["string"]);
         assert_eq!(attribute2.docstring, "");
         assert_eq!(attribute2.term, None);
-        assert_eq!(attribute2.required, false);
+        assert!(!attribute2.required);
         assert_eq!(attribute2.default, None);
-        assert_eq!(attribute2.is_array, false);
+        assert!(!attribute2.is_array);
     }
 
     /// Tests parsing an enum object into an Enumeration
