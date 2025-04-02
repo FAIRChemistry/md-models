@@ -25,8 +25,9 @@ pub struct Test {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub number: Option<TestNumberType>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub test2: Option<Vec<Test2>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[builder(setter(into, each(name = "to_test2")))]
+    pub test2: Vec<Test2>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ontology: Option<Ontology>,
@@ -38,8 +39,9 @@ pub struct Test {
 #[allow(non_snake_case)]
 pub struct Test2 {
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub names: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[builder(setter(into, each(name = "to_names")))]
+    pub names: Vec<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub number: Option<f64>,

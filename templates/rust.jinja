@@ -42,8 +42,8 @@
 
 {# Wraps types in Option<...> if they're optional and handles multiple values #}
 {% macro wrap_type(attr, parent_name, object_names, wrap_index) %}
-    {%- if attr.required is false -%}
-        Option<{{ is_multiple(attr) }}{{ get_type(attr, parent_name, object_names, wrap_index) }}{{ is_multiple_end(attr) }}>
+    {%- if attr.required is false and not attr.multiple -%}
+        Option<{{ get_type(attr, parent_name, object_names, wrap_index) }}>
     {%- else -%}
         {{ is_multiple(attr) }}{{ get_type(attr, parent_name, object_names, wrap_index) }}{{ is_multiple_end(attr) }}
     {%- endif -%}
@@ -125,9 +125,14 @@ pub struct {{ object.name }} {
     {% for attr in object.attributes %}
     {%- if attr.docstring %}/// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}{%- endif %}
     {%- if attr.required is false %}
+    {%- if attr.multiple %}
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    {%- else %}
     #[serde(skip_serializing_if = "Option::is_none")]
     {%- endif %}
+    {%- endif %}
     {%- if attr.multiple %}
+    #[builder(setter(into, each(name = "to_{{ attr.name }}")))]
     {%- endif %}
     pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
     {% endfor %}
