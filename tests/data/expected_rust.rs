@@ -58,7 +58,7 @@ pub struct Test2 {
 //
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default, PartialEq, Eq)]
 pub enum Ontology {
     #[default]
     #[serde(rename = "https://www.evidenceontology.org/term/")]

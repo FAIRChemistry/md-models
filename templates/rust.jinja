@@ -150,7 +150,7 @@ pub struct {{ object.name }} {
 {%- for enum in enums %}
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default, PartialEq, Eq)]
 pub enum {{ enum.name }} {
     {%- for key, value in enum.mappings | dictsort %}
     {% if loop.first %}#[default]{% endif %}
