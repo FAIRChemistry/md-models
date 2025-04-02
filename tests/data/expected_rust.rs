@@ -54,12 +54,15 @@ pub struct Test2 {
 //
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
 pub enum Ontology {
+    #[default]
     #[serde(rename = "https://www.evidenceontology.org/term/")]
     ECO,
+
     #[serde(rename = "https://amigo.geneontology.org/amigo/term/")]
     GO,
+
     #[serde(rename = "http://semanticscience.org/resource/")]
     SIO,
 }
