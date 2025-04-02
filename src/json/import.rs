@@ -388,6 +388,14 @@ mod tests {
               },
               "required": [],
               "additionalProperties": false
+            },
+            "no_title_and_no_required": {
+                "type": "object",
+                "properties": {
+                    "val": {
+                        "type": "string"
+                    }
+                }
             }
           },
           "required": [
@@ -401,7 +409,7 @@ mod tests {
             DataModel::try_from(schema).expect("Failed to convert schema to data model");
 
         assert_eq!(data_model.name, Some("Test".to_string()));
-        assert_eq!(data_model.objects.len(), 2);
+        assert_eq!(data_model.objects.len(), 3);
         assert_eq!(data_model.enums.len(), 1);
 
         // Test root object (Test)
@@ -441,6 +449,17 @@ mod tests {
         assert!(!number_attr.is_array);
         assert_eq!(number_attr.dtypes, vec!["number"]);
         assert_eq!(number_attr.term, Some("http://schema.org/one".to_string()));
+
+        // Verify no_title_and_no_required object
+        let no_title_and_no_required = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "no_title_and_no_required")
+            .expect("no_title_and_no_required object not found");
+
+        assert_eq!(no_title_and_no_required.name.len() > 0, true);
+        assert_eq!(no_title_and_no_required.attributes.len(), 1);
+        assert_eq!(no_title_and_no_required.attributes[0].name, "val");
 
         // Test Ontology enum
         let ontology = data_model

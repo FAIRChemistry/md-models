@@ -23,6 +23,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::{self, Display},
@@ -31,6 +32,14 @@ use std::{
 use variantly::Variantly;
 
 use crate::attribute;
+
+// Atomic counter to ensure thread-safe uniqueness
+static TITLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
+
+fn generate_unique_title() -> String {
+    let unique_id = TITLE_COUNTER.fetch_add(1, Ordering::SeqCst); // Increment the counter atomically
+    format!("Untitled-{}", unique_id)
+}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
@@ -45,6 +54,7 @@ pub struct SchemaObject {
     pub schema: Option<String>,
     #[serde(rename = "$id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    #[serde(default = "generate_unique_title")]
     pub title: String,
     #[serde(rename = "type")]
     pub dtype: DataType,
@@ -58,6 +68,7 @@ pub struct SchemaObject {
     )]
     #[serde(default)]
     pub definitions: BTreeMap<String, SchemaType>,
+    #[serde(default)]
     pub required: Vec<String>,
     #[serde(rename = "additionalProperties", default = "default_false")]
     pub additional_properties: bool,
@@ -71,6 +82,7 @@ impl SchemaObject {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EnumObject {
+    #[serde(default = "generate_unique_title")]
     pub title: String,
     #[serde(rename = "type")]
     pub dtype: DataType,
@@ -82,7 +94,7 @@ pub struct EnumObject {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Property {
-    #[serde(alias = "name")]
+    #[serde(alias = "name", default = "generate_unique_title")]
     pub title: String,
     // TODO: This should be either an array or a single type
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
