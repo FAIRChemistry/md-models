@@ -72,7 +72,7 @@ use derive_builder::Builder;
 
 {%- if object.name in objects_with_wrapped %}
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct {{ object.name }} {
    {%- for attr in object.attributes %}
    pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names, None) }},
@@ -119,7 +119,7 @@ impl<'de> Deserialize<'de> for {{ object.name }} {
 {%- if object.docstring %}
 /// {{ wrap(object.docstring, 70, "", "/// ", None) }}
 {%- endif %}
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct {{ object.name }} {
     {% for attr in object.attributes %}

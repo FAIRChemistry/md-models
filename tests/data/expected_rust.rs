@@ -14,7 +14,7 @@ use derive_builder::Builder;
 /// eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
 /// enim ad minim veniam, quis nostrud exercitation ullamco laboris
 /// nisi ut aliquip ex ea commodo consequat.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct Test {
     /// The name of the test. This is a unique identifier that helps track
@@ -35,7 +35,7 @@ pub struct Test {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct Test2 {
 
