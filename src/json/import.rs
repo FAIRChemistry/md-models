@@ -457,7 +457,7 @@ mod tests {
             .find(|object| object.name == "no_title_and_no_required")
             .expect("no_title_and_no_required object not found");
 
-        assert_eq!(no_title_and_no_required.name.len() > 0, true);
+        assert!(!no_title_and_no_required.name.is_empty());
         assert_eq!(no_title_and_no_required.attributes.len(), 1);
         assert_eq!(no_title_and_no_required.attributes[0].name, "val");
 
