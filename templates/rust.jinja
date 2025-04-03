@@ -56,6 +56,13 @@
     {%- endif -%}
 {% endmacro %}
 
+{# to_string for string types #}
+{% macro to_string(attr) %}
+    {%- if attr.dtypes[0] == "string" -%}
+        .to_string()
+    {%- endif -%}
+{% endmacro %}
+
 {# Determines the appropriate builder attribute for a field #}
 {% macro get_builder_attribute(attr) %}
     {%- if attr.multiple -%}
@@ -64,11 +71,7 @@
         {%- if attr.dtypes | length > 1 -%}
             #[builder(default, setter(into))]
         {%- elif attr.default -%}
-            {%- if attr.dtypes[0] == "string" -%}
-                #[builder(default = "{{ attr.default }}.to_string()", setter(into))]
-            {%- else -%}
-                #[builder(default = "{{ attr.default }}", setter(into))]
-            {%- endif -%}
+            #[builder(default = "{{ attr.default }}{{- to_string(attr) -}}.into()", setter(into))]
         {%- elif attr.required is false -%}
             #[builder(default, setter(into))]
         {%- else -%}
