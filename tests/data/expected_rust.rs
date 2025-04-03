@@ -20,10 +20,11 @@ pub struct Test {
     /// The name of the test. This is a unique identifier that helps track
     /// individual test cases across the system. It should be
     /// descriptive and follow the standard naming conventions.
-    #[builder(setter(into))]
+    #[serde(default)]
+    #[builder(default = "2.0.to_string()", setter(into))]
     pub name: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
     pub number: Option<TestNumberType>,
 
@@ -31,7 +32,7 @@ pub struct Test {
     #[builder(default, setter(into, each(name = "to_test2")))]
     pub test2: Vec<Test2>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
     pub ontology: Option<Ontology>,
 
@@ -46,7 +47,7 @@ pub struct Test2 {
     #[builder(default, setter(into, each(name = "to_names")))]
     pub names: Vec<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
     pub number: Option<f64>,
 

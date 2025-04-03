@@ -56,6 +56,42 @@
     {%- endif -%}
 {% endmacro %}
 
+{# Determines the appropriate builder attribute for a field #}
+{% macro get_builder_attribute(attr) %}
+    {%- if attr.multiple -%}
+        #[builder(default, setter(into, each(name = "to_{{ attr.name }}")))]
+    {%- else -%}
+        {%- if attr.dtypes | length > 1 -%}
+            #[builder(default, setter(into))]
+        {%- elif attr.default -%}
+            {%- if attr.dtypes[0] == "string" -%}
+                #[builder(default = "{{ attr.default }}.to_string()", setter(into))]
+            {%- else -%}
+                #[builder(default = "{{ attr.default }}", setter(into))]
+            {%- endif -%}
+        {%- elif attr.required is false -%}
+            #[builder(default, setter(into))]
+        {%- else -%}
+            #[builder(setter(into))]
+        {%- endif -%}
+    {%- endif -%}
+{% endmacro %}
+
+{# Determines the appropriate serde attribute for optional fields #}
+{% macro get_serde_attribute(attr) %}
+    {%- if attr.required is false -%}
+        {%- if attr.multiple -%}
+            #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        {%- else -%}
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+        {%- endif -%}
+    {%- else -%}
+        {%- if attr.default or attr.dtypes | length > 1 -%}
+            #[serde(default)]
+        {%- endif -%}
+    {%- endif -%}
+{% endmacro %}
+
 //! This file contains Rust struct definitions with serde serialization.
 //! 
 //! WARNING: This is an auto-generated file.
@@ -124,22 +160,8 @@ impl<'de> Deserialize<'de> for {{ object.name }} {
 pub struct {{ object.name }} {
     {% for attr in object.attributes %}
     {%- if attr.docstring %}/// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}{%- endif %}
-    {%- if attr.required is false %}
-    {%- if attr.multiple %}
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    {%- else %}
-    #[serde(skip_serializing_if = "Option::is_none")]
-    {%- endif %}
-    {%- endif %}
-    {%- if attr.multiple %}
-    #[builder(default, setter(into, each(name = "to_{{ attr.name }}")))]
-    {%- else %}
-    {%- if attr.required is false %}
-    #[builder(default, setter(into))]
-    {%- else %}
-    #[builder(setter(into))]
-    {%- endif %}
-    {%- endif %}
+    {{ get_serde_attribute(attr) }}
+    {{ get_builder_attribute(attr) }}
     pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
     {% endfor %}
 }
