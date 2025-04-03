@@ -28,7 +28,7 @@ pub struct Test {
     pub number: Option<TestNumberType>,
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[builder(setter(into, each(name = "to_test2")))]
+    #[builder(default, setter(into, each(name = "to_test2")))]
     pub test2: Vec<Test2>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -43,7 +43,7 @@ pub struct Test {
 pub struct Test2 {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[builder(setter(into, each(name = "to_names")))]
+    #[builder(default, setter(into, each(name = "to_names")))]
     pub names: Vec<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

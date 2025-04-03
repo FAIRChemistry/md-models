@@ -132,7 +132,7 @@ pub struct {{ object.name }} {
     {%- endif %}
     {%- endif %}
     {%- if attr.multiple %}
-    #[builder(setter(into, each(name = "to_{{ attr.name }}")))]
+    #[builder(default, setter(into, each(name = "to_{{ attr.name }}")))]
     {%- else %}
     {%- if attr.required is false %}
     #[builder(default, setter(into))]
