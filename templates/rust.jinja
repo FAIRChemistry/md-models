@@ -134,7 +134,11 @@ pub struct {{ object.name }} {
     {%- if attr.multiple %}
     #[builder(setter(into, each(name = "to_{{ attr.name }}")))]
     {%- else %}
+    {%- if attr.required is false %}
+    #[builder(default, setter(into))]
+    {%- else %}
     #[builder(setter(into))]
+    {%- endif %}
     {%- endif %}
     pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
     {% endfor %}
