@@ -21,7 +21,7 @@ pub struct Test {
     /// individual test cases across the system. It should be
     /// descriptive and follow the standard naming conventions.
     #[serde(default)]
-    #[builder(default = "2.0.to_string()", setter(into))]
+    #[builder(default = "2.0.to_string().into()", setter(into))]
     pub name: String,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
