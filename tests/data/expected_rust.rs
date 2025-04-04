@@ -38,7 +38,6 @@ pub struct Test {
 
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct Test2 {
@@ -52,7 +51,6 @@ pub struct Test2 {
     pub number: Option<f64>,
 
 }
-
 
 //
 // Enum definitions
