@@ -3,9 +3,9 @@
 //! WARNING: This is an auto-generated file.
 //! Do not edit directly - any changes will be overwritten.
 
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 use derive_builder::Builder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 //
 // Type definitions
@@ -24,32 +24,34 @@ pub struct Test {
     #[builder(default = "2.0.to_string().into()", setter(into))]
     pub name: String,
 
+    /// number
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
     pub number: Option<TestNumberType>,
 
+    /// test2
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default, setter(into, each(name = "to_test2")))]
     pub test2: Vec<Test2>,
 
+    /// ontology
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
     pub ontology: Option<Ontology>,
-
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct Test2 {
-
+    /// names
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default, setter(into, each(name = "to_names")))]
     pub names: Vec<String>,
 
+    /// number
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
     pub number: Option<f64>,
-
 }
 
 //

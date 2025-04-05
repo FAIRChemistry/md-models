@@ -100,9 +100,9 @@
 //! WARNING: This is an auto-generated file.
 //! Do not edit directly - any changes will be overwritten.
 
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 use derive_builder::Builder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 //
 // Type definitions
@@ -161,12 +161,28 @@ impl<'de> Deserialize<'de> for {{ object.name }} {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct {{ object.name }} {
-    {% for attr in object.attributes %}
-    {%- if attr.docstring %}/// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}{%- endif %}
-    {{ get_serde_attribute(attr) }}
+    {%- for i, attr in object.attributes | enumerate %}
+    
+    {%- if i == 0 %}
+    {%- if attr.docstring%}
+    /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
+    {% else %}
+    /// {{ attr.name }}
+    {% endif %}
+    {%- else %}
+    {%- if attr.docstring%}
+
+    /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
+    {% else %}
+
+    /// {{ attr.name }}
+    {%- endif %}
+    {% endif %}
+    
+    {%- if get_serde_attribute(attr) %}{{ get_serde_attribute(attr) }}{% endif %}
     {{ get_builder_attribute(attr) }}
     pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
-    {% endfor %}
+    {%- endfor %}
 }
 {%- endif %}
 {% endfor %}
