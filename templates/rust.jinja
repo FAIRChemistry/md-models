@@ -91,6 +91,8 @@
     {%- else -%}
         {%- if attr.default or attr.dtypes | length > 1 -%}
             #[serde(default)]
+        {%- else -%}
+            ///
         {%- endif -%}
     {%- endif -%}
 {% endmacro %}
@@ -166,20 +168,19 @@ pub struct {{ object.name }} {
     {%- if i == 0 %}
     {%- if attr.docstring%}
     /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
-    {% else %}
+    {%- else %}
     /// {{ attr.name }}
-    {% endif %}
+    {%- endif %}
     {%- else %}
     {%- if attr.docstring%}
 
     /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
-    {% else %}
+    {%- else %}
 
     /// {{ attr.name }}
     {%- endif %}
-    {% endif %}
-    
-    {%- if get_serde_attribute(attr) %}{{ get_serde_attribute(attr) }}{% endif %}
+    {%- endif %}
+    {{ get_serde_attribute(attr) }}
     {{ get_builder_attribute(attr) }}
     pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
     {%- endfor %}
