@@ -176,7 +176,6 @@ pub struct {{ object.name }} {
 // Enum definitions
 //
 {%- for enum in enums %}
-
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default, PartialEq, Eq)]
 pub enum {{ enum.name }} {

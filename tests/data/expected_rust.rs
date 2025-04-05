@@ -55,7 +55,6 @@ pub struct Test2 {
 //
 // Enum definitions
 //
-
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default, PartialEq, Eq)]
 pub enum Ontology {
