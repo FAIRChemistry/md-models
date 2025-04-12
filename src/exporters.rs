@@ -709,7 +709,6 @@ pub fn enumerate(v: &Value, _: Kwargs) -> Result<Value, minijinja::Error> {
     // Turn into iterator of (index, value)
     Ok(v.try_iter()
         .expect("Failed to iterate over sequence")
-        .into_iter()
         .enumerate()
         .map(|(i, v)| Value::from(vec![Value::from(i), v]))
         .collect())
