@@ -836,17 +836,17 @@ fn starts_with_character(name: &str) -> Result<(), (String, String)> {
 /// - `Ok(())` if the name does not contain whitespace.
 /// - `Err(String)` if the name contains whitespace.
 fn contains_white_space(name: &str) -> Result<(), (String, String)> {
-    name.contains(' ')
-        .then(|| {
-            Err((
-                format!(
-                    "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
-                    name
-                ),
-                name.replace(" ", "_").to_string(),
-            ))
-        })
-        .unwrap_or(Ok(()))
+    if name.contains(' ') {
+        Err((
+            format!(
+                "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
+                name
+            ),
+            name.replace(" ", "_").to_string(),
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 /// Checks if the given name contains special characters, except for underscores.
@@ -861,14 +861,17 @@ fn contains_white_space(name: &str) -> Result<(), (String, String)> {
 /// - `Ok(())` if the name does not contain special characters.
 /// - `Err(String)` if the name contains special characters.
 fn contains_special_characters(name: &str, allow_slash: bool) -> Result<(), (String, String)> {
-    name.chars().any(|c| {
-        !c.is_alphanumeric() && c != '_' && c != ' ' && (!allow_slash || c != '/')
-    }).then(
-        || Err((
-            format!("Name '{}' contains special characters, which are not valid except for underscores.", name),
+    if name
+        .chars()
+        .any(|c| !c.is_alphanumeric() && c != '_' && c != ' ' && (!allow_slash || c != '/'))
+    {
+        Err((
+        format!("Name '{}' contains special characters, which are not valid except for underscores.", name),
             name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect::<String>().to_string(),
         ))
-    ).unwrap_or(Ok(()))
+    } else {
+        Ok(())
+    }
 }
 
 /// Extracts the positions of all objects in the data model.
