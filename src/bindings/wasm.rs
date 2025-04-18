@@ -71,6 +71,25 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
         .map_err(|e| JsValue::from_str(&format!("Error converting markdown content: {}", e)))
 }
 
+/// Parses the given JSON schema string into a `DataModel`.
+///
+/// # Arguments
+///
+/// * `json_schema` - A string slice that holds the JSON schema to be parsed.
+///
+/// # Returns
+///
+/// A `String` or an error `JsError`.
+#[wasm_bindgen]
+pub fn from_json_schema(json_schema: &str) -> Result<String, JsError> {
+    let mut model = DataModel::from_json_schema_string(json_schema)
+        .map_err(|e| JsError::new(&format!("Error parsing JSON schema: {}", e)))?;
+
+    model
+        .convert_to(&Templates::Markdown, None)
+        .map_err(|e| JsError::new(&format!("Error converting markdown content: {}", e)))
+}
+
 /// Returns the JSON schema for the given markdown content.
 ///
 /// # Arguments
