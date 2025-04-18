@@ -521,9 +521,21 @@ fn handle_array_marker(objects: &mut [Object]) {
 /// * `text` - The text to append to the docstring
 fn handle_docstring(objects: &mut [Object], text: CowStr) {
     let last_object = objects.last_mut().unwrap();
-    last_object
+    if last_object.docstring.len() > 0 {
+        last_object
+            .docstring
+            .push_str(format!(" {}", text.as_ref()).as_str());
+    } else {
+        last_object.docstring = text.as_ref().to_string();
+    }
+
+    // Remove all spaces > 1
+    last_object.docstring = last_object
         .docstring
-        .push_str(format!(" {}", text.as_ref()).as_str());
+        .split_whitespace()
+        .map(|s| s.trim())
+        .collect::<Vec<&str>>()
+        .join(" ");
 }
 
 /// Processes the heading of an object.
