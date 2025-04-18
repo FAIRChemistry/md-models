@@ -321,7 +321,12 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
 fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
-    let mut model = DataModel::from_markdown(&path)?;
+
+    let mut model = if let Ok(model) = DataModel::from_json_schema(&path) {
+        model
+    } else {
+        DataModel::from_markdown(&path)?
+    };
 
     // Special case JSON Schema all
     if let Templates::JsonSchemaAll = args.template {
