@@ -228,7 +228,7 @@ fn merge_imports(model: &mut DataModel, imports: HashMap<String, ImportType>, pa
 /// # Returns
 /// * `Result<(), Validator>` - Ok if valid, Err with validator if invalid
 #[allow(clippy::result_large_err)]
-fn validate_model(model: &DataModel) -> Result<(), Validator> {
+pub(crate) fn validate_model(model: &DataModel) -> Result<(), Validator> {
     let mut validator = Validator::new();
     validator.validate(model);
 
@@ -521,7 +521,9 @@ fn handle_array_marker(objects: &mut [Object]) {
 /// * `text` - The text to append to the docstring
 fn handle_docstring(objects: &mut [Object], text: CowStr) {
     let last_object = objects.last_mut().unwrap();
-    last_object.docstring.push_str(text.as_ref());
+    last_object
+        .docstring
+        .push_str(format!(" {}", text.as_ref()).as_str());
 }
 
 /// Processes the heading of an object.
