@@ -403,7 +403,7 @@ impl TryFrom<&Attribute> for schema::Property {
         };
 
         Ok(schema::Property {
-            title: attr.name.clone(),
+            title: Some(attr.name.clone()),
             dtype,
             default,
             description,
