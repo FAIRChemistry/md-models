@@ -173,7 +173,7 @@ impl TryFrom<Property> for Attribute {
         }
 
         Ok(Attribute {
-            name: property.title,
+            name: property.title.unwrap_or("MISSING_TITLE".to_string()),
             is_array,
             dtypes: dtypes
                 .into_iter()
