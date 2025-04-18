@@ -38,7 +38,7 @@ static TITLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
 fn generate_unique_title() -> String {
     let unique_id = TITLE_COUNTER.fetch_add(1, Ordering::SeqCst); // Increment the counter atomically
-    format!("Untitled-{}", unique_id)
+    format!("untitled_{}", unique_id)
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -94,8 +94,8 @@ pub struct EnumObject {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Property {
-    #[serde(alias = "name", default = "generate_unique_title")]
-    pub title: String,
+    #[serde(alias = "name", skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     // TODO: This should be either an array or a single type
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub dtype: Option<DataType>,
@@ -188,6 +188,7 @@ pub enum DataType {
     Object,
     #[serde(rename = "array")]
     Array,
+    Multiple(Box<Vec<DataType>>),
 }
 
 impl Default for DataType {
@@ -228,9 +229,19 @@ impl Display for DataType {
             DataType::Boolean => write!(f, "boolean"),
             DataType::Object => write!(f, "object"),
             DataType::Array => write!(f, "array"),
+            DataType::Multiple(types) => write!(
+                f,
+                "multiple({})",
+                types
+                    .iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
         }
     }
 }
+
 impl TryFrom<&String> for DataType {
     type Error = String;
 
