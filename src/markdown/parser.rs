@@ -521,7 +521,7 @@ fn handle_array_marker(objects: &mut [Object]) {
 /// * `text` - The text to append to the docstring
 fn handle_docstring(objects: &mut [Object], text: CowStr) {
     let last_object = objects.last_mut().unwrap();
-    if last_object.docstring.len() > 0 {
+    if !last_object.docstring.is_empty() {
         last_object
             .docstring
             .push_str(format!(" {}", text.as_ref()).as_str());

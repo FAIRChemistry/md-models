@@ -250,7 +250,7 @@ fn parse_options(
 fn extract_reference(reference: String) -> Result<String, String> {
     reference
         .split('/')
-        .last()
+        .next_back()
         .filter(|s| !s.is_empty())
         .map(ToString::to_string)
         .ok_or_else(|| "Invalid reference format".to_string())
