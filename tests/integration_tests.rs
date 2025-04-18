@@ -541,4 +541,21 @@ mod tests {
         assert_eq!(overrides.dtypes[0], "string");
         assert_eq!(overrides.is_array, false, "Expected non-array, got array");
     }
+
+    #[test]
+    fn test_from_json_schema() {
+        let path = Path::new("tests/data/expected_json_schema.json");
+        let model = DataModel::from_json_schema(path).expect("Could not parse JSON schema");
+
+        assert_eq!(model.objects.len(), 2);
+    }
+
+    #[test]
+    fn test_from_json_schema_string() {
+        let content = std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
+        let model =
+            DataModel::from_json_schema_string(&content).expect("Could not parse JSON schema");
+
+        assert_eq!(model.objects.len(), 2);
+    }
 }
