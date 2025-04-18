@@ -36,7 +36,11 @@ use clap::ValueEnum;
 use colored::Colorize;
 use convert_case::{Case, Casing};
 use lazy_static::lazy_static;
-use minijinja::{context, value::ViaDeserialize, Environment};
+use minijinja::{
+    context,
+    value::{Kwargs, ValueKind, ViaDeserialize},
+    Environment, Value,
+};
 use textwrap::wrap;
 
 #[cfg(feature = "python")]
@@ -247,6 +251,7 @@ pub fn render_jinja_template(
     env.add_function("wrap", wrap_text);
     env.add_function("replace", replace);
     env.add_function("default_value", default_value);
+    env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
     env.add_filter("split_path_pairs", split_path_pairs);
     env.add_filter("pascal_case", pascal_case);
@@ -690,6 +695,23 @@ fn clean_and_trim(s: &str) -> String {
     }
 
     cleaned.join("\n").trim().to_string()
+}
+
+// Enumerate a collection of objects
+pub fn enumerate(v: &Value, _: Kwargs) -> Result<Value, minijinja::Error> {
+    if v.kind() != ValueKind::Seq {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            "Can only enumerate sequences",
+        ));
+    }
+
+    // Turn into iterator of (index, value)
+    Ok(v.try_iter()
+        .expect("Failed to iterate over sequence")
+        .enumerate()
+        .map(|(i, v)| Value::from(vec![Value::from(i), v]))
+        .collect())
 }
 
 /// Capitalizes the first character of a string.

@@ -20,10 +20,10 @@ mod tests {
         let test = Test {
             name: "test1".to_string(),
             number: Some(TestNumberType::F64(42.0)),
-            test2: Some(vec![Test2 {
-                names: Some(vec!["name1".to_string(), "name2".to_string()]),
+            test2: vec![Test2 {
+                names: vec!["name1".to_string(), "name2".to_string()],
                 number: Some(123.45),
-            }]),
+            }],
             ontology: Some(Ontology::GO),
         };
 
@@ -34,21 +34,21 @@ mod tests {
             panic!("Expected F64 number type");
         }
 
-        let test2 = test.test2.unwrap();
-        assert_eq!(test2[0].names.as_ref().unwrap()[0], "name1");
-        assert_eq!(test2[0].number.unwrap(), 123.45);
+        let test2 = test.test2;
+        assert_eq!(test2[0].names[0], "name1");
+        assert_eq!(test2[0].number, Some(123.45));
     }
 
     #[test]
     fn test_builder() {
         let test = TestBuilder::default()
-            .test2(Some(vec![
+            .test2(vec![
                 Test2Builder::default()
-                    .names(Some(vec!["name1".to_string(), "name2".to_string()]))
+                    .names(vec!["name1".to_string(), "name2".to_string()])
                     .number(Some(123.45))
                     .build()
                     .unwrap(),
-            ]))
+            ])
             .name("test2".to_string())
             .number(Some(TestNumberType::String("42".to_string())))
             .ontology(Some(Ontology::GO))

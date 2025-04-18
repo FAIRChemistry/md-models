@@ -42,8 +42,8 @@
 
 {# Wraps types in Option<...> if they're optional and handles multiple values #}
 {% macro wrap_type(attr, parent_name, object_names, wrap_index) %}
-    {%- if attr.required is false -%}
-        Option<{{ is_multiple(attr) }}{{ get_type(attr, parent_name, object_names, wrap_index) }}{{ is_multiple_end(attr) }}>
+    {%- if attr.required is false and not attr.multiple -%}
+        Option<{{ get_type(attr, parent_name, object_names, wrap_index) }}>
     {%- else -%}
         {{ is_multiple(attr) }}{{ get_type(attr, parent_name, object_names, wrap_index) }}{{ is_multiple_end(attr) }}
     {%- endif -%}
@@ -56,14 +56,55 @@
     {%- endif -%}
 {% endmacro %}
 
+{# to_string for string types #}
+{% macro to_string(attr) %}
+    {%- if attr.dtypes[0] == "string" -%}
+        .to_string()
+    {%- endif -%}
+{% endmacro %}
+
+{# Determines the appropriate builder attribute for a field #}
+{% macro get_builder_attribute(attr) %}
+    {%- if attr.multiple -%}
+        #[builder(default, setter(into, each(name = "to_{{ attr.name }}")))]
+    {%- else -%}
+        {%- if attr.dtypes | length > 1 -%}
+            #[builder(default, setter(into))]
+        {%- elif attr.default -%}
+            #[builder(default = "{{ attr.default }}{{- to_string(attr) -}}.into()", setter(into))]
+        {%- elif attr.required is false -%}
+            #[builder(default, setter(into))]
+        {%- else -%}
+            #[builder(setter(into))]
+        {%- endif -%}
+    {%- endif -%}
+{% endmacro %}
+
+{# Determines the appropriate serde attribute for optional fields #}
+{% macro get_serde_attribute(attr) %}
+    {%- if attr.required is false -%}
+        {%- if attr.multiple -%}
+            #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        {%- else -%}
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+        {%- endif -%}
+    {%- else -%}
+        {%- if attr.default or attr.dtypes | length > 1 -%}
+            #[serde(default)]
+        {%- else -%}
+            ///
+        {%- endif -%}
+    {%- endif -%}
+{% endmacro %}
+
 //! This file contains Rust struct definitions with serde serialization.
 //! 
 //! WARNING: This is an auto-generated file.
 //! Do not edit directly - any changes will be overwritten.
 
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 use derive_builder::Builder;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 //
 // Type definitions
@@ -72,7 +113,7 @@ use derive_builder::Builder;
 
 {%- if object.name in objects_with_wrapped %}
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct {{ object.name }} {
    {%- for attr in object.attributes %}
    pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names, None) }},
@@ -119,21 +160,32 @@ impl<'de> Deserialize<'de> for {{ object.name }} {
 {%- if object.docstring %}
 /// {{ wrap(object.docstring, 70, "", "/// ", None) }}
 {%- endif %}
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
 #[allow(non_snake_case)]
 pub struct {{ object.name }} {
-    {% for attr in object.attributes %}
-    {%- if attr.docstring %}/// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}{%- endif %}
-    {%- if attr.required is false %}
-    #[serde(skip_serializing_if = "Option::is_none")]
+    {%- for i, attr in object.attributes | enumerate %}
+    
+    {%- if i == 0 %}
+    {%- if attr.docstring%}
+    /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
+    {%- else %}
+    /// {{ attr.name }}
     {%- endif %}
-    {%- if attr.multiple %}
+    {%- else %}
+    {%- if attr.docstring%}
+
+    /// {{ wrap(attr.docstring, 70, "", "    /// ", None) }}
+    {%- else %}
+
+    /// {{ attr.name }}
     {%- endif %}
+    {%- endif %}
+    {{ get_serde_attribute(attr) }}
+    {{ get_builder_attribute(attr) }}
     pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
-    {% endfor %}
+    {%- endfor %}
 }
 {%- endif %}
-
 {% endfor %}
 
 {%- if enums | length > 0 %}
@@ -141,11 +193,11 @@ pub struct {{ object.name }} {
 // Enum definitions
 //
 {%- for enum in enums %}
-
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default, PartialEq, Eq)]
 pub enum {{ enum.name }} {
     {%- for key, value in enum.mappings | dictsort %}
+    {% if loop.first %}#[default]{% endif %}
     #[serde(rename = "{{ value }}")]
     {{ key }},
     {%- endfor %}

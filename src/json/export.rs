@@ -379,7 +379,7 @@ impl TryFrom<&Attribute> for schema::Property {
             .collect::<Result<HashMap<String, PrimitiveType>, String>>()?;
 
         let reference: Option<String> =
-            if attr.is_enum || matches!(dtype, Some(schema::DataType::Object { .. })) {
+            if attr.is_enum || matches!(dtype, Some(schema::DataType::Object)) {
                 Some(format!("#/$defs/{}", attr.dtypes[0]))
             } else {
                 None
