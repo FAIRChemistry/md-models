@@ -105,26 +105,48 @@ lazy_static! {
 #[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub enum Templates {
+    /// XML Schema
     XmlSchema,
+    /// Markdown
     Markdown,
+    /// Compact Markdown
     CompactMarkdown,
+    /// SHACL
     Shacl,
+    /// JSON Schema
     JsonSchema,
+    /// JSON Schema All
     JsonSchemaAll,
+    /// SHACL
     Shex,
+    /// Python Dataclass
     PythonDataclass,
+    /// Python Pydantic XML
     PythonPydanticXML,
+    /// Python Pydantic
     PythonPydantic,
+    /// MkDocs
     MkDocs,
+    /// Internal
     Internal,
+    /// Typescript (io-ts)
     Typescript,
+    /// Typescript (Zod)
     TypescriptZod,
+    /// Rust
     Rust,
+    /// Protobuf
     Protobuf,
+    /// Graphql
     Graphql,
+    /// Golang
     Golang,
+    /// Linkml
     Linkml,
+    /// Julia
     Julia,
+    /// Mermaid class diagram
+    Mermaid,
 }
 
 impl Display for Templates {
@@ -150,6 +172,7 @@ impl Display for Templates {
             Templates::Golang => write!(f, "golang"),
             Templates::Linkml => write!(f, "linkml"),
             Templates::Julia => write!(f, "julia"),
+            Templates::Mermaid => write!(f, "mermaid"),
         }
     }
 }
@@ -181,6 +204,7 @@ impl FromStr for Templates {
             "golang" => Ok(Templates::Golang),
             "linkml" => Ok(Templates::Linkml),
             "julia" => Ok(Templates::Julia),
+            "mermaid" => Ok(Templates::Mermaid),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
@@ -277,6 +301,7 @@ pub fn render_jinja_template(
         Templates::Graphql => env.get_template("graphql.jinja")?,
         Templates::Golang => env.get_template("golang.jinja")?,
         Templates::Julia => env.get_template("julia.jinja")?,
+        Templates::Mermaid => env.get_template("mermaid.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
@@ -993,6 +1018,17 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_protobuf.proto")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_mermaid() {
+        // Arrange
+        let rendered = build_and_convert("tests/data/model.md", Templates::Mermaid, None);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_mermaid.md")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }
