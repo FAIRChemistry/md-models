@@ -22,6 +22,8 @@
         int64
     {%- elif dtype == "boolean" -%}
         bool
+    {%- elif dtype == "bytes" -%}
+        []byte
     {%- else -%}
         {{ dtype }}
     {%- endif -%}
