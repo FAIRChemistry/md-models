@@ -509,8 +509,10 @@ fn handle_list_item(
 /// * `objects` - A mutable slice of objects
 fn handle_array_marker(objects: &mut [Object]) {
     let last_object = objects.last_mut().unwrap();
-    let last_attribute = last_object.get_last_attribute();
-    last_attribute.is_array = true;
+    if last_object.has_attributes() {
+        let last_attribute = last_object.get_last_attribute();
+        last_attribute.is_array = true;
+    }
 }
 
 /// Handles docstring text by appending it to the last object's docstring.
