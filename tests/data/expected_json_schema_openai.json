@@ -43,7 +43,10 @@
     },
     "number": {
       "title": "number",
-      "type": "number"
+      "type": [
+        "number",
+        "null"
+      ]
     },
     "ontology": {
       "title": "ontology",
@@ -51,7 +54,10 @@
     },
     "single_valued": {
       "title": "single_valued",
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "$ref": "#/$defs/Test2"
     }
   },
@@ -78,15 +84,27 @@
         },
         "number": {
           "title": "number",
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
-      "required": [],
+      "required": [
+        "names",
+        "number"
+      ],
       "additionalProperties": false
     }
   },
   "required": [
-    "name"
+    "array_valued",
+    "multiple_types",
+    "multiple_types_array",
+    "name",
+    "number",
+    "ontology",
+    "single_valued"
   ],
   "additionalProperties": false
 }

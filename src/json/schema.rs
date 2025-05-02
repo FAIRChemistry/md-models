@@ -188,6 +188,9 @@ pub enum DataType {
     Object,
     #[serde(rename = "array")]
     Array,
+    #[serde(rename = "null")]
+    Null,
+    #[serde(untagged)]
     Multiple(Box<Vec<DataType>>),
 }
 
@@ -229,6 +232,7 @@ impl Display for DataType {
             DataType::Boolean => write!(f, "boolean"),
             DataType::Object => write!(f, "object"),
             DataType::Array => write!(f, "array"),
+            DataType::Null => write!(f, "null"),
             DataType::Multiple(types) => write!(
                 f,
                 "multiple({})",

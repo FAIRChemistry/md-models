@@ -203,17 +203,6 @@ fn resolve_prefixes(schema: &mut schema::SchemaObject, prefixes: &HashMap<String
     }
 }
 
-/// Removes options from the schema properties.
-///
-/// # Arguments
-///
-/// * `schema` - A mutable reference to the `SchemaObject`.
-fn remove_options(schema: &mut schema::SchemaObject) {
-    for (_, property) in schema.properties.iter_mut() {
-        property.options = HashMap::new();
-    }
-}
-
 /// Post-processes the schema object by setting its ID, resolving prefixes, and optionally removing options.
 ///
 /// # Arguments
@@ -236,13 +225,66 @@ fn post_process_schema(
     }
 }
 
+/// Post-processes an object by resolving prefixes and removing options.
+///
+/// # Arguments
+///
+/// * `object` - A mutable reference to the `SchemaObject`.
+/// * `config` - A reference to the `FrontMatter` configuration containing repository and prefix information.
+/// * `openai` - A boolean flag indicating whether to remove options from the schema properties.
 fn post_process_object(object: &mut schema::SchemaObject, config: &FrontMatter, openai: bool) {
     if let Some(prefixes) = &config.prefixes {
         resolve_prefixes(object, prefixes);
     }
     if openai {
         remove_options(object);
+        set_required_and_nullable(object);
     }
+}
+
+/// Removes options from the schema properties.
+///
+/// # Arguments
+///
+/// * `schema` - A mutable reference to the `SchemaObject`.
+fn remove_options(schema: &mut schema::SchemaObject) {
+    for (_, property) in schema.properties.iter_mut() {
+        property.options = HashMap::new();
+    }
+}
+
+/// Sets the required and nullable fields in the schema object.
+///
+/// # Arguments
+///
+/// * `schema` - A mutable reference to the `SchemaObject`.
+fn set_required_and_nullable(schema: &mut schema::SchemaObject) {
+    let mut new_required = Vec::new();
+
+    for (name, property) in &mut schema.properties {
+        if !schema.required.contains(name) {
+            new_required.push(name.clone());
+
+            // Make non-required properties nullable by adding Null to their types
+            if let Some(dtype) = &property.dtype {
+                property.dtype = Some(match dtype {
+                    schema::DataType::Multiple(types) => {
+                        let mut new_types = types.clone();
+                        new_types.push(schema::DataType::Null);
+                        schema::DataType::Multiple(new_types)
+                    }
+                    schema::DataType::Array => schema::DataType::Array,
+                    _ => schema::DataType::Multiple(Box::new(vec![
+                        dtype.clone(),
+                        schema::DataType::Null,
+                    ])),
+                });
+            }
+        }
+    }
+
+    schema.required.extend(new_required);
+    schema.required.sort();
 }
 
 impl TryFrom<&Enumeration> for schema::SchemaType {
