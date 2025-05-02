@@ -341,7 +341,9 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
         .map(|s| (s.clone(), "true".to_string()))
         .collect();
     let rendered = match args.template {
-        Templates::JsonSchema => model.json_schema(args.root, false)?,
+        Templates::JsonSchema => {
+            model.json_schema(args.root, args.options.contains(&"openai".to_string()))?
+        }
         Templates::Linkml => serialize_linkml(model, args.output.as_ref())?,
         _ => render_jinja_template(&args.template, &mut model, Some(&config))?,
     };
