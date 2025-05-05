@@ -24,6 +24,7 @@
 use crate::datamodel::DataModel;
 use crate::exporters::Templates;
 use crate::json::export::to_json_schema;
+use crate::json::schema::SchemaObject;
 use crate::validation::Validator;
 use wasm_bindgen::prelude::*;
 
@@ -81,8 +82,11 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
 ///
 /// A `String` or an error `JsError`.
 #[wasm_bindgen]
-pub fn from_json_schema(json_schema: &str) -> Result<String, JsError> {
-    let mut model = DataModel::from_json_schema_string(json_schema)
+pub fn from_json_schema(json_schema: JsValue) -> Result<String, JsError> {
+    let schema: SchemaObject = serde_wasm_bindgen::from_value(json_schema)
+        .map_err(|e| JsError::new(&format!("Error deserializing JSON schema: {}", e)))?;
+
+    let mut model = DataModel::from_json_schema_object(schema)
         .map_err(|e| JsError::new(&format!("Error parsing JSON schema: {}", e)))?;
 
     model

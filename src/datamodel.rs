@@ -406,6 +406,23 @@ impl DataModel {
 
         Ok(model)
     }
+
+    /// Parse a JSON schema object and create a data model
+    ///
+    /// * `schema` - The JSON schema object
+    ///
+    /// # Returns
+    /// A data model
+    pub fn from_json_schema_object(schema: SchemaObject) -> Result<Self, DataModelError> {
+        let model: DataModel = schema
+            .try_into()
+            .expect("Could not convert schema to data model");
+
+        // Validate the data model
+        validate_model(&model).map_err(DataModelError::ValidationError)?;
+
+        Ok(model)
+    }
 }
 
 #[cfg(test)]
