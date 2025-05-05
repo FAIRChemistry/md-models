@@ -413,6 +413,7 @@ impl DataModel {
     ///
     /// # Returns
     /// A data model
+    #[allow(clippy::result_large_err)]
     pub fn from_json_schema_object(schema: SchemaObject) -> Result<Self, DataModelError> {
         let model: DataModel = schema
             .try_into()
