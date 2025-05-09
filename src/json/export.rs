@@ -69,7 +69,7 @@ pub fn to_json_schema(
     schema_object.definitions = definitions;
 
     if let Some(config) = model.config.clone() {
-        post_process_schema(&mut schema_object, &config, openai);
+        post_process_schema(&mut schema_object, &config, openai, &used_enums)?;
     }
 
     Ok(schema_object)
@@ -214,15 +214,18 @@ fn post_process_schema(
     schema_object: &mut schema::SchemaObject,
     config: &FrontMatter,
     openai: bool,
-) {
+    used_enums: &HashSet<String>,
+) -> Result<(), String> {
     schema_object.id = Some(config.repo.clone());
-    post_process_object(schema_object, config, openai);
+    post_process_object(schema_object, config, openai, used_enums)?;
 
     for (_, definition) in schema_object.definitions.iter_mut() {
         if let schema::SchemaType::Object(definition) = definition {
-            post_process_object(definition, config, openai);
+            post_process_object(definition, config, openai, used_enums)?;
         }
     }
+
+    Ok(())
 }
 
 /// Post-processes an object by resolving prefixes and removing options.
@@ -232,7 +235,13 @@ fn post_process_schema(
 /// * `object` - A mutable reference to the `SchemaObject`.
 /// * `config` - A reference to the `FrontMatter` configuration containing repository and prefix information.
 /// * `openai` - A boolean flag indicating whether to remove options from the schema properties.
-fn post_process_object(object: &mut schema::SchemaObject, config: &FrontMatter, openai: bool) {
+/// * `used_enums` - A reference to a set of used enum names.
+fn post_process_object(
+    object: &mut schema::SchemaObject,
+    config: &FrontMatter,
+    openai: bool,
+    used_enums: &HashSet<String>,
+) -> Result<(), String> {
     if let Some(prefixes) = &config.prefixes {
         resolve_prefixes(object, prefixes);
     }
@@ -240,6 +249,21 @@ fn post_process_object(object: &mut schema::SchemaObject, config: &FrontMatter, 
         remove_options(object);
         set_required_and_nullable(object);
     }
+
+    for (_, property) in object.properties.iter_mut() {
+        if let Some(reference) = &property.reference {
+            if used_enums.contains(
+                reference
+                    .split("/")
+                    .last()
+                    .ok_or(format!("Failed to split reference: {}", reference))?,
+            ) {
+                property.dtype = Some(schema::DataType::String);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Removes options from the schema properties.
