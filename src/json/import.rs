@@ -209,7 +209,7 @@ impl TryFrom<EnumObject> for Enumeration {
             .map(|(i, value)| {
                 if is_valid_key(value) {
                     // If there are no special characters, we can use the value as is
-                    (value.clone(), value.clone())
+                    (value.clone().to_uppercase(), value.clone())
                 } else {
                     // If there are special characters, we need to escape them
                     (format!("VALUE_{i}"), value.clone())
@@ -757,9 +757,9 @@ mod tests {
 
         assert_eq!(enumeration.name, "Test");
         assert_eq!(enumeration.mappings.len(), 3);
-        assert_eq!(enumeration.mappings["value1"], "value1");
-        assert_eq!(enumeration.mappings["value2"], "value2");
-        assert_eq!(enumeration.mappings["value3"], "value3");
+        assert_eq!(enumeration.mappings["VALUE1"], "value1");
+        assert_eq!(enumeration.mappings["VALUE2"], "value2");
+        assert_eq!(enumeration.mappings["VALUE3"], "value3");
     }
 
     /// Tests parsing an enum object with special characters
