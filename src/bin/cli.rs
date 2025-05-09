@@ -322,8 +322,8 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
 
-    let mut model = if let Ok(model) = DataModel::from_json_schema(&path) {
-        model
+    let mut model = if is_json_schema(&path)? {
+        DataModel::from_json_schema(&path)?
     } else {
         DataModel::from_markdown(&path)?
     };
@@ -359,6 +359,25 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+/// Checks if the input is a JSON Schema.
+///
+/// # Arguments
+///
+/// * `path` - The path to the input file.
+///
+/// # Returns
+///
+/// True if the input is a JSON Schema, false otherwise.
+fn is_json_schema(path: &PathBuf) -> Result<bool, Box<dyn Error>> {
+    let content = std::fs::read_to_string(path)?;
+    let parsed = serde_json::from_str::<serde_json::Value>(&content);
+
+    match parsed {
+        Ok(value) => Ok(value.is_object()),
+        Err(_) => Ok(false),
+    }
 }
 
 /// Resolves the input path based on the InputType.
