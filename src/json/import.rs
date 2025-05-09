@@ -29,6 +29,8 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use regex::Regex;
+
 use crate::{
     attribute::Attribute,
     object::{Enumeration, Object},
@@ -210,8 +212,11 @@ impl TryFrom<EnumObject> for Enumeration {
                 if is_valid_key(value) {
                     // If there are no special characters, we can use the value as is
                     (value.clone().to_uppercase(), value.clone())
-                } else {
+                } else if value.len() < 15 {
                     // If there are special characters, we need to escape them
+                    let cleaned_key = clean_key(value);
+                    (cleaned_key.to_uppercase(), value.clone())
+                } else {
                     (format!("VALUE_{i}"), value.clone())
                 }
             })
@@ -224,6 +229,19 @@ impl TryFrom<EnumObject> for Enumeration {
             mappings,
         })
     }
+}
+
+fn clean_key(key: &str) -> String {
+    let cleaned_key = key.replace(|c: char| !c.is_alphanumeric(), "_");
+    let pattern = Regex::new(r"_+").unwrap();
+    let mut cleaned_key = pattern.replace_all(&cleaned_key, "_").to_string();
+
+    // If the first character is not a letter, remove it
+    if !cleaned_key.starts_with(|c: char| c.is_alphabetic()) {
+        cleaned_key = cleaned_key[1..].to_string();
+    }
+
+    cleaned_key.to_uppercase()
 }
 
 /// Parses JSON Schema options into AttrOption objects
@@ -811,5 +829,30 @@ mod tests {
             extract_reference("".to_string()),
             Err("Invalid reference format".to_string())
         );
+    }
+
+    #[test]
+    fn test_enzml_schema() {
+        // Arrange
+        let schema_path = "tests/data/old_schema.json";
+        let schema = std::fs::read_to_string(schema_path).expect("Failed to read schema");
+        let schema: SchemaObject = serde_json::from_str(&schema).expect("Failed to parse schema");
+
+        // Act
+        let data_model =
+            DataModel::try_from(schema).expect("Failed to convert schema to data model");
+
+        // Assert
+        assert_eq!(data_model.objects.len(), 14);
+        assert_eq!(data_model.enums.len(), 2);
+    }
+
+    #[test]
+    fn test_clean_key() {
+        assert_eq!(clean_key("Test:Hello"), "TEST_HELLO");
+        assert_eq!(clean_key("Test::Hello"), "TEST_HELLO");
+        assert_eq!(clean_key("Test_Hello"), "TEST_HELLO");
+        assert_eq!(clean_key("Test__Hello"), "TEST_HELLO");
+        assert_eq!(clean_key("!Test"), "TEST");
     }
 }

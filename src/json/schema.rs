@@ -56,8 +56,8 @@ pub struct SchemaObject {
     pub id: Option<String>,
     #[serde(default = "generate_unique_title")]
     pub title: String,
-    #[serde(rename = "type")]
-    pub dtype: DataType,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub dtype: Option<DataType>,
     #[serde(skip_serializing_if = "skip_empty_string")]
     pub description: Option<String>,
     pub properties: BTreeMap<String, Property>,
@@ -84,8 +84,8 @@ impl SchemaObject {
 pub struct EnumObject {
     #[serde(default = "generate_unique_title")]
     pub title: String,
-    #[serde(rename = "type")]
-    pub dtype: DataType,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub dtype: Option<DataType>,
     #[serde(skip_serializing_if = "skip_empty_string")]
     pub description: Option<String>,
     #[serde(rename = "enum")]
@@ -96,7 +96,6 @@ pub struct EnumObject {
 pub struct Property {
     #[serde(alias = "name", skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    // TODO: This should be either an array or a single type
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub dtype: Option<DataType>,
     #[serde(rename = "default", skip_serializing_if = "Option::is_none")]
@@ -111,7 +110,7 @@ pub struct Property {
     pub options: HashMap<String, PrimitiveType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Item>,
-    #[serde(rename = "oneOf", skip_serializing_if = "skip_empty")]
+    #[serde(rename = "oneOf", alias = "allOf", skip_serializing_if = "skip_empty")]
     pub one_of: Option<Vec<Item>>,
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
     pub enum_values: Option<Vec<String>>,

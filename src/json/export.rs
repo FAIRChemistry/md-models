@@ -379,7 +379,7 @@ impl TryFrom<&Object> for schema::SchemaObject {
 
         Ok(schema::SchemaObject {
             title: obj.name.clone(),
-            dtype: schema::DataType::Object,
+            dtype: Some(schema::DataType::Object),
             description: Some(obj.docstring.clone()),
             properties: properties?,
             definitions: BTreeMap::new(),
@@ -412,7 +412,7 @@ impl TryFrom<&Enumeration> for schema::EnumObject {
 
         Ok(schema::EnumObject {
             title: enumeration.name.clone(),
-            dtype: schema::DataType::String,
+            dtype: Some(schema::DataType::String),
             description: Some(enumeration.docstring.clone()),
             enum_values: values,
         })
