@@ -30,6 +30,7 @@ use pyo3::prelude::*;
 
 pub mod attribute;
 pub mod datamodel;
+pub mod error;
 pub mod exporters;
 pub mod object;
 pub mod option;
@@ -47,6 +48,7 @@ pub mod prelude {
 pub mod json {
     mod datatype;
     pub mod export;
+    pub mod import;
     pub mod schema;
     pub mod validation;
 }
