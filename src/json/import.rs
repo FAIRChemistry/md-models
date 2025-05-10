@@ -114,7 +114,7 @@ impl TryFrom<SchemaObject> for Object {
             attributes,
             docstring: schema_obj.description.unwrap_or_default(),
             term: None,
-            parent: None,
+            mixins: Vec::new(),
             position: None,
         })
     }
@@ -174,6 +174,21 @@ impl TryFrom<Property> for Attribute {
             }
         }
 
+        if let Some(all_of) = property.all_of {
+            if all_of.len() == 1 {
+                dtypes.extend(
+                    all_of[0]
+                        .get_types()
+                        .into_iter()
+                        .map(extract_reference)
+                        .collect::<Result<Vec<String>, String>>()?,
+                );
+            } else {
+                // TODO: Implement allOf with multiple items
+                unimplemented!("allOf with multiple items is not supported yet");
+            }
+        }
+
         Ok(Attribute {
             name: property.title.unwrap_or("MISSING_TITLE".to_string()),
             is_array,
@@ -186,7 +201,6 @@ impl TryFrom<Property> for Attribute {
             options: parse_options(&property.options)?,
             term: property.term,
             required: false,
-            // TODO: Implement default
             default: None,
             xml: None,
             is_enum: false,
@@ -588,6 +602,68 @@ mod tests {
         assert!(!attribute.is_enum);
         assert_eq!(attribute.position, None);
         assert_eq!(attribute.import_prefix, None);
+    }
+
+    /// Tests the parsing of a property with oneOf (multiple types)
+    ///
+    /// This test verifies that a property with multiple possible types
+    /// is correctly converted to an Attribute with all types included.
+    #[test]
+    fn test_parse_property_with_one_of_mixed() {
+        let property = json!({
+            "title": "number",
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/Test"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        });
+
+        let property: Property = serde_json::from_value(property).unwrap();
+        let attribute = Attribute::try_from(property).unwrap();
+
+        assert_eq!(attribute.name, "number");
+        assert_eq!(
+            attribute.dtypes.into_iter().collect::<HashSet<_>>(),
+            vec!["Test".to_string(), "string".to_string()]
+                .into_iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(attribute.docstring, "");
+        assert_eq!(attribute.term, None);
+        assert!(!attribute.required);
+        assert_eq!(attribute.default, None);
+        assert_eq!(attribute.xml, None);
+        assert!(!attribute.is_array);
+        assert!(!attribute.is_enum);
+        assert_eq!(attribute.position, None);
+        assert_eq!(attribute.import_prefix, None);
+    }
+
+    /// Tests the parsing of a property with allOf (multiple types)
+    ///
+    /// This test verifies that a property with multiple possible types
+    /// is correctly converted to an Attribute with all types included.
+    #[test]
+    #[should_panic]
+    fn test_parse_property_with_all_of() {
+        let property = json!({
+            "title": "number",
+            "allOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        });
+
+        let property: Property = serde_json::from_value(property).unwrap();
+        Attribute::try_from(property).unwrap();
     }
 
     /// Tests the parsing of a property with a reference
