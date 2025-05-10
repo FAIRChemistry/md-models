@@ -110,8 +110,10 @@ pub struct Property {
     pub options: HashMap<String, PrimitiveType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Item>,
-    #[serde(rename = "oneOf", alias = "allOf", skip_serializing_if = "skip_empty")]
+    #[serde(rename = "oneOf", alias = "anyOf", skip_serializing_if = "skip_empty")]
     pub one_of: Option<Vec<Item>>,
+    #[serde(rename = "allOf", skip_serializing_if = "skip_empty")]
+    pub all_of: Option<Vec<Item>>,
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
     pub enum_values: Option<Vec<String>>,
 }
