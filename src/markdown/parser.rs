@@ -204,7 +204,7 @@ fn process_model_components(
 
     set_enum_attributes(model);
     add_internal_types(model);
-    add_parent_types(model).expect("Failed to add parent types");
+    add_mixin_types(model).expect("Failed to add mixin types");
 }
 
 /// Merges imported models into the main model.
@@ -335,7 +335,7 @@ fn process_object_event(
         }
         Event::Text(CowStr::Borrowed("[")) => {
             if *state == ParserState::InHeading {
-                handle_inheritance(objects, iterator);
+                handle_mixin(objects, iterator);
             }
         }
         Event::Start(Tag::List(None)) => {
@@ -406,12 +406,14 @@ fn handle_h3_start(
 /// * `text` - The text containing the type annotation
 fn handle_type_annotation(objects: &mut [Object], text: &str) {
     let attribute = objects.last_mut().unwrap().get_last_attribute();
-    attribute
-        .add_option(RawOption::new(
-            "type".to_string(),
-            text.to_string().trim_start_matches(':').trim().to_string(),
-        ))
-        .unwrap();
+    if let Some(attribute) = attribute {
+        attribute
+            .add_option(RawOption::new(
+                "type".to_string(),
+                text.to_string().trim_start_matches(':').trim().to_string(),
+            ))
+            .unwrap();
+    }
 }
 
 /// Handles inheritance declarations in object headings.
@@ -420,21 +422,21 @@ fn handle_type_annotation(objects: &mut [Object], text: &str) {
 ///
 /// * `objects` - A mutable slice of objects
 /// * `iterator` - A mutable reference to the parser iterator
-fn handle_inheritance(objects: &mut [Object], iterator: &mut pulldown_cmark::OffsetIter) {
+fn handle_mixin(objects: &mut [Object], iterator: &mut pulldown_cmark::OffsetIter) {
     let last_object = objects.last_mut().unwrap();
-    let parent = iterator.next();
+    let mixin = iterator.next();
 
-    match parent {
+    match mixin {
         Some((Event::Text(text), _)) if text.to_string() != "]" => {
-            last_object.parent = Some(text.to_string());
+            last_object.mixins = text.split(',').map(|s| s.trim().to_string()).collect();
         }
         _ => {
             error!(
-                "[{}] {}: Opening bracket but no parent name. Inheritance wont be applied",
+                "[{}] {}: Opening bracket but no mixin name. Mixin wont be applied",
                 last_object.name.bold(),
                 "SyntaxError".bold(),
             );
-            panic!("Inheritance syntax error. Expected parent name after opening bracket.");
+            panic!("Mixin syntax error. Expected mixin name after opening bracket.");
         }
     }
 }
@@ -510,7 +512,9 @@ fn handle_list_item(
 fn handle_array_marker(objects: &mut [Object]) {
     let last_object = objects.last_mut().unwrap();
     let last_attribute = last_object.get_last_attribute();
-    last_attribute.is_array = true;
+    if let Some(attribute) = last_attribute {
+        attribute.is_array = true;
+    }
 }
 
 /// Handles docstring text by appending it to the last object's docstring.
@@ -727,8 +731,10 @@ fn add_option_to_last_attribute(
     value: String,
 ) -> Result<(), Box<dyn Error>> {
     let last_attr = objects.last_mut().unwrap().get_last_attribute();
-    let option = RawOption::new(key, value);
-    last_attr.add_option(option)?;
+    if let Some(attribute) = last_attr {
+        let option = RawOption::new(key, value);
+        attribute.add_option(option)?;
+    }
 
     Ok(())
 }
@@ -849,73 +855,197 @@ fn process_enum_mappings(enum_obj: &mut Enumeration, mappings: String) {
     }
 }
 
-/// Adds parent types to the objects in the model.
+/// Adds mixin types to the objects in the model.
+///
+/// This function processes mixins by adding attributes from mixin objects to their children.
+/// It handles both user-defined mixins and internal type mixins.
 ///
 /// # Arguments
 ///
 /// * `model` - A mutable reference to the data model.
 ///
+/// # Returns
+///
+/// * `Result<(), Box<dyn Error>>` - Ok if successful, or an error if mixin fails.
 ///
 /// # Panics
 ///
-/// Panics if an object has a parent that does not exist.
+/// Panics if an object has a mixin that does not exist.
 ///
 /// # Errors
 ///
-/// An error is logged if an object has a parent that does not exist.
+/// An error is logged if an object has a mixin that does not exist.
 ///
-fn add_parent_types(model: &mut DataModel) -> Result<(), Box<dyn Error>> {
-    // Filter and clone the objects without a parent
-    let parents: Vec<Object> = model
-        .objects
-        .iter()
-        .filter(|o| o.parent.is_none())
-        .cloned()
-        .collect();
+fn add_mixin_types(model: &mut DataModel) -> Result<(), Box<dyn Error>> {
+    // Filter and clone the objects without a mixin
+    let mixins = collect_mixin_objects(model);
 
-    let mut to_merge: Vec<DataModel> = vec![];
-    let mut added_internals: Vec<String> = vec![];
+    let mut to_merge = Vec::new();
+    let mut added_internals = Vec::new();
 
-    // REFACTOR THIS
-    // Iterate over the objects and add the parent attributes
+    // Process each object that has a mixin
     for object in model.objects.iter_mut() {
-        if let Some(parent_name) = &object.parent {
-            if let Some(parent) = parents.iter().find(|o| o.name == *parent_name) {
-                object.attributes.extend(parent.attributes.clone());
-            } else if let Some(internal_type) = MD_MODEL_TYPES.get(parent_name.as_str()) {
-                let mut internal_type = serde_json::from_str::<DataModel>(internal_type)
-                    .expect("Failed to parse internal data type");
-
-                // Pop the first object parent and add the attributes
-                let target_obj = internal_type.objects[0].clone();
-                internal_type.objects.remove(0);
-
-                object.attributes.extend(target_obj.attributes.clone());
-
-                if !added_internals.contains(parent_name) {
-                    to_merge.push(internal_type);
-                    added_internals.push(parent_name.clone());
-                }
-            } else {
-                error!(
-                    "[{}] {}: Parent {} does not exist.",
-                    object.name.red().bold(),
-                    "InheritanceError".bold(),
-                    parent_name.red().bold(),
-                );
-
-                return Err("Object has a parent that does not exist".into());
-            }
+        for local_mixin in object.mixins.clone() {
+            process_mixins(
+                object,
+                &local_mixin,
+                &mixins,
+                &mut to_merge,
+                &mut added_internals,
+            )?;
         }
     }
 
-    for internal in to_merge {
-        model.merge(&internal);
+    // Merge all collected internal types
+    merge_internal_types(model, to_merge);
+
+    Ok(())
+}
+
+/// Collects all objects that can serve as mixins (those without mixins themselves)
+///
+/// # Arguments
+///
+/// * `model` - A reference to the data model.
+///
+/// # Returns
+///
+/// * `Vec<Object>` - A vector of objects that can be used as mixins.
+fn collect_mixin_objects(model: &DataModel) -> Vec<Object> {
+    model
+        .objects
+        .iter()
+        .filter(|o| o.mixins.is_empty())
+        .cloned()
+        .collect()
+}
+
+/// Processes mixin for a single object
+///
+/// This function handles the mixin logic for a specific object by finding its mixin
+/// and extending the object's attributes with those from the mixin.
+///
+/// # Arguments
+///
+/// * `object` - A mutable reference to the object being processed.
+/// * `mixin_name` - The name of the mixin object.
+/// * `mixins` - A slice of available mixin objects.
+/// * `to_merge` - A mutable reference to a vector of data models to be merged.
+/// * `added_internals` - A mutable reference to a vector of internal type names that have been added.
+///
+/// # Returns
+///
+/// * `Result<(), Box<dyn Error>>` - Ok if successful, or an error if the mixin is not found.
+fn process_mixins(
+    object: &mut Object,
+    mixin_name: &str,
+    mixins: &[Object],
+    to_merge: &mut Vec<DataModel>,
+    added_internals: &mut Vec<String>,
+) -> Result<(), Box<dyn Error>> {
+    if let Some(mixin) = find_mixin_in_objects(mixin_name, mixins) {
+        // Mixin found in existing objects
+        object.attributes.extend(mixin.attributes.clone());
+    } else if let Some(internal_type) = MD_MODEL_TYPES.get(mixin_name) {
+        // Mixin is an internal type
+        process_internal_mixin_type(object, mixin_name, internal_type, to_merge, added_internals);
+    } else {
+        // Mixin not found
+        return report_missing_mixin(object, mixin_name);
     }
 
     Ok(())
 }
 
+/// Finds a mixin object by name in the list of available mixins
+///
+/// # Arguments
+///
+/// * `mixin_name` - The name of the mixin object to find.
+/// * `mixins` - A slice of available mixin objects.
+///
+/// # Returns
+///
+/// * `Option<&'a Object>` - A reference to the mixin object if found, or None if not found.
+fn find_mixin_in_objects<'a>(mixin_name: &str, mixins: &'a [Object]) -> Option<&'a Object> {
+    mixins.iter().find(|o| o.name == mixin_name)
+}
+
+/// Processes an internal mixin type
+///
+/// This function handles inheritance from internal predefined types by extracting
+/// attributes from the internal type and adding them to the object.
+///
+/// # Arguments
+///
+/// * `object` - A mutable reference to the object being processed.
+/// * `mixin_name` - The name of the internal mixin type.
+/// * `internal_type_json` - The JSON string representation of the internal type.
+/// * `to_merge` - A mutable reference to a vector of data models to be merged.
+/// * `added_internals` - A mutable reference to a vector of internal type names that have been added.
+fn process_internal_mixin_type(
+    object: &mut Object,
+    mixin_name: &str,
+    internal_type_json: &str,
+    to_merge: &mut Vec<DataModel>,
+    added_internals: &mut Vec<String>,
+) {
+    let mut internal_type = serde_json::from_str::<DataModel>(internal_type_json)
+        .expect("Failed to parse internal data type");
+
+    // Pop the first object mixin and add the attributes
+    let target_obj = internal_type.objects[0].clone();
+    internal_type.objects.remove(0);
+
+    object.attributes.extend(target_obj.attributes.clone());
+
+    if !added_internals.contains(&mixin_name.to_string()) {
+        to_merge.push(internal_type);
+        added_internals.push(mixin_name.to_string());
+    }
+}
+
+/// Reports a missing mixin error
+///
+/// # Arguments
+///
+/// * `object` - A reference to the object with the missing mixin.
+/// * `mixin_name` - The name of the mixin that was not found.
+///
+/// # Returns
+///
+/// * `Result<(), Box<dyn Error>>` - An error indicating the mixin does not exist.
+fn report_missing_mixin(object: &Object, mixin_name: &str) -> Result<(), Box<dyn Error>> {
+    error!(
+        "[{}] {}: Mixin {} does not exist.",
+        object.name.red().bold(),
+        "InheritanceError".bold(),
+        mixin_name.red().bold(),
+    );
+
+    Err("Object has a mixin that does not exist".into())
+}
+
+/// Merges all collected internal types into the model
+///
+/// # Arguments
+///
+/// * `model` - A mutable reference to the data model.
+/// * `to_merge` - A vector of data models to be merged into the main model.
+fn merge_internal_types(model: &mut DataModel, to_merge: Vec<DataModel>) {
+    for internal in to_merge {
+        model.merge(&internal);
+    }
+}
+
+/// Adds internal types to the model based on attribute data types
+///
+/// This function identifies internal types that are referenced in object attributes
+/// and adds them to the model if they're not already present.
+///
+/// # Arguments
+///
+/// * `model` - A mutable reference to the data model.
 fn add_internal_types(model: &mut DataModel) {
     // Get all datatypes within the model
     let mut all_types = vec![];

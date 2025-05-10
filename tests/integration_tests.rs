@@ -270,10 +270,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_inheritance() {
         // Arrange
-        let path = Path::new("tests/data/model_inheritance_invalid.md");
+        let path = Path::new("tests/data/model_inheritance.md");
 
         // Act
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
@@ -285,6 +284,7 @@ mod tests {
         let expected_schema =
             std::fs::read_to_string("tests/data/expected_internal_schema_inheritance.json")
                 .unwrap();
+        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
 
         assert_eq!(schema, expected_schema);
     }
