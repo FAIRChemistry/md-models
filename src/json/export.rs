@@ -479,6 +479,7 @@ impl TryFrom<&Attribute> for schema::Property {
             one_of,
             items,
             enum_values,
+            all_of: None,
         })
     }
 }
