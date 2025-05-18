@@ -466,7 +466,11 @@ fn split_path_pairs(path: String, initial: Option<String>) -> Vec<Vec<String>> {
 /// Filter use only for Jinja templates.
 /// Converts a string to PascalCase.
 fn pascal_case(s: String) -> String {
-    s.to_case(Case::Pascal)
+    if s.ends_with("_") {
+        s.to_case(Case::Pascal) + "_"
+    } else {
+        s.to_case(Case::Pascal)
+    }
 }
 
 /// Filter use only for Jinja templates.

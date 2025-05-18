@@ -27,5 +27,5 @@ pub struct Test {
 pub enum SomeEnum {
     #[default]
     #[serde(rename = "yield")]
-    YIELD_,
+    Yield_,
 }
