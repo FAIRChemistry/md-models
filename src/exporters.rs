@@ -98,6 +98,13 @@ lazy_static! {
         m.insert("date".to_string(), "String".to_string());
         m
     };
+
+    /// Forbidden enum variants for Rust (mainly for windows compatibility)
+    static ref FORBIDDEN_RUST_ENUM_VARIANTS: Vec<String> = {
+        vec![
+            "yield".to_string(),
+        ]
+    };
 }
 
 /// Enumeration of available templates.
@@ -268,12 +275,16 @@ pub fn render_jinja_template(
                 }
             }
         }
+        Templates::Rust => {
+            check_for_forbidden_rust_enum_variants(model);
+        }
         _ => {}
     }
 
     // Add custom functions to the Jinja environment
     env.add_function("wrap", wrap_text);
     env.add_function("replace", replace);
+    env.add_function("trim", trim);
     env.add_function("default_value", default_value);
     env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
@@ -475,6 +486,14 @@ fn remove_multiple_spaces(input: &str) -> String {
     input.split_whitespace().collect::<Vec<&str>>().join(" ")
 }
 
+/// Removes trailing underscores from a string.
+fn trim(input: &str, prefix: &str) -> String {
+    input
+        .trim_start_matches(prefix)
+        .trim_end_matches(prefix)
+        .to_string()
+}
+
 /// Checks if an object has a primary key.
 fn pk_objects(model: &mut DataModel) -> HashMap<String, (String, String, bool)> {
     let mut pk_objects = HashMap::new();
@@ -656,6 +675,28 @@ fn filter_objects_wo_terms(model: &mut DataModel) -> Result<(), Box<dyn Error>> 
         )));
     }
     Ok(())
+}
+
+/// Checks for forbidden Rust enum variants and replaces them with a valid variant.
+///
+/// # Arguments
+///
+/// * `model` - The data model to check for forbidden Rust enum variants.
+fn check_for_forbidden_rust_enum_variants(model: &mut DataModel) {
+    for enumeration in &mut model.enums {
+        enumeration.mappings = enumeration
+            .mappings
+            .iter()
+            .map(|(key, value)| {
+                let new_key = if FORBIDDEN_RUST_ENUM_VARIANTS.contains(&key.to_lowercase()) {
+                    format!("{key}_")
+                } else {
+                    key.to_lowercase()
+                };
+                (new_key, value.clone())
+            })
+            .collect();
+    }
 }
 
 /// Sorts the objects in the model by their dependency.
@@ -1007,6 +1048,18 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_rust.rs")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_rust_forbidden_names() {
+        // Arrange
+        let rendered =
+            build_and_convert("tests/data/model_forbidden_names.md", Templates::Rust, None);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_rust_forbidden.rs")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }
