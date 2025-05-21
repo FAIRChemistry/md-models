@@ -105,10 +105,26 @@ class Test(BaseModel):
         validate_assignment = True,
     ) # type: ignore
 
-    name: str = "2"
-    number: Union[None,float,str] = 1
-    test2: list[Test2] = Field(default_factory=list)
-    ontology: Optional[Optional[Ontology]] = Field(default=None)
+    name: str = Field(
+        default= "2",
+        description="""The name of the test. This is a unique identifier
+        that helps track individual test
+        cases across the system. It should be
+        descriptive and follow the standard naming
+        conventions.""",
+    )
+    number: Union[None,float,str] = Field(
+        default= 1,
+        description="""""",
+    )
+    test2: list[Test2] = Field(
+        default_factory=list,
+        description="""""",
+    )
+    ontology: Optional[Optional[Ontology]] = Field(
+        default=None,
+        description="""""",
+    )
 
     # JSON-LD fields
     ld_id: str = Field(
@@ -242,8 +258,14 @@ class Test2(BaseModel):
         validate_assignment = True,
     ) # type: ignore
 
-    names: list[str] = Field(default_factory=list)
-    number: Optional[Optional[float]] = Field(default=None)
+    names: list[str] = Field(
+        default_factory=list,
+        description="""""",
+    )
+    number: Optional[Optional[float]] = Field(
+        default=None,
+        description="""""",
+    )
 
     # JSON-LD fields
     ld_id: str = Field(
