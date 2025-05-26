@@ -98,6 +98,13 @@ lazy_static! {
         m.insert("date".to_string(), "String".to_string());
         m
     };
+
+    /// Forbidden enum variants for Rust (mainly for windows compatibility)
+    static ref FORBIDDEN_RUST_ENUM_VARIANTS: Vec<String> = {
+        vec![
+            "yield".to_string(),
+        ]
+    };
 }
 
 /// Enumeration of available templates.
@@ -105,26 +112,48 @@ lazy_static! {
 #[cfg_attr(feature = "python", pyclass(eq, eq_int))]
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub enum Templates {
+    /// XML Schema
     XmlSchema,
+    /// Markdown
     Markdown,
+    /// Compact Markdown
     CompactMarkdown,
+    /// SHACL
     Shacl,
+    /// JSON Schema
     JsonSchema,
+    /// JSON Schema All
     JsonSchemaAll,
+    /// SHACL
     Shex,
+    /// Python Dataclass
     PythonDataclass,
+    /// Python Pydantic XML
     PythonPydanticXML,
+    /// Python Pydantic
     PythonPydantic,
+    /// MkDocs
     MkDocs,
+    /// Internal
     Internal,
+    /// Typescript (io-ts)
     Typescript,
+    /// Typescript (Zod)
     TypescriptZod,
+    /// Rust
     Rust,
+    /// Protobuf
     Protobuf,
+    /// Graphql
     Graphql,
+    /// Golang
     Golang,
+    /// Linkml
     Linkml,
+    /// Julia
     Julia,
+    /// Mermaid class diagram
+    Mermaid,
 }
 
 impl Display for Templates {
@@ -150,6 +179,7 @@ impl Display for Templates {
             Templates::Golang => write!(f, "golang"),
             Templates::Linkml => write!(f, "linkml"),
             Templates::Julia => write!(f, "julia"),
+            Templates::Mermaid => write!(f, "mermaid"),
         }
     }
 }
@@ -181,6 +211,7 @@ impl FromStr for Templates {
             "golang" => Ok(Templates::Golang),
             "linkml" => Ok(Templates::Linkml),
             "julia" => Ok(Templates::Julia),
+            "mermaid" => Ok(Templates::Mermaid),
             _ => {
                 let err = format!("Invalid template type: {}", s);
                 Err(err.into())
@@ -244,12 +275,16 @@ pub fn render_jinja_template(
                 }
             }
         }
+        Templates::Rust => {
+            check_for_forbidden_rust_enum_variants(model);
+        }
         _ => {}
     }
 
     // Add custom functions to the Jinja environment
     env.add_function("wrap", wrap_text);
     env.add_function("replace", replace);
+    env.add_function("trim", trim);
     env.add_function("default_value", default_value);
     env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
@@ -277,6 +312,7 @@ pub fn render_jinja_template(
         Templates::Graphql => env.get_template("graphql.jinja")?,
         Templates::Golang => env.get_template("golang.jinja")?,
         Templates::Julia => env.get_template("julia.jinja")?,
+        Templates::Mermaid => env.get_template("mermaid.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
@@ -430,7 +466,11 @@ fn split_path_pairs(path: String, initial: Option<String>) -> Vec<Vec<String>> {
 /// Filter use only for Jinja templates.
 /// Converts a string to PascalCase.
 fn pascal_case(s: String) -> String {
-    s.to_case(Case::Pascal)
+    if s.ends_with("_") {
+        s.to_case(Case::Pascal) + "_"
+    } else {
+        s.to_case(Case::Pascal)
+    }
 }
 
 /// Filter use only for Jinja templates.
@@ -448,6 +488,14 @@ fn snake_case(s: String) -> String {
 /// Removes leading and trailing whitespace and multiple spaces from a string.
 fn remove_multiple_spaces(input: &str) -> String {
     input.split_whitespace().collect::<Vec<&str>>().join(" ")
+}
+
+/// Removes trailing underscores from a string.
+fn trim(input: &str, prefix: &str) -> String {
+    input
+        .trim_start_matches(prefix)
+        .trim_end_matches(prefix)
+        .to_string()
 }
 
 /// Checks if an object has a primary key.
@@ -631,6 +679,28 @@ fn filter_objects_wo_terms(model: &mut DataModel) -> Result<(), Box<dyn Error>> 
         )));
     }
     Ok(())
+}
+
+/// Checks for forbidden Rust enum variants and replaces them with a valid variant.
+///
+/// # Arguments
+///
+/// * `model` - The data model to check for forbidden Rust enum variants.
+fn check_for_forbidden_rust_enum_variants(model: &mut DataModel) {
+    for enumeration in &mut model.enums {
+        enumeration.mappings = enumeration
+            .mappings
+            .iter()
+            .map(|(key, value)| {
+                let new_key = if FORBIDDEN_RUST_ENUM_VARIANTS.contains(&key.to_lowercase()) {
+                    format!("{key}_")
+                } else {
+                    key.to_lowercase()
+                };
+                (new_key, value.clone())
+            })
+            .collect();
+    }
 }
 
 /// Sorts the objects in the model by their dependency.
@@ -987,12 +1057,35 @@ mod tests {
     }
 
     #[test]
+    fn test_convert_to_rust_forbidden_names() {
+        // Arrange
+        let rendered =
+            build_and_convert("tests/data/model_forbidden_names.md", Templates::Rust, None);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_rust_forbidden.rs")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
     fn test_convert_to_protobuf() {
         // Arrange
         let rendered = build_and_convert("tests/data/model.md", Templates::Protobuf, None);
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_protobuf.proto")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_mermaid() {
+        // Arrange
+        let rendered = build_and_convert("tests/data/model.md", Templates::Mermaid, None);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_mermaid.md")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }
