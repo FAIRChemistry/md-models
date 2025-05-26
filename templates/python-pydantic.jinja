@@ -110,25 +110,13 @@ class {{ object.name }}(BaseModel):
     ) # type: ignore
     {% for attribute in object.attributes %}
     {%- if attribute.multiple is true %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
-        default_factory=list,
-        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
-    )
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(default_factory=list)
     {%- elif 'default' in attribute%}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
-        default{{ utils.get_default(attribute) }},
-        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
-    )
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} {{ utils.get_default(attribute) }}
     {%- elif attribute.required is true %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
-        default=...,
-        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
-    )
+    {{ attribute.name }}: {{ utils.get_type(attribute) }}
     {%- else %}
-    {{ attribute.name }}: Optional[{{ utils.get_type(attribute) }}] = Field(
-        default=None,
-        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
-    )
+    {{ attribute.name }}: Optional[{{ utils.get_type(attribute) }}] = Field(default=None)
     {%- endif %}
     {%- endfor %}
 
