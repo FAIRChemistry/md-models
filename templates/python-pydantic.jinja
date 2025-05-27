@@ -125,7 +125,7 @@ class {{ object.name }}(BaseModel):
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
     )
     {%- else %}
-    {{ attribute.name }}: Optional[{{ utils.get_type(attribute) }}] = Field(
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
         default=None,
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
     )

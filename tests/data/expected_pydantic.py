@@ -121,7 +121,7 @@ class Test(BaseModel):
         default_factory=list,
         description="""""",
     )
-    ontology: Optional[Optional[Ontology]] = Field(
+    ontology: Optional[Ontology] = Field(
         default=None,
         description="""""",
     )
@@ -262,7 +262,7 @@ class Test2(BaseModel):
         default_factory=list,
         description="""""",
     )
-    number: Optional[Optional[float]] = Field(
+    number: Optional[float] = Field(
         default=None,
         description="""""",
     )

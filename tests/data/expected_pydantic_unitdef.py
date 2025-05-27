@@ -110,11 +110,11 @@ class UnitTest(BaseModel):
         default_factory=list,
         description="""""",
     )
-    optional_unit: Optional[Optional[UnitDefinitionAnnot]] = Field(
+    optional_unit: Optional[UnitDefinitionAnnot] = Field(
         default=None,
         description="""""",
     )
-    unit: Optional[Optional[UnitDefinitionAnnot]] = Field(
+    unit: Optional[UnitDefinitionAnnot] = Field(
         default=None,
         description="""""",
     )
