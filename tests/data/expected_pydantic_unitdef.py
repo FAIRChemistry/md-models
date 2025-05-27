@@ -203,10 +203,3 @@ class UnitTest(BaseModel):
 
         add_namespace(self, prefix, iri)
         self.ld_type.append(term)
-
-
-# Rebuild all the classes within this file
-for cls in [
-    UnitTest,
-]:
-    cls.model_rebuild()

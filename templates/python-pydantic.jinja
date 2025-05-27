@@ -277,5 +277,3 @@ class {{ enum.name }}(Enum):
     {{ key }} = "{{ value }}"
     {%- endfor %}
 {% endfor %}
-
-{{ utils.rebuild_classes(objects) }}
