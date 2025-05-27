@@ -321,7 +321,12 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
 fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     // Parse the markdown model.
     let path = resolve_input_path(&args.input);
-    let mut model = DataModel::from_markdown(&path)?;
+
+    let mut model = if is_json_schema(&path)? {
+        DataModel::from_json_schema(&path)?
+    } else {
+        DataModel::from_markdown(&path)?
+    };
 
     // Special case JSON Schema all
     if let Templates::JsonSchemaAll = args.template {
@@ -336,7 +341,9 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
         .map(|s| (s.clone(), "true".to_string()))
         .collect();
     let rendered = match args.template {
-        Templates::JsonSchema => model.json_schema(args.root, false)?,
+        Templates::JsonSchema => {
+            model.json_schema(args.root, args.options.contains(&"openai".to_string()))?
+        }
         Templates::Linkml => serialize_linkml(model, args.output.as_ref())?,
         _ => render_jinja_template(&args.template, &mut model, Some(&config))?,
     };
@@ -352,6 +359,25 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+/// Checks if the input is a JSON Schema.
+///
+/// # Arguments
+///
+/// * `path` - The path to the input file.
+///
+/// # Returns
+///
+/// True if the input is a JSON Schema, false otherwise.
+fn is_json_schema(path: &PathBuf) -> Result<bool, Box<dyn Error>> {
+    let content = std::fs::read_to_string(path)?;
+    let parsed = serde_json::from_str::<serde_json::Value>(&content);
+
+    match parsed {
+        Ok(value) => Ok(value.is_object()),
+        Err(_) => Ok(false),
+    }
 }
 
 /// Resolves the input path based on the InputType.

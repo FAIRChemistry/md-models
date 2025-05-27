@@ -62,13 +62,13 @@ pub struct Test2 {
 pub enum Ontology {
     #[default]
     #[serde(rename = "https://www.evidenceontology.org/term/")]
-    Eco,
+    ECO,
 
     #[serde(rename = "https://amigo.geneontology.org/amigo/term/")]
-    Go,
+    GO,
 
     #[serde(rename = "http://semanticscience.org/resource/")]
-    Sio,
+    SIO,
 }
 
 /// Union type for Test.number

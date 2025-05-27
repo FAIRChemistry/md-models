@@ -198,8 +198,8 @@ pub struct {{ object.name }} {
 pub enum {{ enum.name }} {
     {%- for key, value in enum.mappings | dictsort %}
     {% if loop.first %}#[default]{% endif %}
-    #[serde(rename = "{{ trim(value, "_") }}")]
-    {{ key | pascal_case }},
+    #[serde(rename = "{{ value }}")]
+    {{ key }},
     {%- endfor %}
 }
 {% endfor %}

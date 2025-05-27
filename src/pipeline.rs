@@ -327,16 +327,6 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                     &specs.fname_case,
                 )?;
             }
-            Templates::Mermaid => {
-                serialize_by_template(
-                    &specs.out,
-                    paths,
-                    &merge_state,
-                    &template,
-                    &specs.config,
-                    &specs.fname_case,
-                )?;
-            }
             Templates::Internal => {
                 let model = build_models(paths)?;
                 serialize_to_internal_schema(model, &specs.out, &merge_state)?;

@@ -26,6 +26,7 @@
     },
     "ontology": {
       "title": "ontology",
+      "type": "string",
       "$ref": "#/$defs/Ontology"
     },
     "test2": {

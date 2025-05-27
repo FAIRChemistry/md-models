@@ -270,10 +270,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_inheritance() {
         // Arrange
-        let path = Path::new("tests/data/model_inheritance_invalid.md");
+        let path = Path::new("tests/data/model_inheritance.md");
 
         // Act
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
@@ -285,6 +284,7 @@ mod tests {
         let expected_schema =
             std::fs::read_to_string("tests/data/expected_internal_schema_inheritance.json")
                 .unwrap();
+        let expected_schema: serde_json::Value = serde_json::from_str(&expected_schema).unwrap();
 
         assert_eq!(schema, expected_schema);
     }
@@ -540,5 +540,22 @@ mod tests {
         assert_eq!(overrides.dtypes.len(), 1);
         assert_eq!(overrides.dtypes[0], "string");
         assert_eq!(overrides.is_array, false, "Expected non-array, got array");
+    }
+
+    #[test]
+    fn test_from_json_schema() {
+        let path = Path::new("tests/data/expected_json_schema.json");
+        let model = DataModel::from_json_schema(path).expect("Could not parse JSON schema");
+
+        assert_eq!(model.objects.len(), 2);
+    }
+
+    #[test]
+    fn test_from_json_schema_string() {
+        let content = std::fs::read_to_string("tests/data/expected_json_schema.json").unwrap();
+        let model =
+            DataModel::from_json_schema_string(&content).expect("Could not parse JSON schema");
+
+        assert_eq!(model.objects.len(), 2);
     }
 }

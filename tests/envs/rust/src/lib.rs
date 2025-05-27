@@ -24,7 +24,7 @@ mod tests {
                 names: vec!["name1".to_string(), "name2".to_string()],
                 number: Some(123.45),
             }],
-            ontology: Some(Ontology::Go),
+            ontology: Some(Ontology::GO),
         };
 
         assert_eq!(test.name, "test1");
@@ -42,14 +42,16 @@ mod tests {
     #[test]
     fn test_builder() {
         let test = TestBuilder::default()
-            .test2(vec![Test2Builder::default()
-                .names(vec!["name1".to_string(), "name2".to_string()])
-                .number(Some(123.45))
-                .build()
-                .unwrap()])
+            .test2(vec![
+                Test2Builder::default()
+                    .names(vec!["name1".to_string(), "name2".to_string()])
+                    .number(Some(123.45))
+                    .build()
+                    .unwrap(),
+            ])
             .name("test2".to_string())
             .number(Some(TestNumberType::String("42".to_string())))
-            .ontology(Some(Ontology::Go))
+            .ontology(Some(Ontology::GO))
             .build()
             .unwrap();
 

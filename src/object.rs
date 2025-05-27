@@ -47,8 +47,9 @@ pub struct Object {
     pub docstring: String,
     /// Optional term associated with the object.
     pub term: Option<String>,
-    /// Parent object of the object.
-    pub parent: Option<String>,
+    /// Other objects that this object gets mixed in with.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mixins: Vec<String>,
     /// The line number of the object
     pub position: Option<Position>,
 }
@@ -70,7 +71,7 @@ impl Object {
             attributes: Vec::new(),
             docstring: String::new(),
             term,
-            parent: None,
+            mixins: Vec::new(),
             position: None,
         }
     }
@@ -111,8 +112,8 @@ impl Object {
     /// # Panics
     ///
     /// This function will panic if there are no attributes in the object.
-    pub fn get_last_attribute(&mut self) -> &mut Attribute {
-        self.attributes.last_mut().unwrap()
+    pub fn get_last_attribute(&mut self) -> Option<&mut Attribute> {
+        self.attributes.last_mut()
     }
 
     /// Creates and adds a new attribute to the object.
@@ -243,7 +244,7 @@ mod tests {
         let attribute = Attribute::new("name".to_string(), false);
         object.add_attribute(attribute);
         let last_attribute = object.get_last_attribute();
-        assert_eq!(last_attribute.name, "name");
+        assert_eq!(last_attribute.unwrap().name, "name");
     }
 
     #[test]
