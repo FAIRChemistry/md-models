@@ -106,9 +106,18 @@ class UnitTest(BaseModel):
         validate_assignment = True,
     ) # type: ignore
 
-    units: list[UnitDefinitionAnnot] = Field(default_factory=list)
-    optional_unit: Optional[Optional[UnitDefinitionAnnot]] = Field(default=None)
-    unit: Optional[Optional[UnitDefinitionAnnot]] = Field(default=None)
+    units: list[UnitDefinitionAnnot] = Field(
+        default_factory=list,
+        description="""""",
+    )
+    optional_unit: Optional[UnitDefinitionAnnot] = Field(
+        default=None,
+        description="""""",
+    )
+    unit: Optional[UnitDefinitionAnnot] = Field(
+        default=None,
+        description="""""",
+    )
 
     # JSON-LD fields
     ld_id: str = Field(
@@ -194,10 +203,3 @@ class UnitTest(BaseModel):
 
         add_namespace(self, prefix, iri)
         self.ld_type.append(term)
-
-
-# Rebuild all the classes within this file
-for cls in [
-    UnitTest,
-]:
-    cls.model_rebuild()

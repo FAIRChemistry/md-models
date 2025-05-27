@@ -110,13 +110,25 @@ class {{ object.name }}(BaseModel):
     ) # type: ignore
     {% for attribute in object.attributes %}
     {%- if attribute.multiple is true %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(default_factory=list)
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+        default_factory=list,
+        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+    )
     {%- elif 'default' in attribute%}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} {{ utils.get_default(attribute) }}
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+        default{{ utils.get_default(attribute) }},
+        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+    )
     {%- elif attribute.required is true %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }}
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+        default=...,
+        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+    )
     {%- else %}
-    {{ attribute.name }}: Optional[{{ utils.get_type(attribute) }}] = Field(default=None)
+    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+        default=None,
+        description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+    )
     {%- endif %}
     {%- endfor %}
 
@@ -265,5 +277,3 @@ class {{ enum.name }}(Enum):
     {{ key }} = "{{ value }}"
     {%- endfor %}
 {% endfor %}
-
-{{ utils.rebuild_classes(objects) }}
