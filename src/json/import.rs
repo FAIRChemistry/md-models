@@ -184,8 +184,7 @@ impl TryFrom<Property> for Attribute {
                         .collect::<Result<Vec<String>, String>>()?,
                 );
             } else {
-                // TODO: Implement allOf with multiple items
-                unimplemented!("allOf with multiple items is not supported yet");
+                return Err("allOf with multiple items is not supported yet".into());
             }
         }
 
