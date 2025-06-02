@@ -49,8 +49,6 @@ jobs:
     name: Go
     needs: unit-tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Restore cached build
@@ -80,8 +78,6 @@ jobs:
     name: Python
     needs: unit-tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Generate Python code
@@ -111,8 +107,6 @@ jobs:
     name: TypeScript Zod
     needs: unit-tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Generate TypeScript code
@@ -127,13 +121,46 @@ jobs:
       - name: Run tests
         run: docker run --rm tstests
 
+  # Tests Julia code generation and validates the output
+  julia:
+    name: Julia
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cached build
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Generate Julia code
+        run: |
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/julia/generated.jl \
+            -t julia
+
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.9'
+
+      - name: Install dependencies
+        run: |
+          julia -e 'using Pkg; Pkg.add(["Test", "JSON3", "StructTypes"])'
+
+      - name: Run tests
+        run: |
+          cd tests/envs/julia
+          julia test.jl
+
   # Tests Rust code generation and validates the output
   rust:
     name: Rust
     needs: unit-tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Generate Rust code
@@ -153,8 +180,6 @@ jobs:
     name: Bundler
     needs: unit-tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -174,8 +199,6 @@ jobs:
     name: Web
     needs: unit-tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v3
