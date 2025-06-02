@@ -29,7 +29,7 @@ using .Model
 
     @testset "Test struct" begin
         # Test construction with required field
-        test_basic = Test(name="basic_test")
+        test_basic = Model.Test(name="basic_test")
         @test test_basic.name == "basic_test"
         @test test_basic.number === nothing
         @test test_basic.test2 === nothing
@@ -37,7 +37,7 @@ using .Model
 
         # Test construction with all fields
         test2_instance = Test2(names=["test"], number=1.0)
-        test_full = Test(
+        test_full = Model.Test(
             name="full_test",
             number=TestNumberFloat(3.14),
             test2=[test2_instance],
@@ -64,8 +64,8 @@ using .Model
         @test num_string.value == "789"
 
         # Test both can be used in Test struct
-        test_with_float = Test(name="float_test", number=TestNumberFloat(1.5))
-        test_with_string = Test(name="string_test", number=TestNumberString("42"))
+        test_with_float = Model.Test(name="float_test", number=TestNumberFloat(1.5))
+        test_with_string = Model.Test(name="string_test", number=TestNumberString("42"))
 
         @test test_with_float.number.value == 1.5
         @test test_with_string.number.value == "42"
@@ -74,7 +74,7 @@ using .Model
     @testset "JSON Serialization" begin
         # Create test instances
         test2_data = Test2(names=["JSON", "Test"], number=99.9)
-        test_data = Test(
+        test_data = Model.Test(
             name="json_test",
             number=TestNumberFloat(2.71),
             test2=[test2_data],
@@ -94,7 +94,7 @@ using .Model
 
     @testset "Mutability Tests" begin
         # Test that structs are mutable
-        test_mutable = Test(name="mutable_test")
+        test_mutable = Model.Test(name="mutable_test")
         test_mutable.ontology = "changed"
         @test test_mutable.ontology == "changed"
 
@@ -119,7 +119,7 @@ using .Model
 
     @testset "Edge Cases" begin
         # Test with empty vectors
-        test_empty_vec = Test(name="empty", test2=Test2[])
+        test_empty_vec = Model.Test(name="empty", test2=Test2[])
         @test length(test_empty_vec.test2) == 0
 
         # Test with multiple Test2 instances
@@ -128,7 +128,7 @@ using .Model
             Test2(names=["second"], number=2.0),
             Test2()  # default values
         ]
-        test_multiple = Test(name="multiple", test2=multiple_test2)
+        test_multiple = Model.Test(name="multiple", test2=multiple_test2)
         @test length(test_multiple.test2) == 3
         @test test_multiple.test2[1].names == ["first"]
         @test test_multiple.test2[2].names == ["second"]

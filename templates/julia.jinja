@@ -46,6 +46,43 @@ Union{ {{ get_type(attr, parent_name, object_names) }}, Nothing}
 {%- endif -%}
 {%- endmacro %}
 
+{# 
+  generate_union_struct: Generates a union type struct for a specific dtype
+  Parameters:
+    - object_name: Name of the parent object
+    - attr_name: Name of the attribute
+    - dtype: The specific data type for this union variant
+    - object_names: List of available object type names
+  Returns: The appropriate struct definition
+#}
+{% macro generate_union_struct(object_name, attr_name, dtype, object_names) -%}
+{%- if dtype in object_names or dtype in enum_names %}
+struct {{ object_name }}{{ attr_name | capitalize }}{{ dtype }} <: {{ object_name }}{{ attr_name | capitalize }}Type
+    value::{{ dtype }}
+end
+{%- elif dtype == "string" %}
+struct {{ object_name }}{{ attr_name | capitalize }}String <: {{ object_name }}{{ attr_name | capitalize }}Type
+    value::String
+end
+{%- elif dtype == "float" %}
+struct {{ object_name }}{{ attr_name | capitalize }}Float <: {{ object_name }}{{ attr_name | capitalize }}Type
+    value::Float64
+end
+{%- elif dtype == "integer" %}
+struct {{ object_name }}{{ attr_name | capitalize }}Integer <: {{ object_name }}{{ attr_name | capitalize }}Type
+    value::Int64
+end
+{%- elif dtype == "boolean" %}
+struct {{ object_name }}{{ attr_name | capitalize }}Boolean <: {{ object_name }}{{ attr_name | capitalize }}Type
+    value::Bool
+end
+{%- else %}
+struct {{ object_name }}{{ attr_name | capitalize }}{{ dtype | capitalize }} <: {{ object_name }}{{ attr_name | capitalize }}Type
+    value::{{ dtype }}
+end
+{%- endif -%}
+{%- endmacro %}
+
 # This file contains Julia type definitions with JSON serialization.
 # 
 # WARNING: This is an auto-generated file.
@@ -63,6 +100,45 @@ using StructTypes
 =#
 {%- for object in objects %}
 
+{# Generate union types for this object if any exist #}
+{%- for attr in object.attributes %}
+{%- if attr.dtypes | length > 1 %}
+#=
+  Union Type Definitions for {{ object.name }}.{{ attr.name }}
+  ---------------------
+  Custom union types for fields that can accept multiple types.
+=#
+
+"""
+Union type for {{ object.name }}.{{ attr.name }}
+"""
+abstract type {{ object.name }}{{ attr.name | capitalize }}Type end
+
+{%- for dtype in attr.dtypes %}
+{{ generate_union_struct(object.name, attr.name, dtype, object_names) }}
+{%- endfor %}
+
+export {{ object.name }}{{ attr.name | capitalize }}Type
+{%- for dtype in attr.dtypes %}
+{%- if dtype in object_names or dtype in enum_names %}
+export {{ object.name }}{{ attr.name | capitalize }}{{ dtype }}
+{%- elif dtype == "string" %}
+export {{ object.name }}{{ attr.name | capitalize }}String
+{%- elif dtype == "float" %}
+export {{ object.name }}{{ attr.name | capitalize }}Float
+{%- elif dtype == "integer" %}
+export {{ object.name }}{{ attr.name | capitalize }}Integer
+{%- elif dtype == "boolean" %}
+export {{ object.name }}{{ attr.name | capitalize }}Boolean
+{%- else %}
+export {{ object.name }}{{ attr.name | capitalize }}{{ dtype | capitalize }}
+{%- endif %}
+{%- endfor %}
+
+{%- endif %}
+{%- endfor %}
+
+{# Generate the main struct definition #}
 {%- if object.docstring %}
 """
 {{ wrap(object.docstring, 70, "", "", None) }}
@@ -81,52 +157,5 @@ end
 
 export {{ object.name }}
 {% endfor %}
-
-{%- for object in objects %}
-{%- for attr in object.attributes %}
-{%- if attr.dtypes | length > 1 %}
-
-#=
-  Union Type Definitions
-  ---------------------
-  Custom union types for fields that can accept multiple types.
-=#
-
-"""
-Union type for {{ object.name }}.{{ attr.name }}
-"""
-abstract type {{ object.name }}{{ attr.name | capitalize }}Type end
-
-{%- for dtype in attr.dtypes %}
-{%- if dtype in object_names or dtype in enum_names %}
-struct {{ object.name }}{{ attr.name | capitalize }}{{ dtype }} <: {{ object.name }}{{ attr.name | capitalize }}Type
-    value::{{ dtype }}
-end
-{%- elif dtype == "string" %}
-struct {{ object.name }}{{ attr.name | capitalize }}String <: {{ object.name }}{{ attr.name | capitalize }}Type
-    value::String
-end
-{%- elif dtype == "float" %}
-struct {{ object.name }}{{ attr.name | capitalize }}Float <: {{ object.name }}{{ attr.name | capitalize }}Type
-    value::Float64
-end
-{%- elif dtype == "integer" %}
-struct {{ object.name }}{{ attr.name | capitalize }}Integer <: {{ object.name }}{{ attr.name | capitalize }}Type
-    value::Int64
-end
-{%- elif dtype == "boolean" %}
-struct {{ object.name }}{{ attr.name | capitalize }}Boolean <: {{ object.name }}{{ attr.name | capitalize }}Type
-    value::Bool
-end
-{%- else %}
-struct {{ object.name }}{{ attr.name | capitalize }}{{ dtype | capitalize }} <: {{ object.name }}{{ attr.name | capitalize }}Type
-    value::{{ dtype }}
-end
-{%- endif %}
-{%- endfor %}
-
-{%- endif %}
-{%- endfor %}
-{%- endfor %} 
 
 end # module {{ title | replace_lower(" ", "_") }}

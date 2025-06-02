@@ -13,6 +13,8 @@ using StructTypes
   ---------------
   Main struct definitions with their fields and JSON serialization support.
 =#
+
+
 Base.@kwdef mutable struct Test2
     names::Union{Vector{ String }, Nothing} = nothing
 
@@ -21,6 +23,27 @@ Base.@kwdef mutable struct Test2
 end
 
 export Test2
+
+
+#=
+  Union Type Definitions for Test.number
+  ---------------------
+  Custom union types for fields that can accept multiple types.
+=#
+
+"""
+Union type for Test.number
+"""
+abstract type TestNumberType end
+
+struct TestNumberFloat <: TestNumberType
+    value::Float64
+end
+
+struct TestNumberString <: TestNumberType
+    value::String
+end
+
 
 """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
@@ -46,22 +69,5 @@ end
 
 export Test
 
-
-#=
-  Union Type Definitions
-  ---------------------
-  Custom union types for fields that can accept multiple types.
-=#
-
-"""
-Union type for Test.number
-"""
-abstract type TestNumberType end
-struct TestNumberFloat <: TestNumberType
-    value::Float64
-end
-struct TestNumberString <: TestNumberType
-    value::String
-end
 
 end # module none
