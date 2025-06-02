@@ -8,25 +8,23 @@
     - object_names: List of available object type names
   Returns: The appropriate Julia type as a string
 #}
-{% macro get_type(attr, parent_name, object_names) %}
-    {%- if attr.dtypes | length > 1 -%}
-    {# For multiple possible types, create a custom union type #}
-    {{ parent_name }}{{ attr.name | capitalize }}Type
-    {%- elif attr.dtypes[0] in object_names -%}
-    {# For references to other objects, use their type directly #}
-    {{ attr.dtypes[0] }}
-    {%- elif attr.dtypes[0] == "string" or attr.dtypes[0] in enum_names -%}
-    String
-    {%- elif attr.dtypes[0] == "float" -%}
-    Float64
-    {%- elif attr.dtypes[0] == "integer" -%}
-    Int64
-    {%- elif attr.dtypes[0] == "boolean" -%}
-    Bool
-    {%- else -%}
-    {{ attr.dtypes[0] }}
-    {%- endif -%}
-{% endmacro %}
+{% macro get_type(attr, parent_name, object_names) -%}
+{%- if attr.dtypes | length > 1 -%}
+{{ parent_name }}{{ attr.name | capitalize }}Type
+{%- elif attr.dtypes[0] in object_names -%}
+{{ attr.dtypes[0] }}
+{%- elif attr.dtypes[0] == "string" or attr.dtypes[0] in enum_names -%}
+String
+{%- elif attr.dtypes[0] == "float" -%}
+Float64
+{%- elif attr.dtypes[0] == "integer" -%}
+Int64
+{%- elif attr.dtypes[0] == "boolean" -%}
+Bool
+{%- else -%}
+{{ attr.dtypes[0] }}
+{%- endif -%}
+{%- endmacro %}
 
 {# 
   wrap_type: Wraps types in appropriate containers based on multiplicity and optionality
@@ -36,21 +34,17 @@
     - object_names: List of available object type names
   Returns: The wrapped Julia type as a string
 #}
-{% macro wrap_type(attr, parent_name, object_names) %}
-    {%- if attr.multiple -%}
-        {%- if attr.required is false -%}
-            Union{Vector{ {{- get_type(attr, parent_name, object_names) -}} }, Nothing}
-        {%- else -%}
-            Vector{ {{- get_type(attr, parent_name, object_names) -}} }
-        {%- endif -%}
-    {%- else -%}
-        {%- if attr.required is false -%}
-            Union{ {{- get_type(attr, parent_name, object_names) -}} , Nothing}
-        {%- else -%}
-            {{- get_type(attr, parent_name, object_names) -}}
-        {%- endif -%}
-    {%- endif -%}
-{% endmacro %}
+{% macro wrap_type(attr, parent_name, object_names) -%}
+{%- if attr.multiple -%}
+Union{Vector{ {{ get_type(attr, parent_name, object_names) }} }, Nothing}
+{%- else -%}
+{%- if attr.required is false -%}
+Union{ {{ get_type(attr, parent_name, object_names) }}, Nothing}
+{%- else -%}
+{{ get_type(attr, parent_name, object_names) }}
+{%- endif -%}
+{%- endif -%}
+{%- endmacro %}
 
 # This file contains Julia type definitions with JSON serialization.
 # 
