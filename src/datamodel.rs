@@ -28,12 +28,14 @@ use std::{error::Error, fs, path::Path};
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::error::DataModelError;
 use crate::exporters::{render_jinja_template, Templates};
 use crate::json::export::to_json_schema;
+use crate::json::schema::SchemaObject;
 use crate::json::validation::{validate_json, ValidationError};
 use crate::linkml::export::serialize_linkml;
 use crate::markdown::frontmatter::FrontMatter;
-use crate::markdown::parser::parse_markdown;
+use crate::markdown::parser::{parse_markdown, validate_model};
 use crate::object::{Enumeration, Object};
 use crate::validation::Validator;
 use colored::Colorize;
@@ -364,6 +366,63 @@ impl DataModel {
     #[allow(clippy::result_large_err)]
     pub fn from_markdown_string(content: &str) -> Result<Self, Validator> {
         parse_markdown(content, None)
+    }
+
+    /// Parse a JSON schema file and create a data model
+    ///
+    /// * `path` - Path to the JSON schema file
+    ///
+    /// # Returns
+    /// A data model
+    #[allow(clippy::result_large_err)]
+    pub fn from_json_schema(path: &Path) -> Result<Self, DataModelError> {
+        let content = fs::read_to_string(path)?;
+        let schema: SchemaObject = serde_json::from_str(&content)?;
+        let model: DataModel = schema
+            .try_into()
+            .expect("Could not convert schema to data model");
+
+        // Validate the data model
+        validate_model(&model).map_err(DataModelError::ValidationError)?;
+
+        Ok(model)
+    }
+
+    /// Parse a JSON schema string and create a data model
+    ///
+    /// * `content` - The JSON schema string
+    ///
+    /// # Returns
+    /// A data model
+    #[allow(clippy::result_large_err)]
+    pub fn from_json_schema_string(content: &str) -> Result<Self, DataModelError> {
+        let schema: SchemaObject = serde_json::from_str(content)?;
+        let model: DataModel = schema
+            .try_into()
+            .expect("Could not convert schema to data model");
+
+        // Validate the data model
+        validate_model(&model).map_err(DataModelError::ValidationError)?;
+
+        Ok(model)
+    }
+
+    /// Parse a JSON schema object and create a data model
+    ///
+    /// * `schema` - The JSON schema object
+    ///
+    /// # Returns
+    /// A data model
+    #[allow(clippy::result_large_err)]
+    pub fn from_json_schema_object(schema: SchemaObject) -> Result<Self, DataModelError> {
+        let model: DataModel = schema
+            .try_into()
+            .expect("Could not convert schema to data model");
+
+        // Validate the data model
+        validate_model(&model).map_err(DataModelError::ValidationError)?;
+
+        Ok(model)
     }
 }
 
