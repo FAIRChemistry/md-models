@@ -1,0 +1,40 @@
+```mermaid
+classDiagram
+    %% Class definitions with attributes
+    {%- for object in objects %}
+    class {{ object.name }} {
+        {%- for attr in object.attributes %}
+        {%- if attr.multiple %}
+        +{{ attr.name }}[0..*]: {{ attr.dtypes | join(" | ") }}
+        {%- elif attr.required %}
+        +{{ attr.name }}: {{ attr.dtypes | join(" | ") }}
+        {%- else %}
+        +{{ attr.name }}?: {{ attr.dtypes | join(" | ") }}
+        {%- endif %}
+        {%- endfor %}
+    }
+    {% endfor %}
+    %% Enum definitions
+    {%- for enum in enums %}
+    class {{ enum.name }} {
+        <<enumeration>>
+        {%- for key, value in enum.mappings | dictsort %}
+        {{ key }}
+        {%- endfor %}
+    }
+    {% endfor %}
+    %% Relationships
+    {%- for object in objects %}
+    {%- for attr in object.attributes %}
+    {%- for dtype in attr.dtypes %}
+    {%- if dtype in object_names or dtype in enum_names %}
+    {%- if attr.multiple %}
+    {{ object.name }} "1" <|-- "*" {{ dtype }}
+    {%- else %}
+    {{ object.name }} "1" <|-- "1" {{ dtype }}
+    {%- endif %}
+    {%- endif %}
+    {%- endfor %}
+    {%- endfor %}
+    {%- endfor %}
+```

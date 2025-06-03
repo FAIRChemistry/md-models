@@ -69,7 +69,7 @@ pub fn to_json_schema(
     schema_object.definitions = definitions;
 
     if let Some(config) = model.config.clone() {
-        post_process_schema(&mut schema_object, &config, openai, &used_enums)?;
+        post_process_schema(&mut schema_object, &config, openai);
     }
 
     Ok(schema_object)
@@ -203,69 +203,6 @@ fn resolve_prefixes(schema: &mut schema::SchemaObject, prefixes: &HashMap<String
     }
 }
 
-/// Post-processes the schema object by setting its ID, resolving prefixes, and optionally removing options.
-///
-/// # Arguments
-///
-/// * `schema_object` - A mutable reference to the `SchemaObject` to be post-processed.
-/// * `config` - A reference to the `FrontMatter` configuration containing repository and prefix information.
-/// * `no_options` - A boolean flag indicating whether to remove options from the schema properties.
-fn post_process_schema(
-    schema_object: &mut schema::SchemaObject,
-    config: &FrontMatter,
-    openai: bool,
-    used_enums: &HashSet<String>,
-) -> Result<(), String> {
-    schema_object.id = Some(config.repo.clone());
-    post_process_object(schema_object, config, openai, used_enums)?;
-
-    for (_, definition) in schema_object.definitions.iter_mut() {
-        if let schema::SchemaType::Object(definition) = definition {
-            post_process_object(definition, config, openai, used_enums)?;
-        }
-    }
-
-    Ok(())
-}
-
-/// Post-processes an object by resolving prefixes and removing options.
-///
-/// # Arguments
-///
-/// * `object` - A mutable reference to the `SchemaObject`.
-/// * `config` - A reference to the `FrontMatter` configuration containing repository and prefix information.
-/// * `openai` - A boolean flag indicating whether to remove options from the schema properties.
-/// * `used_enums` - A reference to a set of used enum names.
-fn post_process_object(
-    object: &mut schema::SchemaObject,
-    config: &FrontMatter,
-    openai: bool,
-    used_enums: &HashSet<String>,
-) -> Result<(), String> {
-    if let Some(prefixes) = &config.prefixes {
-        resolve_prefixes(object, prefixes);
-    }
-    if openai {
-        remove_options(object);
-        set_required_and_nullable(object);
-    }
-
-    for (_, property) in object.properties.iter_mut() {
-        if let Some(reference) = &property.reference {
-            if used_enums.contains(
-                reference
-                    .split("/")
-                    .last()
-                    .ok_or(format!("Failed to split reference: {}", reference))?,
-            ) {
-                property.dtype = Some(schema::DataType::String);
-            }
-        }
-    }
-
-    Ok(())
-}
-
 /// Removes options from the schema properties.
 ///
 /// # Arguments
@@ -277,38 +214,35 @@ fn remove_options(schema: &mut schema::SchemaObject) {
     }
 }
 
-/// Sets the required and nullable fields in the schema object.
+/// Post-processes the schema object by setting its ID, resolving prefixes, and optionally removing options.
 ///
 /// # Arguments
 ///
-/// * `schema` - A mutable reference to the `SchemaObject`.
-fn set_required_and_nullable(schema: &mut schema::SchemaObject) {
-    let mut new_required = Vec::new();
+/// * `schema_object` - A mutable reference to the `SchemaObject` to be post-processed.
+/// * `config` - A reference to the `FrontMatter` configuration containing repository and prefix information.
+/// * `no_options` - A boolean flag indicating whether to remove options from the schema properties.
+fn post_process_schema(
+    schema_object: &mut schema::SchemaObject,
+    config: &FrontMatter,
+    openai: bool,
+) {
+    schema_object.id = Some(config.repo.clone());
+    post_process_object(schema_object, config, openai);
 
-    for (name, property) in &mut schema.properties {
-        if !schema.required.contains(name) {
-            new_required.push(name.clone());
-
-            // Make non-required properties nullable by adding Null to their types
-            if let Some(dtype) = &property.dtype {
-                property.dtype = Some(match dtype {
-                    schema::DataType::Multiple(types) => {
-                        let mut new_types = types.clone();
-                        new_types.push(schema::DataType::Null);
-                        schema::DataType::Multiple(new_types)
-                    }
-                    schema::DataType::Array => schema::DataType::Array,
-                    _ => schema::DataType::Multiple(Box::new(vec![
-                        dtype.clone(),
-                        schema::DataType::Null,
-                    ])),
-                });
-            }
+    for (_, definition) in schema_object.definitions.iter_mut() {
+        if let schema::SchemaType::Object(definition) = definition {
+            post_process_object(definition, config, openai);
         }
     }
+}
 
-    schema.required.extend(new_required);
-    schema.required.sort();
+fn post_process_object(object: &mut schema::SchemaObject, config: &FrontMatter, openai: bool) {
+    if let Some(prefixes) = &config.prefixes {
+        resolve_prefixes(object, prefixes);
+    }
+    if openai {
+        remove_options(object);
+    }
 }
 
 impl TryFrom<&Enumeration> for schema::SchemaType {
@@ -379,7 +313,7 @@ impl TryFrom<&Object> for schema::SchemaObject {
 
         Ok(schema::SchemaObject {
             title: obj.name.clone(),
-            dtype: Some(schema::DataType::Object),
+            dtype: schema::DataType::Object,
             description: Some(obj.docstring.clone()),
             properties: properties?,
             definitions: BTreeMap::new(),
@@ -412,7 +346,7 @@ impl TryFrom<&Enumeration> for schema::EnumObject {
 
         Ok(schema::EnumObject {
             title: enumeration.name.clone(),
-            dtype: Some(schema::DataType::String),
+            dtype: schema::DataType::String,
             description: Some(enumeration.docstring.clone()),
             enum_values: values,
         })
@@ -469,7 +403,7 @@ impl TryFrom<&Attribute> for schema::Property {
         };
 
         Ok(schema::Property {
-            title: Some(attr.name.clone()),
+            title: attr.name.clone(),
             dtype,
             default,
             description,
@@ -479,7 +413,6 @@ impl TryFrom<&Attribute> for schema::Property {
             one_of,
             items,
             enum_values,
-            all_of: None,
         })
     }
 }

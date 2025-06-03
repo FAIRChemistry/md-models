@@ -171,7 +171,7 @@ impl From<ClassDefinition> for Object {
             docstring: class.description.unwrap_or_default(),
             term: class.class_uri,
             attributes,
-            mixins: Vec::new(),
+            parent: None,
             position: None,
         }
     }

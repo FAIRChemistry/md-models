@@ -16,20 +16,7 @@
           "required": true,
           "xml": {
             "is_attr": false,
-            "name": "name",
-            "wrapped": null
-          },
-          "is_enum": false,
-          "position": {
-            "line": 13,
-            "column": {
-              "start": 1,
-              "end": 11
-            },
-            "offset": {
-              "start": 178,
-              "end": 211
-            }
+            "name": "name"
           }
         },
         {
@@ -45,38 +32,12 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "number",
-            "wrapped": null
-          },
-          "is_enum": false,
-          "position": {
-            "line": 18,
-            "column": {
-              "start": 1,
-              "end": 9
-            },
-            "offset": {
-              "start": 226,
-              "end": 253
-            }
+            "name": "number"
           }
         }
       ],
       "docstring": "",
-      "mixins": [
-        "Something"
-      ],
-      "position": {
-        "line": 11,
-        "column": {
-          "start": 1,
-          "end": 21
-        },
-        "offset": {
-          "start": 156,
-          "end": 177
-        }
-      }
+      "parent": "Something"
     },
     {
       "name": "Something",
@@ -94,40 +55,15 @@
           "required": false,
           "xml": {
             "is_attr": false,
-            "name": "number",
-            "wrapped": null
-          },
-          "is_enum": false,
-          "position": {
-            "line": 18,
-            "column": {
-              "start": 1,
-              "end": 9
-            },
-            "offset": {
-              "start": 226,
-              "end": 253
-            }
+            "name": "number"
           }
         }
       ],
-      "docstring": "",
-      "position": {
-        "line": 16,
-        "column": {
-          "start": 1,
-          "end": 14
-        },
-        "offset": {
-          "start": 211,
-          "end": 225
-        }
-      }
+      "docstring": ""
     }
   ],
   "enums": [],
   "config": {
-    "id": null,
     "id-field": true,
     "prefixes": {
       "schema": "http://schema.org/"
@@ -136,8 +72,6 @@
       "tst": "http://example.com/test/"
     },
     "repo": "https://www.github.com/my/repo/",
-    "prefix": "tst",
-    "imports": {},
-    "allow-empty": false
+    "prefix": "tst"
   }
 }

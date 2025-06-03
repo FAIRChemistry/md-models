@@ -52,7 +52,6 @@
     },
     "ontology": {
       "title": "ontology",
-      "type": "string",
       "$ref": "#/$defs/Ontology"
     },
     "single_valued": {
