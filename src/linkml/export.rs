@@ -275,10 +275,10 @@ impl From<Object> for ClassDefinition {
 
         ClassDefinition {
             description: Some(obj.docstring),
-            class_uri: obj.term,
+            class_uri: obj.term.clone(),
             slots: Vec::new(),
-            is_a: obj.parent,
-            mixins: vec![],
+            is_a: obj.term,
+            mixins: obj.mixins,
             tree_root: None,
             attributes: Some(attrib),
             slot_usage: if slot_usage.is_empty() {
@@ -407,7 +407,7 @@ mod tests {
             class_def.class_uri,
             Some("http://example.org/TestClass".to_string())
         );
-        assert!(class_def.is_a.is_none());
+        assert!(class_def.is_a.is_some());
         assert!(class_def.slot_usage.is_some());
     }
 
