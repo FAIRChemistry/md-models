@@ -107,27 +107,44 @@ fn prepare_response_format(
     root: &str,
     multiple: bool,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    let schema = to_json_schema(model, root, true)?;
+    let mut schema = to_json_schema(model, root, true)?;
 
     if multiple {
+        let definitions = schema.definitions.clone();
+        schema.definitions.clear();
+
         Ok(json!(
-            { "type": "json_schema",
-              "json_schema": {
-                "name": root,
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "items": {
-                            "type": "array",
-                            "items": schema
-                        }
+            {
+                "type": "json_schema",
+                "json_schema": {
+                    "strict": true,
+                    "name": root,
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["items"],
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": schema
+                            }
+                        },
+                        "$defs": definitions
                     }
                 }
-              }
             }
         ))
     } else {
-        Ok(json!({ "type": "json_schema", "json_schema": { "name": root, "schema": schema } }))
+        Ok(json!(
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": root,
+                        "strict": true,
+                        "schema": schema
+                    }
+                }
+        ))
     }
 }
 

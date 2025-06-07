@@ -1,6 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://www.github.com/my/repo/",
   "title": "Test",
   "type": "object",
   "properties": {
@@ -13,7 +11,10 @@
     },
     "multiple_types": {
       "title": "multiple_types",
-      "oneOf": [
+      "anyOf": [
+        {
+          "type": "null"
+        },
         {
           "type": "number"
         },
@@ -26,7 +27,7 @@
       "title": "multiple_types_array",
       "type": "array",
       "items": {
-        "oneOf": [
+        "anyOf": [
           {
             "type": "number"
           },
@@ -43,23 +44,34 @@
     },
     "number": {
       "title": "number",
-      "type": [
-        "number",
-        "null"
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number"
+        }
       ]
     },
     "ontology": {
-      "title": "ontology",
-      "type": "string",
-      "$ref": "#/$defs/Ontology"
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/Ontology"
+        }
+      ]
     },
     "single_valued": {
-      "title": "single_valued",
-      "type": [
-        "object",
-        "null"
-      ],
-      "$ref": "#/$defs/Test2"
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/Test2"
+        }
+      ]
     }
   },
   "$defs": {
@@ -85,9 +97,13 @@
         },
         "number": {
           "title": "number",
-          "type": [
-            "number",
-            "null"
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
           ]
         }
       },

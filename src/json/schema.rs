@@ -110,8 +110,10 @@ pub struct Property {
     pub options: HashMap<String, PrimitiveType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Item>,
-    #[serde(rename = "oneOf", alias = "anyOf", skip_serializing_if = "skip_empty")]
+    #[serde(rename = "oneOf", skip_serializing_if = "skip_empty")]
     pub one_of: Option<Vec<Item>>,
+    #[serde(rename = "anyOf", skip_serializing_if = "skip_empty")]
+    pub any_of: Option<Vec<Item>>,
     #[serde(rename = "allOf", skip_serializing_if = "skip_empty")]
     pub all_of: Option<Vec<Item>>,
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
@@ -123,6 +125,7 @@ pub struct Property {
 pub enum Item {
     ReferenceItem(ReferenceItemType),
     OneOfItem(OneOfItemType),
+    AnyOfItem(AnyOfItemType),
     DataTypeItem(DataTypeItemType),
     // TODO: Add PropertyItem?
 }
@@ -135,6 +138,11 @@ impl Item {
             Item::ReferenceItem(ref_item) => vec![ref_item.reference.clone()],
             Item::OneOfItem(one_of_item) => one_of_item
                 .one_of
+                .iter()
+                .flat_map(|item| item.get_types())
+                .collect(),
+            Item::AnyOfItem(any_of_item) => any_of_item
+                .any_of
                 .iter()
                 .flat_map(|item| item.get_types())
                 .collect(),
@@ -151,6 +159,7 @@ impl Serialize for Item {
         match self {
             Item::ReferenceItem(ref_item) => ref_item.serialize(serializer),
             Item::OneOfItem(one_of_item) => one_of_item.serialize(serializer),
+            Item::AnyOfItem(any_of_item) => any_of_item.serialize(serializer),
             Item::DataTypeItem(data_type_item) => data_type_item.serialize(serializer),
         }
     }
@@ -169,13 +178,19 @@ pub struct OneOfItemType {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct AnyOfItemType {
+    #[serde(rename = "anyOf")]
+    pub any_of: Vec<Item>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DataTypeItemType {
     #[serde(rename = "type")]
     pub dtype: DataType,
 }
 
 /// Represents various data types that can be used in a JSON schema.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Variantly, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Variantly, Clone, Hash, Eq)]
 pub enum DataType {
     #[serde(rename = "string")]
     String,

@@ -29,6 +29,7 @@ use std::{
 use crate::{
     attribute::{self, Attribute},
     datamodel::DataModel,
+    json::schema::{AnyOfItemType, DataType, DataTypeItemType, Item, ReferenceItemType},
     markdown::frontmatter::FrontMatter,
     object::{Enumeration, Object},
     option::AttrOption,
@@ -246,6 +247,8 @@ fn post_process_object(
         resolve_prefixes(object, prefixes);
     }
     if openai {
+        object.schema = None;
+        object.id = None;
         remove_options(object);
         set_required_and_nullable(object);
     }
@@ -258,7 +261,11 @@ fn post_process_object(
                     .last()
                     .ok_or(format!("Failed to split reference: {}", reference))?,
             ) {
-                property.dtype = Some(schema::DataType::String);
+                if openai {
+                    property.dtype = None;
+                } else {
+                    property.dtype = Some(schema::DataType::String);
+                }
             }
         }
     }
@@ -286,27 +293,153 @@ fn set_required_and_nullable(schema: &mut schema::SchemaObject) {
     let mut new_required = Vec::new();
 
     for (name, property) in &mut schema.properties {
+        clean_reference_property(property);
+        convert_one_of_to_any_of(property);
+
         if !schema.required.contains(name) {
             new_required.push(name.clone());
-
-            // Make non-required properties nullable by adding Null to their types
-            if let Some(dtype) = &property.dtype {
-                property.dtype = Some(match dtype {
-                    schema::DataType::Multiple(types) => {
-                        let mut new_types = types.clone();
-                        new_types.push(schema::DataType::Null);
-                        schema::DataType::Multiple(new_types)
-                    }
-                    schema::DataType::Array => schema::DataType::Array,
-                    _ => schema::DataType::Multiple(Box::new(vec![
-                        dtype.clone(),
-                        schema::DataType::Null,
-                    ])),
-                });
-            }
+            make_property_nullable(property);
         }
     }
 
+    finalize_schema_requirements(schema, new_required);
+}
+
+/// Cleans up properties that have references by removing unnecessary fields.
+///
+/// # Arguments
+///
+/// * `property` - A mutable reference to the property to clean.
+fn clean_reference_property(property: &mut schema::Property) {
+    if property.reference.is_some() {
+        property.description = None;
+        property.title = None;
+        property.dtype = None;
+    }
+}
+
+/// Converts oneOf items to anyOf items in the property.
+///
+/// # Arguments
+///
+/// * `property` - A mutable reference to the property to convert.
+fn convert_one_of_to_any_of(property: &mut schema::Property) {
+    if let Some(Item::OneOfItem(one_of)) = &mut property.items {
+        property.items = Some(Item::AnyOfItem(AnyOfItemType {
+            any_of: one_of.one_of.clone(),
+        }));
+    }
+}
+
+/// Makes a property nullable by creating an anyOf structure with null as an option.
+///
+/// # Arguments
+///
+/// * `property` - A mutable reference to the property to make nullable.
+fn make_property_nullable(property: &mut schema::Property) {
+    let mut any_of = vec![Item::DataTypeItem(DataTypeItemType {
+        dtype: DataType::Null,
+    })];
+
+    handle_property_data_type(property, &mut any_of);
+    handle_property_reference(property, &mut any_of);
+    handle_property_one_of(property, &mut any_of);
+
+    if !matches!(property.dtype, Some(DataType::Array)) {
+        property.any_of = Some(any_of);
+    }
+}
+
+/// Handles the data type of a property when making it nullable.
+///
+/// # Arguments
+///
+/// * `property` - A mutable reference to the property.
+/// * `any_of` - A mutable reference to the anyOf vector to populate.
+fn handle_property_data_type(property: &mut schema::Property, any_of: &mut Vec<Item>) {
+    if let Some(dtype) = &property.dtype {
+        let is_array = matches!(dtype, DataType::Array);
+
+        match dtype {
+            DataType::Array => {
+                any_of.push(Item::DataTypeItem(DataTypeItemType {
+                    dtype: DataType::Null,
+                }));
+            }
+            DataType::Object => {
+                property.dtype = None;
+            }
+            DataType::Multiple(data_types) => {
+                add_multiple_data_types(any_of, data_types);
+            }
+            _ => {
+                any_of.push(Item::DataTypeItem(DataTypeItemType {
+                    dtype: dtype.clone(),
+                }));
+            }
+        }
+
+        if !is_array {
+            property.dtype = None;
+        }
+    }
+}
+
+/// Adds multiple data types to the anyOf vector, filtering out objects.
+///
+/// # Arguments
+///
+/// * `any_of` - A mutable reference to the anyOf vector.
+/// * `data_types` - A reference to the vector of data types to add.
+fn add_multiple_data_types(any_of: &mut Vec<Item>, data_types: &[DataType]) {
+    for dtype in data_types.iter() {
+        if dtype.is_not_object() || dtype.is_array() {
+            any_of.push(Item::DataTypeItem(DataTypeItemType {
+                dtype: dtype.clone(),
+            }));
+        }
+    }
+}
+
+/// Handles the reference of a property when making it nullable.
+///
+/// # Arguments
+///
+/// * `property` - A mutable reference to the property.
+/// * `any_of` - A mutable reference to the anyOf vector to populate.
+fn handle_property_reference(property: &mut schema::Property, any_of: &mut Vec<Item>) {
+    if let Some(reference) = &property.reference {
+        any_of.push(Item::ReferenceItem(ReferenceItemType {
+            reference: reference.clone(),
+        }));
+        property.reference = None;
+        property.dtype = None;
+        property.title = None;
+        property.description = None;
+    }
+}
+
+/// Handles the oneOf property when making it nullable.
+///
+/// # Arguments
+///
+/// * `property` - A mutable reference to the property.
+/// * `any_of` - A mutable reference to the anyOf vector to populate.
+fn handle_property_one_of(property: &mut schema::Property, any_of: &mut Vec<Item>) {
+    if let Some(one_of) = &property.one_of {
+        any_of.extend(one_of.clone());
+        property.one_of = None;
+    }
+}
+
+/// Finalizes the schema requirements by setting additional properties and sorting required fields.
+///
+/// # Arguments
+///
+/// * `schema` - A mutable reference to the schema object.
+/// * `new_required` - A vector of newly required field names.
+fn finalize_schema_requirements(schema: &mut schema::SchemaObject, new_required: Vec<String>) {
+    schema.additional_properties = false;
     schema.required.extend(new_required);
     schema.required.sort();
 }
@@ -444,12 +577,14 @@ impl TryFrom<&Attribute> for schema::Property {
             })
             .collect::<Result<HashMap<String, PrimitiveType>, String>>()?;
 
-        let reference: Option<String> =
-            if attr.is_enum || matches!(dtype, Some(schema::DataType::Object)) {
-                Some(format!("#/$defs/{}", attr.dtypes[0]))
-            } else {
-                None
-            };
+        let reference: Option<String> = if (attr.is_enum
+            || matches!(dtype, Some(schema::DataType::Object)))
+            && attr.dtypes.len() == 1
+        {
+            Some(format!("#/$defs/{}", attr.dtypes[0]))
+        } else {
+            None
+        };
 
         let items: Option<schema::Item> = attr.into();
         let one_of = (!attr.is_array).then(|| attr.into());
@@ -479,6 +614,7 @@ impl TryFrom<&Attribute> for schema::Property {
             one_of,
             items,
             enum_values,
+            any_of: None,
             all_of: None,
         })
     }
