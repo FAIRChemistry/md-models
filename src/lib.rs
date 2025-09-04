@@ -46,7 +46,6 @@ pub mod prelude {
 }
 
 pub mod json {
-    mod datatype;
     pub mod export;
     pub mod import;
     pub mod schema;
