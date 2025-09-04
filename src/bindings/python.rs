@@ -60,6 +60,40 @@ impl DataModel {
         }
     }
 
+    /// Creates a new `DataModel` instance from a json schema file.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - A string slice that holds the path to the json schema file.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `DataModel`.
+    #[classmethod]
+    #[pyo3(signature = (path))]
+    fn from_json_schema(_cls: &Bound<'_, PyType>, path: String) -> Self {
+        Self {
+            model: datamodel::DataModel::from_json_schema(Path::new(&path)).unwrap(),
+        }
+    }
+
+    /// Creates a new `DataModel` instance from a json schema string.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - A string slice that holds the json schema content.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `DataModel`.
+    #[classmethod]
+    #[pyo3(signature = (content))]
+    fn from_json_schema_string(_cls: &Bound<'_, PyType>, content: String) -> Self {
+        Self {
+            model: datamodel::DataModel::from_json_schema_string(&content).unwrap(),
+        }
+    }
+
     /// Creates a new `DataModel` instance from a markdown string.
     ///
     /// # Arguments

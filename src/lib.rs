@@ -83,6 +83,7 @@ pub mod linkml {
 #[pymodule]
 fn mdmodels_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    m.add("__all__", &["DataModel", "Templates"])?;
     m.add_class::<python::DataModel>()?;
     m.add_class::<Templates>()?;
     Ok(())
