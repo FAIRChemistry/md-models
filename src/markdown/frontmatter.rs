@@ -236,17 +236,7 @@ fn default_allow_empty() -> bool {
 /// An optional `FrontMatter` if parsing is successful, otherwise `None`.
 pub fn parse_frontmatter(content: &str) -> Option<FrontMatter> {
     let matter = Matter::<YAML>::new();
-    let result = matter.parse(content);
-
-    match result.data {
-        None => None,
-        Some(data) => {
-            let matter = data
-                .deserialize()
-                .expect("Could not deserialize frontmatter");
-            Some(matter)
-        }
-    }
+    matter.parse(content).ok()?.data
 }
 
 #[cfg(test)]
