@@ -691,7 +691,7 @@ fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
                 let last_option = options.last_mut().unwrap();
                 let lower = last_option.to_lowercase();
                 if lower.contains("pattern:") || lower.contains("regex:") {
-                    *last_option = format!("{}[", last_option);
+                    *last_option = format!("{last_option}[");
                 } else {
                     *last_option = format!("{}[]", last_option.trim());
                 }
@@ -700,7 +700,7 @@ fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
                 let last_option = options.last_mut().unwrap();
                 let lower = last_option.to_lowercase();
                 if lower.contains("pattern:") || lower.contains("regex:") {
-                    *last_option = format!("{}]", last_option);
+                    *last_option = format!("{last_option}]");
                 }
             }
             Event::Text(text) if text.to_string() != "]" => {
@@ -778,8 +778,7 @@ fn process_option(option: &String) -> (String, String) {
 
     assert!(
         parts.len() > 1,
-        "Attribute {} does not have a valid option",
-        option
+        "Attribute {option} does not have a valid option"
     );
 
     let key = parts[0].trim();

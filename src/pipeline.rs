@@ -362,7 +362,7 @@ fn build_models(paths: &[PathBuf]) -> Result<DataModel, Box<dyn Error>> {
 
     let mut model = DataModel::from_markdown(first_path).map_err(|e| {
         e.log_result();
-        format!("Error parsing markdown content: {:#?}", e)
+        format!("Error parsing markdown content: {e:#?}")
     })?;
 
     if paths.len() == 1 {
@@ -389,7 +389,7 @@ fn build_models(paths: &[PathBuf]) -> Result<DataModel, Box<dyn Error>> {
 /// A Result indicating success or failure.
 fn path_exists(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     if !path.exists() {
-        return Err(format!("Path does not exist: {:?}", path).into());
+        return Err(format!("Path does not exist: {path:?}").into());
     }
     Ok(())
 }
@@ -504,7 +504,7 @@ fn serialize_by_template(
 
             for spec in specs {
                 if !spec.exists() {
-                    return Err(format!("Path does not exist: {:?}", spec).into());
+                    return Err(format!("Path does not exist: {spec:?}").into());
                 }
 
                 let mut fname = get_file_name(spec);
@@ -610,7 +610,7 @@ fn save_to_file(out: &PathBuf, content: &str) -> Result<(), Box<dyn Error>> {
         fs::create_dir_all(dir)?;
     }
 
-    fs::write(out, content.trim()).map_err(|e| format!("Error writing to file: {:#?}", e))?;
+    fs::write(out, content.trim()).map_err(|e| format!("Error writing to file: {e:#?}"))?;
     Ok(())
 }
 

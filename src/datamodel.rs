@@ -145,7 +145,7 @@ impl DataModel {
         match obj_name {
             Some(name) => {
                 if self.objects.iter().all(|o| o.name != name) {
-                    panic!("Object '{}' not found in the markdown file", name);
+                    panic!("Object '{name}' not found in the markdown file");
                 }
                 Ok(serde_json::to_string_pretty(&to_json_schema(
                     self, &name, openai,

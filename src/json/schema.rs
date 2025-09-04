@@ -38,7 +38,7 @@ static TITLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
 fn generate_unique_title() -> String {
     let unique_id = TITLE_COUNTER.fetch_add(1, Ordering::SeqCst); // Increment the counter atomically
-    format!("untitled_{}", unique_id)
+    format!("untitled_{unique_id}")
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -234,7 +234,7 @@ impl FromStr for DataType {
             "boolean" => Ok(DataType::Boolean),
             "object" => Ok(DataType::Object),
             "array" => Ok(DataType::Array),
-            _ => Err(format!("Invalid data type: {}", s)),
+            _ => Err(format!("Invalid data type: {s}")),
         }
     }
 }
@@ -317,10 +317,10 @@ impl From<&String> for PrimitiveType {
 impl Display for PrimitiveType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PrimitiveType::String(s) => write!(f, "{}", s),
-            PrimitiveType::Number(n) => write!(f, "{}", n),
-            PrimitiveType::Integer(i) => write!(f, "{}", i),
-            PrimitiveType::Boolean(b) => write!(f, "{}", b),
+            PrimitiveType::String(s) => write!(f, "{s}"),
+            PrimitiveType::Number(n) => write!(f, "{n}"),
+            PrimitiveType::Integer(i) => write!(f, "{i}"),
+            PrimitiveType::Boolean(b) => write!(f, "{b}"),
         }
     }
 }

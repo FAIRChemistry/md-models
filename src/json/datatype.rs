@@ -53,7 +53,7 @@ impl FromStr for DataType {
             "number" => Ok(DataType::Number),
             "boolean" => Ok(DataType::Boolean),
             "array" => Ok(DataType::Array),
-            _ => Err(format!("Unknown data type: {}", s)),
+            _ => Err(format!("Unknown data type: {s}")),
         }
     }
 }

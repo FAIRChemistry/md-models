@@ -64,7 +64,7 @@ impl Display for ValidationError {
         let mut line = lines.join(", ");
 
         if !lines.is_empty() {
-            line = format!("[line: {}]", line);
+            line = format!("[line: {line}]");
         } else {
             line = "".to_string();
         }
@@ -75,7 +75,7 @@ impl Display for ValidationError {
             line,
             self.object.clone().unwrap_or("Global".into()).bold(),
             match &self.attribute {
-                Some(attr) => format!(".{}", attr),
+                Some(attr) => format!(".{attr}"),
                 None => "".into(),
             },
             self.error_type.to_string().bold(),
@@ -225,7 +225,7 @@ impl Validator {
         if !duplicates.is_empty() {
             for name in duplicates {
                 self.add_error(ValidationError {
-                    message: format!("Object '{}' is defined more than once.", name),
+                    message: format!("Object '{name}' is defined more than once."),
                     object: Some(name.to_string()),
                     attribute: None,
                     location: "Global".into(),
@@ -268,7 +268,7 @@ impl Validator {
         if !duplicates.is_empty() {
             for name in duplicates {
                 self.add_error(ValidationError {
-                    message: format!("Enumeration '{}' is defined more than once.", name),
+                    message: format!("Enumeration '{name}' is defined more than once."),
                     object: Some(name.to_string()),
                     attribute: None,
                     location: "Global".into(),
@@ -326,7 +326,7 @@ impl Validator {
 
             for name in duplicates {
                 self.add_error(ValidationError {
-                    message: format!("Property '{}' is defined more than once.", name),
+                    message: format!("Property '{name}' is defined more than once."),
                     object: Some(object.name.clone()),
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
@@ -380,7 +380,7 @@ impl Validator {
                     message: e,
                     object: Some(name.to_string()),
                     attribute: None,
-                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    solution: Some(format!("Resolve the issue by using '{solution}'.")),
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
                     positions: self.object_positions.get(name).cloned().unwrap_or_default(),
@@ -508,8 +508,7 @@ impl Validator {
                 location: "Global".into(),
                 error_type: ErrorType::TypeError,
                 solution: Some(format!(
-                    "Add the type '{}' to the model or use a base type.",
-                    dtype
+                    "Add the type '{dtype}' to the model or use a base type."
                 )),
                 positions: attribute_positions
                     .get(&attribute.name)
@@ -540,7 +539,7 @@ impl Validator {
                     attribute: Some(name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::NameError,
-                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    solution: Some(format!("Resolve the issue by using '{solution}'.")),
                     positions: attribute_positions.get(name).cloned().unwrap_or_default(),
                 });
             }
@@ -571,8 +570,7 @@ impl Validator {
                 location: "Global".into(),
                 error_type: ErrorType::XMLError,
                 solution: Some(format!(
-                    "Add an XML option to the property '{}' using '- XML: <TAG_NAME>' in a sub-list below the property name.",
-                    attribute_name
+                    "Add an XML option to the property '{attribute_name}' using '- XML: <TAG_NAME>' in a sub-list below the property name."
                 )),
                 positions: vec![],
             });
@@ -587,7 +585,7 @@ impl Validator {
                     attribute: Some(attribute_name.to_string()),
                     location: "Global".into(),
                     error_type: ErrorType::XMLError,
-                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    solution: Some(format!("Resolve the issue by using '{solution}'.")),
                     positions: vec![],
                 });
             }
@@ -617,8 +615,7 @@ impl Validator {
                 object: Some(object_name.to_string()),
                 attribute: Some(attribute_name.to_string()),
                 solution: Some(format!(
-                    "Add an XML option to the property '{}' using '- XML: <TAG_NAME>' in a sub-list below the property name.",
-                    attribute_name
+                    "Add an XML option to the property '{attribute_name}' using '- XML: <TAG_NAME>' in a sub-list below the property name."
                 )),
                 location: "Global".into(),
                 error_type: ErrorType::XMLError,
@@ -645,7 +642,7 @@ impl Validator {
                         message: e,
                         object: Some(object_name.to_string()),
                         attribute: Some(attribute_name.to_string()),
-                        solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                        solution: Some(format!("Resolve the issue by using '{solution}'.")),
                         location: "Global".into(),
                         error_type: ErrorType::XMLError,
                         positions: vec![],
@@ -661,7 +658,7 @@ impl Validator {
                     message: e,
                     object: Some(object_name.to_string()),
                     attribute: Some(attribute_name.to_string()),
-                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    solution: Some(format!("Resolve the issue by using '{solution}'.")),
                     location: "Global".into(),
                     error_type: ErrorType::XMLError,
                     positions: vec![],
@@ -700,8 +697,7 @@ impl Validator {
                 object: Some(object_name.to_string()),
                 attribute: Some(attribute_name.to_string()),
                 solution: Some(format!(
-                    "Add an XML option to the property '{}' using '- XML: @<ATTRIBUTE_NAME>' in a sub-list below the property name.",
-                    attribute_name
+                    "Add an XML option to the property '{attribute_name}' using '- XML: @<ATTRIBUTE_NAME>' in a sub-list below the property name."
                 )),
                 location: "Global".into(),
                 error_type: ErrorType::XMLError,
@@ -716,7 +712,7 @@ impl Validator {
                     message: e,
                     object: Some(object_name.to_string()),
                     attribute: Some(attribute_name.to_string()),
-                    solution: Some(format!("Resolve the issue by using '{}'.", solution)),
+                    solution: Some(format!("Resolve the issue by using '{solution}'.")),
                     location: "Global".into(),
                     error_type: ErrorType::XMLError,
                     positions: vec![],
@@ -818,7 +814,7 @@ fn starts_with_character(name: &str) -> Result<(), (String, String)> {
     match name.chars().next() {
         Some(c) if c.is_alphabetic() => Ok(()),
         _ => Err((
-            format!("Name '{}' must start with a letter.", name),
+            format!("Name '{name}' must start with a letter."),
             name[1..].to_string(),
         )),
     }
@@ -839,8 +835,7 @@ fn contains_white_space(name: &str) -> Result<(), (String, String)> {
     if name.contains(' ') {
         Err((
             format!(
-                "Name '{}' contains whitespace, which is not valid. Use underscores instead.",
-                name
+                "Name '{name}' contains whitespace, which is not valid. Use underscores instead."
             ),
             name.replace(" ", "_").to_string(),
         ))
@@ -866,7 +861,7 @@ fn contains_special_characters(name: &str, allow_slash: bool) -> Result<(), (Str
         .any(|c| !c.is_alphanumeric() && c != '_' && c != ' ' && (!allow_slash || c != '/'))
     {
         Err((
-        format!("Name '{}' contains special characters, which are not valid except for underscores.", name),
+        format!("Name '{name}' contains special characters, which are not valid except for underscores."),
             name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect::<String>().to_string(),
         ))
     } else {

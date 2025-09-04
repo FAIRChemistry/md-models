@@ -86,7 +86,7 @@ pub async fn query_openai(
         .choices
         .first()
         .and_then(|choice| choice.message.content.as_ref())
-        .ok_or_else(|| format!("No content in response from {}", model))?;
+        .ok_or_else(|| format!("No content in response from {model}"))?;
 
     Ok(serde_json::from_str(content)?)
 }

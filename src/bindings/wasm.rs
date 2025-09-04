@@ -47,7 +47,7 @@ extern "C" {
 #[wasm_bindgen]
 pub fn parse_model(markdown_content: &str) -> Result<DataModel, JsError> {
     DataModel::from_markdown_string(markdown_content)
-        .map_err(|e| JsError::new(&format!("Error parsing markdown content: {}", e)))
+        .map_err(|e| JsError::new(&format!("Error parsing markdown content: {e}")))
 }
 
 /// Converts the given markdown content into a specified template format.
@@ -65,11 +65,11 @@ pub fn parse_model(markdown_content: &str) -> Result<DataModel, JsError> {
 #[wasm_bindgen]
 pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String, JsValue> {
     let mut model = DataModel::from_markdown_string(markdown_content)
-        .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {e}")))?;
 
     model
         .convert_to(&template, None)
-        .map_err(|e| JsValue::from_str(&format!("Error converting markdown content: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Error converting markdown content: {e}")))
 }
 
 /// Parses the given JSON schema string into a `DataModel`.
@@ -84,14 +84,14 @@ pub fn convert_to(markdown_content: &str, template: Templates) -> Result<String,
 #[wasm_bindgen]
 pub fn from_json_schema(json_schema: JsValue) -> Result<String, JsError> {
     let schema: SchemaObject = serde_wasm_bindgen::from_value(json_schema)
-        .map_err(|e| JsError::new(&format!("Error deserializing JSON schema: {}", e)))?;
+        .map_err(|e| JsError::new(&format!("Error deserializing JSON schema: {e}")))?;
 
     let mut model = DataModel::from_json_schema_object(schema)
-        .map_err(|e| JsError::new(&format!("Error parsing JSON schema: {}", e)))?;
+        .map_err(|e| JsError::new(&format!("Error parsing JSON schema: {e}")))?;
 
     model
         .convert_to(&Templates::Markdown, None)
-        .map_err(|e| JsError::new(&format!("Error converting markdown content: {}", e)))
+        .map_err(|e| JsError::new(&format!("Error converting markdown content: {e}")))
 }
 
 /// Returns the JSON schema for the given markdown content.
@@ -114,7 +114,7 @@ pub fn json_schema(
     openai: bool,
 ) -> Result<String, JsValue> {
     let model = DataModel::from_markdown_string(markdown_content)
-        .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Error parsing markdown content: {e}")))?;
 
     let root = match root {
         Some(root) => root,
@@ -127,7 +127,7 @@ pub fn json_schema(
     };
 
     let json_schema = to_json_schema(&model, &root, openai)
-        .map_err(|e| JsValue::from_str(&format!("Error serializing schema: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Error serializing schema: {e}")))?;
 
     // Directly return the JSON schema object instead of converting it to a JsValue
     Ok(serde_json::to_string(&json_schema).unwrap())

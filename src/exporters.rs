@@ -213,7 +213,7 @@ impl FromStr for Templates {
             "julia" => Ok(Templates::Julia),
             "mermaid" => Ok(Templates::Mermaid),
             _ => {
-                let err = format!("Invalid template type: {}", s);
+                let err = format!("Invalid template type: {s}");
                 Err(err.into())
             }
         }
@@ -810,19 +810,19 @@ fn cap_first(s: String) -> String {
 /// # Returns
 fn default_value(attribute: ViaDeserialize<Attribute>) -> String {
     match &attribute.default {
-        Some(DataType::String(s)) => format!("\"{}\"", s),
+        Some(DataType::String(s)) => format!("\"{s}\""),
         Some(DataType::Integer(i)) => {
             if contains_numeric_type(&attribute) {
                 i.to_string()
             } else {
-                format!("\"{}\"", i)
+                format!("\"{i}\"")
             }
         }
         Some(DataType::Float(f)) => {
             if contains_numeric_type(&attribute) {
                 f.to_string()
             } else {
-                format!("\"{}\"", f)
+                format!("\"{f}\"")
             }
         }
         _ => "".to_string(),

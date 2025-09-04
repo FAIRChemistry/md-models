@@ -91,7 +91,7 @@ fn retrieve_object<'a>(model: &'a DataModel, name: &'a str) -> Result<&'a Object
         .objects
         .iter()
         .find(|obj| obj.name == name)
-        .ok_or(format!("Object {} not found", name))
+        .ok_or(format!("Object {name} not found"))
 }
 
 /// Retrieves an enumeration from the `DataModel` by name.
@@ -109,7 +109,7 @@ fn retrieve_enum<'a>(model: &'a DataModel, name: &'a str) -> Result<&'a Enumerat
         .enums
         .iter()
         .find(|e| e.name == name)
-        .ok_or(format!("Enum {} not found", name))
+        .ok_or(format!("Enum {name} not found"))
 }
 
 /// Collects definitions from the `DataModel` based on used types and enums.
@@ -179,7 +179,7 @@ fn collect_definitions(
             } else if let Some(enumeration) = enumeration {
                 used_enums.insert(enumeration.name.clone());
             } else {
-                return Err(format!("Object or enumeration {} not found", dtype));
+                return Err(format!("Object or enumeration {dtype} not found"));
             }
         }
     }
@@ -198,7 +198,7 @@ fn resolve_prefixes(schema: &mut schema::SchemaObject, prefixes: &HashMap<String
         if let Some(reference) = property.term.clone() {
             let (prefix, term) = reference.split_once(":").unwrap_or(("", ""));
             if let Some(prefix) = prefixes.get(prefix) {
-                property.term = Some(format!("{}{}", prefix, term));
+                property.term = Some(format!("{prefix}{term}"));
             }
         }
     }
@@ -259,7 +259,7 @@ fn post_process_object(
                 reference
                     .split("/")
                     .last()
-                    .ok_or(format!("Failed to split reference: {}", reference))?,
+                    .ok_or(format!("Failed to split reference: {reference}"))?,
             ) {
                 if openai {
                     property.dtype = None;
@@ -741,7 +741,7 @@ fn process_dtype(dtype: &str) -> schema::Item {
             schema::Item::DataTypeItem(schema::DataTypeItemType { dtype: basic_type })
         }
         Err(_) => schema::Item::ReferenceItem(schema::ReferenceItemType {
-            reference: format!("#/$defs/{}", dtype),
+            reference: format!("#/$defs/{dtype}"),
         }),
     }
 }

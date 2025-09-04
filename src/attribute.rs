@@ -355,7 +355,7 @@ impl FromStr for DataType {
         } else if let Ok(f) = lower_s.parse::<f64>() {
             Ok(DataType::Float(f))
         } else if !lower_s.is_empty() {
-            Ok(DataType::String(format!("\"{}\"", s)))
+            Ok(DataType::String(format!("\"{s}\"")))
         } else {
             Err("Invalid data type".to_string())
         }

@@ -211,8 +211,8 @@ impl Display for InputType {
     /// Display the input type.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InputType::Remote(url) => write!(f, "{}", url),
-            InputType::Local(path) => write!(f, "{}", path),
+            InputType::Remote(url) => write!(f, "{url}"),
+            InputType::Local(path) => write!(f, "{path}"),
         }
     }
 }
@@ -270,7 +270,7 @@ fn print_validation_result(result: bool) {
         "Model is invalid".red().bold().to_string()
     };
 
-    println!(" └── {}\n", message);
+    println!(" └── {message}\n");
 }
 
 fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
@@ -306,7 +306,7 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
         }
         None => {
             let json_string = serde_json::to_string_pretty(&response)?;
-            println!("{}", json_string);
+            println!("{json_string}");
         }
     }
 
