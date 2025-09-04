@@ -2,7 +2,7 @@
 name = "mdmodels"
 authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
 description = "A tool to generate models, code and schemas from markdown files"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/FAIRChemistry/md-models"
@@ -21,27 +21,27 @@ minijinja = "2.0.1"
 minijinja-embed = "2.0.1"
 clap = { version = "4.5.4", features = ["derive"] }
 lazy_static = "1.4.0"
-gray_matter = "0.2.7"
+gray_matter = "0.3.2"
 reqwest = { version = "0.12.4", features = ["blocking", "native-tls-vendored"] }
 log = "0.4.21"
 pretty_env_logger = "0.5.0"
 colored = "3.0.0"
 convert_case = "0.8.0"
-toml = "0.8.14"
+toml = "0.9.5"
 textwrap = "0.16.1"
-pyo3 = { version = "0.24.1", features = ["extension-module"], optional = true }
+pyo3 = { version = "0.26.0", features = ["extension-module"], optional = true }
 openai-api-rs = { version = "6.0.6", optional = true }
 wasm-bindgen = { version = "0.2.95", optional = true }
 serde-wasm-bindgen = { version = "0.6.5", optional = true }
 tokio = { version = "1.42.0", features = ["rt"] }
-jsonschema = { version = "0.29.0", default-features = false }
+jsonschema = { version = "0.33.0", default-features = false }
 getrandom = { version = "0.2.15", features = ["js"] }
 tsify-next = { version = "0.5.4", features = ["js"], optional = true }
 strum = "0.27.1"
 strum_macros = "0.27.1"
 indexmap = { version = "2.7.1", features = ["serde"] }
-petgraph = { version = "0.7.1", features = ["serde"] }
-schemars = { version = "0.8.22", features = ["derive_json_schema"] }
+petgraph = { version = "0.8.1", features = ["serde"] }
+schemars = { version = "1.0.4" }
 json-patch = "4.0.0"
 thiserror = "2.0.12"
 variantly = "0.4.0"
