@@ -33,12 +33,12 @@
 import { z } from 'zod';
 
 // JSON-LD Types
-export const JsonLdContextSchema = z.record(z.any());
+export const JsonLdContextSchema = z.record(z.string());
 
 export const JsonLdSchema = z.object({
-  '@context': JsonLdContextSchema.optional(),
-  '@id': z.string().optional(),
-  '@type': z.string().optional(),
+  '@context': JsonLdContextSchema.optional().nullable(),
+  '@id': z.string().optional().nullable(),
+  '@type': z.string().optional().nullable(),
 });
 
 // Model Type definitions
