@@ -245,6 +245,10 @@ pub fn render_jinja_template(
     // a primary key.
     let mut artificial_fields = HashMap::new();
 
+    // If there is no config, create an empty one
+    // This is necessary to avoid errors when rendering the template
+    let config = config.cloned().unwrap_or_default();
+
     // Perform type conversions and filtering based on the template
     match template {
         Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
@@ -269,10 +273,8 @@ pub fn render_jinja_template(
             sort_by_dependency(model);
         }
         Templates::Golang => {
-            if let Some(config) = config {
-                if config.contains_key("gorm") {
-                    add_id_pks(model, &mut artificial_fields);
-                }
+            if config.contains_key("gorm") {
+                add_id_pks(model, &mut artificial_fields);
             }
         }
         Templates::Rust => {
@@ -622,12 +624,7 @@ fn has_id(object: &Object) -> bool {
 /// # Arguments
 ///
 /// * `model` - The data model whose types are to be converted.
-fn convert_astropy_types(model: &mut DataModel, config: &Option<&HashMap<String, String>>) {
-    if config.is_none() {
-        return;
-    }
-
-    let config = config.unwrap();
+fn convert_astropy_types(model: &mut DataModel, config: &HashMap<String, String>) {
     if !config.contains_key("astropy") {
         return;
     }
@@ -975,6 +972,24 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_typescript_zod.ts")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_typescript_zod_json_ld() {
+        // Arrange
+        let rendered = build_and_convert(
+            "tests/data/model.md",
+            Templates::TypescriptZod,
+            Some(&HashMap::from([(
+                "json-ld".to_string(),
+                "true".to_string(),
+            )])),
+        );
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_typescript_zod_json_ld.ts")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }
