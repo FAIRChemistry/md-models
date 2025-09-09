@@ -93,6 +93,7 @@
 {# Code structure starts here #}
 import { z } from 'zod';
 
+{% if "json-ld" in config %}
 // JSON-LD Types
 export const JsonLdContextSchema = z.record(z.string());
 
@@ -102,12 +103,17 @@ export const JsonLdSchema = z.object({
   '@type': z.string().optional().nullable(),
 });
 
+const BaseSchema = JsonLdSchema;
+{% else %}
+const BaseSchema = z.object({});
+{%- endif %}
+
 // {% if title %}{{ title }}{% else %}Model{% endif %} Type definitions
 {%- for object in objects %}
 {%- if object.docstring %}
 // {{ wrap(object.docstring, 70, "", "// ", None) }}
 {%- endif %}
-export const {{ object.name }}Schema = z.lazy(() => JsonLdSchema.extend({
+export const {{ object.name }}Schema = z.lazy(() => BaseSchema.extend({
   {%- for attr in object.attributes %}
   {{ attr.name }}: {{ wrap_zod_type(get_type(attr), attr) }}{% if attr.docstring %}.describe(`
     {{ wrap(attr.docstring, 70, "", "    ", None) }}
