@@ -33,7 +33,17 @@
 import { z } from 'zod';
 
 
-const BaseSchema = z.object({});
+// JSON-LD Types
+export const JsonLdContextSchema = z.record(z.string());
+
+export const JsonLdSchema = z.object({
+  '@context': JsonLdContextSchema.optional().nullable(),
+  '@id': z.string().optional().nullable(),
+  '@type': z.string().optional().nullable(),
+});
+
+const BaseSchema = JsonLdSchema;
+
 
 // Model Type definitions
 // Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
