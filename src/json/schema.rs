@@ -70,7 +70,11 @@ pub struct SchemaObject {
     pub definitions: BTreeMap<String, SchemaType>,
     #[serde(default)]
     pub required: Vec<String>,
-    #[serde(rename = "additionalProperties", default = "default_false")]
+    #[serde(
+        rename = "additionalProperties",
+        default = "default_false",
+        deserialize_with = "deserialize_additional_properties"
+    )]
     pub additional_properties: bool,
 }
 
@@ -118,6 +122,8 @@ pub struct Property {
     pub all_of: Option<Vec<Item>>,
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
     pub enum_values: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Variantly, Clone)]
@@ -354,6 +360,46 @@ fn skip_empty_string(option: &Option<String>) -> bool {
 
 fn default_false() -> bool {
     false
+}
+
+fn deserialize_additional_properties<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use serde_json::Value;
+    use std::fmt;
+
+    struct AdditionalPropertiesVisitor;
+
+    impl<'de> Visitor<'de> for AdditionalPropertiesVisitor {
+        type Value = bool;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a boolean or an object")
+        }
+
+        fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+        where
+            M: de::MapAccess<'de>,
+        {
+            // Consume all entries in the map to avoid "trailing characters" error
+            while map.next_entry::<String, Value>()?.is_some() {
+                // Just consume and discard
+            }
+            // Any object/map means additionalProperties = true
+            Ok(true)
+        }
+    }
+
+    deserializer.deserialize_any(AdditionalPropertiesVisitor)
 }
 
 #[cfg(test)]
