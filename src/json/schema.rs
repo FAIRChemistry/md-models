@@ -126,7 +126,7 @@ pub struct Property {
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
     pub enum_values: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub examples: Vec<String>,
+    pub examples: Vec<Value>,
 }
 
 #[derive(Debug, Deserialize, Variantly, Clone)]
