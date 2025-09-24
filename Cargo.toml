@@ -2,7 +2,7 @@
 name = "mdmodels"
 authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
 description = "A tool to generate models, code and schemas from markdown files"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/FAIRChemistry/md-models"

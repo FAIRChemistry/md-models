@@ -930,4 +930,27 @@ mod tests {
         assert_eq!(clean_key("Test__Hello"), "TEST_HELLO");
         assert_eq!(clean_key("!Test"), "TEST");
     }
+
+    #[test]
+    fn test_additional_properties_object() {
+        let schema = json!({
+            "title": "Test",
+            "type": "object",
+            "properties": {
+                "test": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": {
+                "type": "string"
+            }
+        });
+
+        let schema: SchemaObject = serde_json::from_value(schema).unwrap();
+        let data_model = DataModel::try_from(schema.clone()).unwrap();
+
+        assert!(schema.additional_properties);
+        assert_eq!(data_model.objects.len(), 1);
+        assert_eq!(data_model.objects[0].attributes.len(), 1);
+    }
 }

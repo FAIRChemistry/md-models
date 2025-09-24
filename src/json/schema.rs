@@ -54,7 +54,10 @@ pub struct SchemaObject {
     pub schema: Option<String>,
     #[serde(rename = "$id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    #[serde(default = "generate_unique_title")]
+    #[serde(
+        default = "generate_unique_title",
+        deserialize_with = "deserialize_title_with_whitespace_removal"
+    )]
     pub title: String,
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub dtype: Option<DataType>,
@@ -70,7 +73,11 @@ pub struct SchemaObject {
     pub definitions: BTreeMap<String, SchemaType>,
     #[serde(default)]
     pub required: Vec<String>,
-    #[serde(rename = "additionalProperties", default = "default_false")]
+    #[serde(
+        rename = "additionalProperties",
+        default = "default_false",
+        deserialize_with = "deserialize_additional_properties"
+    )]
     pub additional_properties: bool,
 }
 
@@ -118,6 +125,8 @@ pub struct Property {
     pub all_of: Option<Vec<Item>>,
     #[serde(skip_serializing_if = "skip_empty", rename = "enum")]
     pub enum_values: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<Value>,
 }
 
 #[derive(Debug, Deserialize, Variantly, Clone)]
@@ -356,6 +365,80 @@ fn default_false() -> bool {
     false
 }
 
+fn deserialize_title_with_whitespace_removal<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use std::fmt;
+
+    struct TitleVisitor;
+
+    impl<'de> Visitor<'de> for TitleVisitor {
+        type Value = String;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.chars().filter(|c| !c.is_whitespace()).collect())
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.chars().filter(|c| !c.is_whitespace()).collect())
+        }
+    }
+
+    deserializer.deserialize_str(TitleVisitor)
+}
+
+fn deserialize_additional_properties<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use serde_json::Value;
+    use std::fmt;
+
+    struct AdditionalPropertiesVisitor;
+
+    impl<'de> Visitor<'de> for AdditionalPropertiesVisitor {
+        type Value = bool;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a boolean or an object")
+        }
+
+        fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+        where
+            M: de::MapAccess<'de>,
+        {
+            // Consume all entries in the map to avoid "trailing characters" error
+            while map.next_entry::<String, Value>()?.is_some() {
+                // Just consume and discard
+            }
+            // Any object/map means additionalProperties = true
+            Ok(true)
+        }
+    }
+
+    deserializer.deserialize_any(AdditionalPropertiesVisitor)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -370,5 +453,47 @@ mod tests {
         assert_eq!(DataType::from_str("boolean").unwrap(), DataType::Boolean);
         assert_eq!(DataType::from_str("object").unwrap(), DataType::Object);
         assert_eq!(DataType::from_str("array").unwrap(), DataType::Array);
+    }
+
+    #[test]
+    /// Tests that title deserialization removes all whitespaces from the title string.
+    fn test_title_whitespace_removal() {
+        use serde_json;
+
+        // Test with spaces, tabs, and newlines
+        let json_with_whitespace = r#"
+        {
+            "title": "My Test Title",
+            "type": "object",
+            "properties": {}
+        }
+        "#;
+
+        let schema: SchemaObject = serde_json::from_str(json_with_whitespace).unwrap();
+        assert_eq!(schema.title, "MyTestTitle");
+
+        // Test with various whitespace characters
+        let json_with_various_whitespace = r#"
+        {
+            "title": "  My\t\nTest\r Title  ",
+            "type": "object",
+            "properties": {}
+        }
+        "#;
+
+        let schema2: SchemaObject = serde_json::from_str(json_with_various_whitespace).unwrap();
+        assert_eq!(schema2.title, "MyTestTitle");
+
+        // Test with no whitespace (should remain unchanged)
+        let json_no_whitespace = r#"
+        {
+            "title": "MyTitle",
+            "type": "object",
+            "properties": {}
+        }
+        "#;
+
+        let schema3: SchemaObject = serde_json::from_str(json_no_whitespace).unwrap();
+        assert_eq!(schema3.title, "MyTitle");
     }
 }

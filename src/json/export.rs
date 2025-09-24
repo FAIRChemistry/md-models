@@ -616,6 +616,7 @@ impl TryFrom<&Attribute> for schema::Property {
             enum_values,
             any_of: None,
             all_of: None,
+            examples: Vec::new(),
         })
     }
 }

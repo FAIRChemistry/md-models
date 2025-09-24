@@ -26,6 +26,7 @@ use colored::Colorize;
 use log::error;
 use mdmodels::{
     datamodel::DataModel,
+    error::DataModelError,
     exporters::{render_jinja_template, Templates},
     json::validation::validate_json,
     linkml::export::serialize_linkml,
@@ -34,7 +35,13 @@ use mdmodels::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap, error::Error, fmt::Display, fs, io::Write, path::PathBuf, str::FromStr,
+    collections::HashMap,
+    error::Error,
+    fmt::Display,
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    str::FromStr,
 };
 
 /// Command-line interface for MD-Models CLI.
@@ -246,7 +253,13 @@ fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
 
     let path = resolve_input_path(&args.input);
 
-    match DataModel::from_markdown(&path) {
+    if is_json_schema(&path)? {
+        return validate_from_json_schema(&path);
+    }
+
+    let model = DataModel::from_markdown(&path);
+
+    match model {
         Ok(_) => {
             print_validation_result(true);
             Ok(())
@@ -256,6 +269,26 @@ fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
             print_validation_result(false);
             Err("Model is invalid".into())
         }
+    }
+}
+
+/// Validates a JSON schema file.
+///
+/// # Arguments
+///
+/// * `path` - Path to the JSON schema file.
+fn validate_from_json_schema(path: &Path) -> Result<(), Box<dyn Error>> {
+    if let Err(err) = DataModel::from_json_schema(path) {
+        match err {
+            DataModelError::ValidationError(validator) => {
+                validator.log_result();
+                Err("Model is invalid".into())
+            }
+            _ => Err(err.into()),
+        }
+    } else {
+        print_validation_result(true);
+        Ok(())
     }
 }
 
