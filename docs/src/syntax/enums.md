@@ -6,16 +6,18 @@ Sometimes you want to restrict the values that can be assigned to a property. Fo
 
 To define an enumeration, we start the same as we do for any other type, by using a level 3 heading (###) and then the name of the type.
 
-```markdown
+````markdown
 ### ProductCategory
 
+```
 BOOK = "book"
 MOVIE = "movie"
 MUSIC = "music"
 OTHER = "other"
 ```
+````
 
-We are defining a key and value here, where the value is the actual value of the enumeration and the key is an identifier. This is required, because when we want to re-use the enumeration in a programming language, we need to be able to refer to it by a key. For instance, in python we can pass an enumeration via the following code:
+We are defining a key and value here, wrapped in a code fence (```), where the value is the actual value of the enumeration and the key is an identifier. This is required, because when we want to re-use the enumeration in a programming language, we need to be able to refer to it by a key. For instance, in python we can pass an enumeration via the following code:
 
 ```python
 from model import ProductCategory, Product
