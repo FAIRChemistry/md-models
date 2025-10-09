@@ -156,7 +156,7 @@ jobs:
           cd tests/envs/julia
           julia test.jl
 
-  # Tests Rust code generation and validates the output
+  # Tests Rust without JSON-LD code generation and validates the output
   rust:
     name: Rust
     needs: unit-tests
@@ -172,6 +172,25 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t rusttests -f tests/envs/rust/Dockerfile .
+      - name: Run tests
+        run: docker run --rm rusttests
+
+  # Tests Rust with JSON-LD code generation and validates the output
+  rust-ld:
+    name: Rust (LD)
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Rust code
+        run: |
+          cargo run convert \
+            -i tests/data/model.md \
+            -o tests/envs/rust-ld/src/generated.rs \
+            -t rust
+
+      - name: Build Docker image
+        run: docker build -t rusttests -f tests/envs/rust-ld/Dockerfile .
       - name: Run tests
         run: docker run --rm rusttests
 

@@ -1,0 +1,12 @@
+[package]
+name = "rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+derivative = "2.2.0"
+derive_builder = "0.20.2"
+schemars = "0.8.22"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+uuid = { version = "1.18.1", features = ["v4"] }
