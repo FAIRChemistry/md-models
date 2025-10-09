@@ -1084,6 +1084,21 @@ mod tests {
     }
 
     #[test]
+    fn test_convert_to_rust_ld() {
+        // Arrange
+        let rendered = build_and_convert(
+            "tests/data/model.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_rust_ld.rs")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
     fn test_convert_to_protobuf() {
         // Arrange
         let rendered = build_and_convert("tests/data/model.md", Templates::Protobuf, None);
