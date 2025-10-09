@@ -187,6 +187,7 @@ jobs:
           cargo run convert \
             -i tests/data/model.md \
             -o tests/envs/rust-ld/src/generated.rs \
+            -O jsonld \
             -t rust
 
       - name: Build Docker image
