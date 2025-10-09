@@ -378,6 +378,7 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
             model.json_schema(args.root, args.options.contains(&"openai".to_string()))?
         }
         Templates::Linkml => serialize_linkml(model, args.output.as_ref())?,
+        Templates::Internal => render_internal_schema(&model)?,
         _ => render_jinja_template(&args.template, &mut model, Some(&config))?,
     };
 
@@ -465,6 +466,19 @@ fn render_all_json_schemes(
     model.json_schema_all(outdir.to_path_buf(), false)?;
 
     Ok(())
+}
+
+/// Renders the internal schema for the model.
+///
+/// # Arguments
+///
+/// * `model` - The DataModel to render.
+///
+/// # Returns
+///
+/// A Result containing the rendered internal schema as a String or an error if rendering fails.
+fn render_internal_schema(model: &DataModel) -> Result<String, Box<dyn Error>> {
+    serde_json::to_string_pretty(&model).map_err(|e| e.into())
 }
 
 /// Validates a dataset against a markdown model.
