@@ -6,16 +6,20 @@
 use derive_builder::Builder;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use derivative::Derivative;
 
 //
 // Type definitions
 //
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Derivative)]
+#[derivative(Default)]
+#[serde(default)]
 #[allow(non_snake_case)]
 pub struct Test {
     /// enumeration
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
+    #[derivative(Default)]
     pub enumeration: Option<SomeEnum>,
 }
 

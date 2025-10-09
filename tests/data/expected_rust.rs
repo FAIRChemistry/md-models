@@ -6,6 +6,7 @@
 use derive_builder::Builder;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use derivative::Derivative;
 
 //
 // Type definitions
@@ -14,43 +15,53 @@ use serde::{Deserialize, Serialize};
 /// eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
 /// enim ad minim veniam, quis nostrud exercitation ullamco laboris
 /// nisi ut aliquip ex ea commodo consequat.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Derivative)]
+#[derivative(Default)]
+#[serde(default)]
 #[allow(non_snake_case)]
 pub struct Test {
     /// The name of the test. This is a unique identifier that helps track
     /// individual test cases across the system. It should be
     /// descriptive and follow the standard naming conventions.
-    #[serde(default)]
+
     #[builder(default = "2.0.to_string().into()", setter(into))]
+    #[derivative(Default(value = "\"2.0\".to_string()"))]
     pub name: String,
 
     /// number
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
+    #[derivative(Default)]
     pub number: Option<TestNumberType>,
 
     /// test2
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[builder(default, setter(into, each(name = "to_test2")))]
+    #[derivative(Default)]
     pub test2: Vec<Test2>,
 
     /// ontology
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
+    #[derivative(Default)]
     pub ontology: Option<Ontology>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Builder, Derivative)]
+#[derivative(Default)]
+#[serde(default)]
 #[allow(non_snake_case)]
 pub struct Test2 {
     /// names
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[builder(default, setter(into, each(name = "to_names")))]
+    #[derivative(Default)]
     pub names: Vec<String>,
 
     /// number
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(into))]
+    #[derivative(Default)]
     pub number: Option<f64>,
 }
 
