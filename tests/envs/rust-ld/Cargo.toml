@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 derivative = "2.2.0"
+uuid = { version = "1.18.1", features = ["v4"] }
 derive_builder = "0.20.2"
 schemars = "0.8.22"
 serde = { version = "1.0.219", features = ["derive"] }
