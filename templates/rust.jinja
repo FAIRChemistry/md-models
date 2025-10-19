@@ -91,13 +91,20 @@
     {%- endif -%}
 {% endmacro %}
 
+{# Adds .into() to optional fields #}
+{% macro into(attr)%}
+    {%- if not attr.required -%}
+        .into()
+    {%- endif -%}
+{% endmacro %}
+
 {# Determines the appropriate derivative attribute for a field #}
 {% macro get_derivative_attribute(attr) %}
     {%- if attr.default and attr.dtypes | length == 1 -%}
         {%- if attr.dtypes[0] == "string" -%}
         #[derivative(Default(value = "\"{{ attr.default }}\".to_string()"))]
         {%- else -%}
-        #[derivative(Default(value = "{{ attr.default }}{{- to_string(attr) -}}.into()"))]
+        #[derivative(Default(value = "{{ attr.default }}{{- to_string(attr) -}}{{- into(attr) -}}"))]
         {%- endif -%}
     {%- else -%}
         #[derivative(Default)]
