@@ -22,9 +22,11 @@
  */
 
 use crate::{attribute::Attribute, markdown::position::Position};
+use convert_case::{Case, Casing};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::collections::BTreeMap;
+use std::hash::{Hash, Hasher};
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
@@ -66,6 +68,7 @@ impl Object {
     ///
     /// * `Object` - A new instance of the `Object` struct.
     pub fn new(name: String, term: Option<String>) -> Self {
+        let name = name.replace(" ", "_").to_case(Case::Pascal);
         Object {
             name,
             attributes: Vec::new(),
@@ -170,6 +173,34 @@ impl Object {
         self.attributes = top_elements;
         self.attributes.append(&mut bottom_elements);
     }
+
+    /// Checks if this object has the same hash as another object.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another `Object` to compare hashes with.
+    ///
+    /// # Returns
+    ///
+    /// * `bool` - `true` if both objects have the same hash, `false` otherwise.
+    pub(crate) fn same_hash(&self, other: &Object) -> bool {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher1 = DefaultHasher::new();
+        let mut hasher2 = DefaultHasher::new();
+        self.hash(&mut hasher1);
+        other.hash(&mut hasher2);
+        hasher1.finish() == hasher2.finish()
+    }
+}
+
+impl Hash for Object {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut attr_names: Vec<&String> = self.attributes.iter().map(|attr| &attr.name).collect();
+        attr_names.sort();
+        attr_names.hash(state);
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
@@ -206,12 +237,42 @@ impl Enumeration {
     pub fn set_position(&mut self, position: Position) {
         self.position = Some(position);
     }
+
+    /// Checks if this enumeration has the same hash as another enumeration.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another `Enumeration` to compare hashes with.
+    ///
+    /// # Returns
+    ///
+    /// * `bool` - `true` if both enumerations have the same hash, `false` otherwise.
+    pub(crate) fn same_hash(&self, other: &Enumeration) -> bool {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher1 = DefaultHasher::new();
+        let mut hasher2 = DefaultHasher::new();
+        self.hash(&mut hasher1);
+        other.hash(&mut hasher2);
+        hasher1.finish() == hasher2.finish()
+    }
+}
+
+impl Hash for Enumeration {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut keys: Vec<&String> = self.mappings.keys().collect();
+        keys.sort();
+        keys.hash(state);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
 
     #[test]
     fn test_create_new_object() {
@@ -253,5 +314,235 @@ mod tests {
         object.create_new_attribute("name".to_string(), false);
         assert_eq!(object.attributes.len(), 1);
         assert_eq!(object.attributes[0].name, "name");
+    }
+
+    fn hash<T: Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    #[test]
+    fn test_object_hash_identical() {
+        let mut object1 = Object::new("Person".to_string(), None);
+        object1.create_new_attribute("name".to_string(), false);
+        object1.create_new_attribute("age".to_string(), false);
+
+        let mut object2 = Object::new("Person".to_string(), None);
+        // Add attributes in different order - should still hash the same
+        object2.create_new_attribute("age".to_string(), false);
+        object2.create_new_attribute("name".to_string(), false);
+
+        assert_eq!(hash(&object1), hash(&object2));
+    }
+
+    #[test]
+    fn test_object_hash_different() {
+        let mut object1 = Object::new("Person".to_string(), None);
+        object1.create_new_attribute("name".to_string(), false);
+        object1.create_new_attribute("age".to_string(), false);
+
+        let mut object2 = Object::new("Person".to_string(), None);
+        object2.create_new_attribute("name".to_string(), false);
+        object2.create_new_attribute("email".to_string(), false);
+
+        assert_ne!(hash(&object1), hash(&object2));
+    }
+
+    #[test]
+    fn test_enumeration_hash_identical() {
+        let mut enum1 = Enumeration::default();
+        enum1
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+        enum1
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+
+        let mut enum2 = Enumeration::default();
+        // Add mappings in different order - should still hash the same
+        enum2
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+        enum2
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+
+        assert_eq!(hash(&enum1), hash(&enum2));
+    }
+
+    #[test]
+    fn test_enumeration_hash_different() {
+        let mut enum1 = Enumeration::default();
+        enum1
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+        enum1
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+
+        let mut enum2 = Enumeration::default();
+        enum2
+            .mappings
+            .insert("pending".to_string(), "Pending".to_string());
+        enum2
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+
+        assert_ne!(hash(&enum1), hash(&enum2));
+    }
+
+    #[test]
+    fn test_object_hash_reference_identical() {
+        let mut object1 = Object::new("Person".to_string(), None);
+        object1.create_new_attribute("name".to_string(), false);
+        object1.create_new_attribute("age".to_string(), false);
+
+        let mut object2 = Object::new("Person".to_string(), None);
+        object2.create_new_attribute("age".to_string(), false);
+        object2.create_new_attribute("name".to_string(), false);
+
+        let ref1: &Object = &object1;
+        let ref2: &Object = &object2;
+
+        assert_eq!(hash(ref1), hash(ref2));
+        assert_eq!(hash(&object1), hash(ref1));
+    }
+
+    #[test]
+    fn test_object_hash_reference_different() {
+        let mut object1 = Object::new("Person".to_string(), None);
+        object1.create_new_attribute("name".to_string(), false);
+        object1.create_new_attribute("age".to_string(), false);
+
+        let mut object2 = Object::new("Person".to_string(), None);
+        object2.create_new_attribute("name".to_string(), false);
+        object2.create_new_attribute("email".to_string(), false);
+
+        let ref1: &Object = &object1;
+        let ref2: &Object = &object2;
+
+        assert_ne!(hash(ref1), hash(ref2));
+        assert_eq!(hash(&object1), hash(ref1));
+    }
+
+    #[test]
+    fn test_enumeration_hash_reference_identical() {
+        let mut enum1 = Enumeration::default();
+        enum1
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+        enum1
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+
+        let mut enum2 = Enumeration::default();
+        enum2
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+        enum2
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+
+        let ref1: &Enumeration = &enum1;
+        let ref2: &Enumeration = &enum2;
+
+        assert_eq!(hash(ref1), hash(ref2));
+        assert_eq!(hash(&enum1), hash(ref1));
+    }
+
+    #[test]
+    fn test_enumeration_hash_reference_different() {
+        let mut enum1 = Enumeration::default();
+        enum1
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+        enum1
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+
+        let mut enum2 = Enumeration::default();
+        enum2
+            .mappings
+            .insert("pending".to_string(), "Pending".to_string());
+        enum2
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+
+        let ref1: &Enumeration = &enum1;
+        let ref2: &Enumeration = &enum2;
+
+        assert_ne!(hash(ref1), hash(ref2));
+        assert_eq!(hash(&enum1), hash(ref1));
+    }
+
+    #[test]
+    fn test_object_has_same_hash_identical() {
+        let mut object1 = Object::new("Person".to_string(), None);
+        object1.create_new_attribute("name".to_string(), false);
+        object1.create_new_attribute("age".to_string(), false);
+
+        let mut object2 = Object::new("Person".to_string(), None);
+        // Add attributes in different order - should still hash the same
+        object2.create_new_attribute("age".to_string(), false);
+        object2.create_new_attribute("name".to_string(), false);
+
+        assert!(object1.same_hash(&object2));
+    }
+
+    #[test]
+    fn test_object_has_same_hash_different() {
+        let mut object1 = Object::new("Person".to_string(), None);
+        object1.create_new_attribute("name".to_string(), false);
+        object1.create_new_attribute("age".to_string(), false);
+
+        let mut object2 = Object::new("Person".to_string(), None);
+        object2.create_new_attribute("name".to_string(), false);
+        object2.create_new_attribute("email".to_string(), false);
+
+        assert!(!object1.same_hash(&object2));
+    }
+
+    #[test]
+    fn test_enumeration_has_same_hash_identical() {
+        let mut enum1 = Enumeration::default();
+        enum1
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+        enum1
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+
+        let mut enum2 = Enumeration::default();
+        // Add mappings in different order - should still hash the same
+        enum2
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+        enum2
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+
+        assert!(enum1.same_hash(&enum2));
+    }
+
+    #[test]
+    fn test_enumeration_has_same_hash_different() {
+        let mut enum1 = Enumeration::default();
+        enum1
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+        enum1
+            .mappings
+            .insert("inactive".to_string(), "Inactive".to_string());
+
+        let mut enum2 = Enumeration::default();
+        enum2
+            .mappings
+            .insert("pending".to_string(), "Pending".to_string());
+        enum2
+            .mappings
+            .insert("active".to_string(), "Active".to_string());
+
+        assert!(!enum1.same_hash(&enum2));
     }
 }
