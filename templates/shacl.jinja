@@ -1,32 +1,63 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}> .
-{%- for prefix, value in prefixes %}
-@prefix {{ prefix }}: <{{ value }}> .
+{%- for pfx, value in prefixes %}
+@prefix {{ pfx }}: <{{ value }}> .
 {%- endfor %}
 
-{% for object in objects %}
+#########################################################
+# SHACL Shapes
+#########################################################
+
+{%- for object in objects %}
+
 {{ prefix }}:{{ object.name }}Shape
     a sh:NodeShape ;
-    sh:targetClass md:{{ object.name }} ;
-    {% for attribute in object.attributes %}
-    {%- if attribute.term %}
+    sh:targetClass {{ prefix }}:{{ object.name }} ;
+    {%- for attribute in object.attributes %}
     sh:property [
-        sh:path {{ attribute.term }} ;
-        {%- if attribute.dtypes[0] in object_names %}
-        sh:node md:{{ attribute.dtypes[0] }}Shape ;
+        {# ------------------------------------------------ #}
+        {# Predicate paths                                  #}
+        {# ------------------------------------------------ #}
+        {%- if attribute.term %}
+        sh:or (
+            [ sh:path {{ object.name }}:{{ attribute.name }} ]
+            [ sh:path {{ attribute.term }} ]
+        ) ;
         {%- else %}
-        sh:datatype xsd:{{ attribute.dtypes[0] }} ;
+        sh:path {{ object.name }}:{{ attribute.name }} ;
         {%- endif %}
+        {# ------------------------------------------------ #}
+        {# Value constraint                                 #}
+        {# ------------------------------------------------ #}
+        {%- if attribute.dtypes[0] in object_names %}
+        sh:node {{ prefix }}:{{ attribute.dtypes[0] }}Shape ;
+        {%- elif attribute.dtypes[0] in enum_names %}
+        sh:class {{ prefix }}:{{ attribute.dtypes[0] }} ;
+        {%- else %}
+        sh:datatype {{ attribute.dtypes[0] }} ;
+        {%- endif %}
+        {# ------------------------------------------------ #}
+        {# Cardinality                                      #}
+        {# ------------------------------------------------ #}
         {%- if attribute.required %}
         sh:minCount 1 ;
         {%- else %}
         sh:minCount 0 ;
         {%- endif %}
-        {%- if attribute.multiple is false%}
+        {%- if not attribute.multiple %}
         sh:maxCount 1 ;
         {%- endif %}
-    ];
-    {%- endif %}
-    {%- endfor %} .
-{% endfor %}
+        {# ------------------------------------------------ #}
+        {# Documentation                                    #}
+        {# ------------------------------------------------ #}
+        {%- if attribute.docstring %}
+        sh:description "{{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}" ;
+        {%- endif %}
+
+    ] ;
+
+    {%- endfor %}
+.
+
+{%- endfor %}

@@ -1,0 +1,143 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}> .
+{%- for pfx, value in prefixes %}
+@prefix {{ pfx }}: <{{ value }}> .
+{%- endfor %}
+
+#########################################################
+# Class-scoped prefixes
+#########################################################
+{%- for object in objects %}
+@prefix {{ object.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ object.name }}/> .
+{%- endfor %}
+{%- for enum in enums %}
+@prefix {{ enum.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/> .
+{%- endfor %}
+
+#########################################################
+# Ontology
+#########################################################
+
+{{ prefix }}:ontology a owl:Ontology ;
+  rdfs:comment "Ontology generated from the {{ prefix }} data model." .
+
+#########################################################
+# Classes
+#########################################################
+
+{%- for object in objects %}
+
+#########################################################
+# Class: {{ object.name }}
+#########################################################
+{%- if object.docstring %}
+{{ wrap(object.docstring, 50, "# ", "# ") }}
+#########################################################
+{%- endif %}
+
+{{ prefix }}:{{ object.name }} a owl:Class
+{%- if object.term %}
+  ; rdfs:subClassOf {{ object.term }}
+{%- endif %}
+{%- if object.docstring %}
+  ; rdfs:comment "{{ object.docstring | replace('\n',' ') | replace('"','\\"') }}"
+{%- endif %} .
+
+{{ prefix }}:{{ object.name }}
+  rdfs:subClassOf
+  {%- set first = true -%}
+  {%- for attribute in object.attributes %}
+    {%- if not first %},{% endif %}
+    [
+      a owl:Restriction ;
+      owl:onProperty {{ object.name }}:{{ attribute.name }} ;
+      {%- if attribute.dtypes[0] in object_names %}
+      owl:allValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
+      {%- elif attribute.dtypes[0] in enum_names %}
+      owl:allValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
+      {%- else %}
+      owl:onDataRange {{ attribute.dtypes[0] }}
+      {%- endif %}
+      {%- if attribute.required and not attribute.multiple %}
+      ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
+      {%- elif not attribute.required and not attribute.multiple %}
+      ; owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger
+      {%- elif attribute.required and attribute.multiple %}
+      ; owl:someValuesFrom
+        {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names %}
+        {{ prefix }}:{{ attribute.dtypes[0] }}
+        {%- else %}
+        {{ attribute.dtypes[0] }}
+        {%- endif %}
+      {%- endif %}
+    ]
+    {%- set first = false -%}
+  {%- endfor %} .
+
+#########################################################
+# Properties of {{ object.name }}
+#########################################################
+
+{%- for attribute in object.attributes %}
+
+{{ object.name }}:{{ attribute.name }}
+  a {% if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
+    owl:ObjectProperty
+  {%- else -%}
+    owl:DatatypeProperty
+  {%- endif -%} ;
+  rdfs:domain {{ prefix }}:{{ object.name }} ;
+  {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names %}
+  rdfs:range {{ prefix }}:{{ attribute.dtypes[0] }} ;
+  {%- else %}
+  rdfs:range {{ attribute.dtypes[0] }} ;
+  {%- endif %}
+  {%- if attribute.term %}
+  rdfs:subPropertyOf {{ attribute.term }} ;
+  {%- endif %}
+  rdfs:label "{{ object.name }}/{{ attribute.name }}"
+  {%- if attribute.docstring %}
+  ; rdfs:comment "{{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}"
+  {%- endif %} .
+
+{%- endfor %}
+{%- endfor %}
+
+#########################################################
+# Enumerations
+#########################################################
+
+#########################################################
+# Enum metadata properties
+#########################################################
+
+{{ prefix }}:enumKey a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Stable machine-readable enumeration key." .
+
+{{ prefix }}:enumValue a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Human-readable enumeration value." .
+
+{%- for enum in enums %}
+
+#########################################################
+# Enum: {{ enum.name }}
+#########################################################
+
+{{ prefix }}:{{ enum.name }} a owl:Class
+{%- if enum.docstring %}
+  ; rdfs:comment "{{ enum.docstring | replace('\n',' ') | replace('"','\\"') }}"
+{%- endif %} .
+
+{%- for key, value in enum.mappings | dictsort %}
+
+{{ enum.name }}:{{ key }}
+  a owl:NamedIndividual , {{ prefix }}:{{ enum.name }} ;
+  rdfs:label "{{ value | replace('"','\\"') }}" .
+
+{%- endfor %}
+
+{%- endfor %}

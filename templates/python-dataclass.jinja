@@ -70,6 +70,12 @@ class {{ object.name }}:
             {%- for prefix, address in prefixes %}
             "{{ prefix }}": "{{ address }}",
             {%- endfor %}
+            {%- for obj in objects %}
+            "{{ obj.name }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ obj.name }}/",
+            {%- endfor %}
+            {%- for enum in enums %}
+            "{{ enum.name }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/",
+            {%- endfor %}
             {%- for attribute in object.attributes %}
             {%- if attribute.is_id %}
             "{{ attribute.name }}": {

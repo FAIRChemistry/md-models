@@ -124,6 +124,14 @@ pub fn default_{{ object.name | lower }}_jsonld_header() -> Option<JsonLdHeader>
     context.terms.insert("{{ prefix }}".to_string(), TermDef::Simple("{{ address }}".to_string()));
     {%- endfor %}
 
+    // Add class-scoped prefixes
+    {%- for obj in objects %}
+    context.terms.insert("{{ obj.name }}".to_string(), TermDef::Simple("{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ obj.name }}/".to_string()));
+    {%- endfor %}
+    {%- for enum in enums %}
+    context.terms.insert("{{ enum.name }}".to_string(), TermDef::Simple("{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/".to_string()));
+    {%- endfor %}
+
     // Add attribute terms
     {%- for attr in object.attributes %}
     {%- if attr.is_id %}
@@ -353,6 +361,10 @@ pub struct JsonLdHeader {
     #[serde(rename = "@id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
 
+    // Import context from a file
+    #[serde(rename = "@import", skip_serializing_if = "Vec::is_empty")]
+    pub import: Vec<String>,
+
     /// Type IRI(s) for the node, e.g. schema:Person
     #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<TypeOrVec>,
@@ -364,6 +376,7 @@ impl Default for JsonLdHeader {
         Self {
             context: None,
             id: None,
+            import: Vec::new(),
             type_: None,
         }
     }
@@ -459,6 +472,19 @@ impl JsonLdHeader {
         } else {
             false
         }
+    }
+
+    /// Adds a new import to the JSON-LD context.
+    ///
+    /// This method allows for the addition of additional context files to be imported into the
+    /// JSON-LD context, which can be useful when working with complex or large context definitions.
+    /// The method will simply append the new import to the existing list of imports, allowing for
+    /// flexible and dynamic management of context dependencies within the document.
+    ///
+    /// # Arguments
+    /// * `import` - The IRI of the context file to be imported
+    pub fn add_import(&mut self, import: String) {
+        self.import.push(import);
     }
 }
 
