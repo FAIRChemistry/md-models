@@ -1,5 +1,6 @@
-from gen_pydantic import Test, Test2, Ontology  # type: ignore
 from uuid import UUID
+
+from gen_pydantic import Ontology, Test, Test2  # type: ignore
 
 
 def is_valid_uuid(uuid_str: str) -> bool:
@@ -27,6 +28,8 @@ if __name__ == "__main__":
     assert result["@context"] == {
         "tst": "https://www.github.com/my/repo/",
         "schema": "http://schema.org/",
+        "Test2": "https://www.github.com/my/repo/Test2/",
+        "Ontology": "https://www.github.com/my/repo/Ontology/",
         "name": {
             "@id": "schema:hello",
             "@type": "@id",

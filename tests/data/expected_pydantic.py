@@ -142,6 +142,8 @@ class Test(BaseModel):
         default_factory = lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
+            "Test2": "https://www.github.com/my/repo/Test2/",
+            "Ontology": "https://www.github.com/my/repo/Ontology/",
             "name": {
                 "@id": "schema:hello",
                 "@type": "@id",

@@ -13,7 +13,7 @@
           ],
           "docstring": "Unique identifier of the unit definition.",
           "options": [],
-          "term": null,
+          "term": "schema:identifier",
           "required": false,
           "xml": {
             "is_attr": true,
@@ -22,14 +22,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 15,
+            "line": 26,
             "column": {
               "start": 1,
               "end": 5
             },
             "offset": {
-              "start": 605,
-              "end": 876
+              "start": 884,
+              "end": 1259
             }
           }
         },
@@ -40,9 +40,9 @@
           "dtypes": [
             "string"
           ],
-          "docstring": "Common name of the unit definition.",
+          "docstring": "Common or human-readable name of the unit definition.",
           "options": [],
-          "term": null,
+          "term": "rdfs:label",
           "required": false,
           "xml": {
             "is_attr": true,
@@ -51,14 +51,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 19,
+            "line": 31,
             "column": {
               "start": 1,
               "end": 7
             },
             "offset": {
-              "start": 699,
-              "end": 791
+              "start": 1006,
+              "end": 1137
             }
           }
         },
@@ -69,9 +69,9 @@
           "dtypes": [
             "BaseUnit"
           ],
-          "docstring": "Base units that define the unit.",
+          "docstring": "Base or factor units that define this unit.",
           "options": [],
-          "term": null,
+          "term": "qudt:factorUnit",
           "required": false,
           "xml": {
             "is_attr": false,
@@ -80,28 +80,29 @@
           },
           "is_enum": false,
           "position": {
-            "line": 23,
+            "line": 36,
             "column": {
               "start": 1,
               "end": 13
             },
             "offset": {
-              "start": 791,
-              "end": 876
+              "start": 1137,
+              "end": 1259
             }
           }
         }
       ],
-      "docstring": "Represents a unit definition that is based on the SI unit system.",
+      "docstring": "Represents a unit definition that is based on the SI unit system. A unit may be a base unit or a derived unit composed of one or more factor units.",
+      "term": "qudt:Unit",
       "position": {
-        "line": 11,
+        "line": 21,
         "column": {
           "start": 1,
-          "end": 19
+          "end": 31
         },
         "offset": {
-          "start": 518,
-          "end": 537
+          "start": 703,
+          "end": 734
         }
       }
     },
@@ -117,7 +118,7 @@
           ],
           "docstring": "Kind of the base unit (e.g., meter, kilogram, second).",
           "options": [],
-          "term": null,
+          "term": "qudt:unit",
           "required": true,
           "xml": {
             "is_attr": true,
@@ -126,14 +127,14 @@
           },
           "is_enum": true,
           "position": {
-            "line": 31,
+            "line": 45,
             "column": {
               "start": 1,
               "end": 11
             },
             "offset": {
-              "start": 938,
-              "end": 1398
+              "start": 1368,
+              "end": 1902
             }
           }
         },
@@ -146,7 +147,7 @@
           ],
           "docstring": "Exponent of the base unit in the unit definition.",
           "options": [],
-          "term": null,
+          "term": "qudt:exponent",
           "required": true,
           "xml": {
             "is_attr": true,
@@ -155,14 +156,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 35,
+            "line": 50,
             "column": {
               "start": 1,
               "end": 15
             },
             "offset": {
-              "start": 1055,
-              "end": 1174
+              "start": 1505,
+              "end": 1648
             }
           }
         },
@@ -173,9 +174,9 @@
           "dtypes": [
             "float"
           ],
-          "docstring": "Multiplier of the base unit in the unit definition.",
+          "docstring": "Multiplier applied to the base unit.",
           "options": [],
-          "term": null,
+          "term": "qudt:multiplier",
           "required": false,
           "xml": {
             "is_attr": true,
@@ -184,14 +185,14 @@
           },
           "is_enum": false,
           "position": {
-            "line": 39,
+            "line": 55,
             "column": {
               "start": 1,
               "end": 13
             },
             "offset": {
-              "start": 1174,
-              "end": 1293
+              "start": 1648,
+              "end": 1778
             }
           }
         },
@@ -202,9 +203,9 @@
           "dtypes": [
             "float"
           ],
-          "docstring": "Scale of the base unit in the unit definition.",
+          "docstring": "Power-of-ten scale applied to the base unit.",
           "options": [],
-          "term": null,
+          "term": "qudt:scale",
           "required": false,
           "xml": {
             "is_attr": true,
@@ -213,28 +214,29 @@
           },
           "is_enum": false,
           "position": {
-            "line": 43,
+            "line": 60,
             "column": {
               "start": 1,
               "end": 8
             },
             "offset": {
-              "start": 1293,
-              "end": 1398
+              "start": 1778,
+              "end": 1902
             }
           }
         }
       ],
-      "docstring": "Represents a base unit in the unit definition.",
+      "docstring": "Represents a base or factor unit contributing to a derived unit definition.",
+      "term": "qudt:FactorUnit",
       "position": {
-        "line": 27,
+        "line": 41,
         "column": {
           "start": 1,
-          "end": 13
+          "end": 31
         },
         "offset": {
-          "start": 876,
-          "end": 889
+          "start": 1259,
+          "end": 1290
         }
       }
     }
@@ -280,14 +282,14 @@
       },
       "docstring": "",
       "position": {
-        "line": 50,
+        "line": 68,
         "column": {
           "start": 1,
           "end": 13
         },
         "offset": {
-          "start": 1415,
-          "end": 1428
+          "start": 1919,
+          "end": 1932
         }
       }
     }
@@ -295,10 +297,17 @@
   "config": {
     "id": null,
     "id-field": true,
-    "prefixes": null,
+    "prefixes": {
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "qudt": "http://qudt.org/schema/qudt#",
+      "om": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+      "schema": "http://schema.org/",
+      "unit": "http://qudt.org/vocab/unit#"
+    },
     "nsmap": null,
-    "repo": "https://github.com/JR-1991/md-models",
-    "prefix": "md",
+    "repo": "https://fairchemistry.org/md-models/",
+    "prefix": "mdmodels",
     "imports": {},
     "allow-empty": false
   }

@@ -2,15 +2,45 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX tst: <https://www.github.com/my/repo/>
 PREFIX schema: <http://schema.org/>
 
+#########################################################
+# Class-scoped prefixes
+#########################################################
+PREFIX Test: <https://www.github.com/my/repo/Test/>
+PREFIX Test2: <https://www.github.com/my/repo/Test2/>
+PREFIX Ontology: <https://www.github.com/my/repo/Ontology/>
+
+#########################################################
+# Shape definitions
+#########################################################
+
+
 tst:Test {
+
+    Test:name xsd:string {
+        shex:annotation [
+            shex:label "name"
+        ]
+    };
     schema:hello xsd:string {
         shex:annotation [
             shex:label "name"
         ]
     };
-    schema:one xsd:double? {
+
+    Test:number xsd:decimal? {
         shex:annotation [
             shex:label "number"
+        ]
+    };
+    schema:one xsd:decimal? {
+        shex:annotation [
+            shex:label "number"
+        ]
+    };
+
+    Test:test2 @tst:Test2* {
+        shex:annotation [
+            shex:label "test2"
         ]
     };
     schema:something @tst:Test2* {
@@ -18,14 +48,32 @@ tst:Test {
             shex:label "test2"
         ]
     };
+
+    Test:ontology Ontology? {
+        shex:annotation [
+            shex:label "ontology"
+        ]
+    };
 }
 tst:Test2 {
+
+    Test2:names xsd:string* {
+        shex:annotation [
+            shex:label "names"
+        ]
+    };
     schema:hello xsd:string* {
         shex:annotation [
             shex:label "names"
         ]
     };
-    schema:one xsd:double? {
+
+    Test2:number xsd:decimal? {
+        shex:annotation [
+            shex:label "number"
+        ]
+    };
+    schema:one xsd:decimal? {
         shex:annotation [
             shex:label "number"
         ]

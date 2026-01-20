@@ -45,6 +45,7 @@ schemars = { version = "1.0.4" }
 json-patch = "4.0.0"
 thiserror = "2.0.12"
 variantly = "0.4.0"
+case = "1.0.0"
 
 [features]
 default = ["openai"]

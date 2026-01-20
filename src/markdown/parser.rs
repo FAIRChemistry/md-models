@@ -22,6 +22,7 @@
  */
 
 use colored::Colorize;
+use convert_case::{Case, Casing};
 use core::panic;
 use lazy_static::lazy_static;
 use log::error;
@@ -553,10 +554,9 @@ fn handle_docstring(objects: &mut [Object], text: CowStr) {
 /// An `Object` created from the heading.
 fn process_object_heading(iterator: &mut OffsetIter) -> object::Object {
     let heading = extract_name(iterator);
-    let term = extract_object_term(&heading);
-    let name = heading.split_whitespace().next().unwrap().to_string();
-
-    object::Object::new(name, term)
+    let (cleaned_name, term) = extract_object_term(&heading);
+    // Use the cleaned name (Object::new will convert it to PascalCase)
+    object::Object::new(cleaned_name, term)
 }
 
 /// Extracts the name from the next text event in the iterator.
@@ -651,7 +651,7 @@ fn shorthand_type(text: &str) -> Option<(String, (String, String))> {
     }
 }
 
-/// Extracts the term from an object heading.
+/// Extracts the term and cleaned name from an object heading.
 ///
 /// # Arguments
 ///
@@ -659,12 +659,21 @@ fn shorthand_type(text: &str) -> Option<(String, (String, String))> {
 ///
 /// # Returns
 ///
-/// An optional string containing the extracted term.
-fn extract_object_term(heading: &str) -> Option<String> {
-    let re = Regex::new(r"\(([^)]+)\)").unwrap();
+/// A tuple containing:
+/// - First element: cleaned name (heading with parentheses removed and trailing whitespace trimmed)
+/// - Second element: optional term extracted from inside parentheses
+fn extract_object_term(heading: &str) -> (String, Option<String>) {
+    // Find the last occurrence of parentheses to handle nested cases
+    if let Some(start) = heading.rfind('(') {
+        if let Some(end) = heading[start..].find(')') {
+            let term = heading[start + 1..start + end].to_string();
+            let cleaned_name = heading[..start].trim_end().to_string();
+            return (cleaned_name, Some(term));
+        }
+    }
 
-    re.captures(heading)
-        .map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string())
+    // No parentheses found, return the heading trimmed
+    (heading.trim_end().to_string(), None)
 }
 
 /// Extracts attribute options from the iterator.
@@ -809,7 +818,7 @@ pub fn process_enum_event(
         Event::Start(tag) if tag == H3 => {
             let enum_name = extract_name(iterator);
             let mut enum_obj = Enumeration {
-                name: enum_name,
+                name: enum_name.replace(" ", "_").to_case(Case::Pascal),
                 mappings: BTreeMap::new(),
                 docstring: "".to_string(),
                 position: None,

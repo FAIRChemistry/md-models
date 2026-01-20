@@ -11,7 +11,7 @@
             <xs:element name="base_units">
                 <xs:annotation>
                     <xs:documentation>
-                        Base units that define the unit.
+                        Base or factor units that define this unit.
                     </xs:documentation>
                 </xs:annotation>
                 <xs:complexType>
@@ -31,7 +31,7 @@
         <xs:attribute name="name" type="xs:string">
             <xs:annotation>
                 <xs:documentation>
-                    Common name of the unit definition.
+                    Common or human-readable name of the unit definition.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
@@ -56,14 +56,14 @@
         <xs:attribute name="multiplier" type="xs:float">
             <xs:annotation>
                 <xs:documentation>
-                    Multiplier of the base unit in the unit definition.
+                    Multiplier applied to the base unit.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
         <xs:attribute name="scale" type="xs:float">
             <xs:annotation>
                 <xs:documentation>
-                    Scale of the base unit in the unit definition.
+                    Power-of-ten scale applied to the base unit.
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>

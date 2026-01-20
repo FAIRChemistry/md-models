@@ -30,5 +30,5 @@ GEN_FILES=$(find types -name '*.toml')
 for file in $GEN_FILES; do
   # Generate the go file
   echo "Generating $file"
-  md-models pipeline -i $file
+  cargo run -- pipeline -i $file
 done

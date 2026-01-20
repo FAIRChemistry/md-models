@@ -1,14 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/JR-1991/md-models",
+  "$id": "https://fairchemistry.org/md-models/",
   "title": "UnitDefinition",
   "type": "object",
-  "description": "Represents a unit definition that is based on the SI unit system.",
+  "description": "Represents a unit definition that is based on the SI unit system. A unit may be a base unit or a derived unit composed of one or more factor units.",
   "properties": {
     "base_units": {
       "title": "base_units",
       "type": "array",
-      "description": "Base units that define the unit.",
+      "description": "Base or factor units that define this unit.",
+      "$term": "http://qudt.org/schema/qudt#factorUnit",
       "items": {
         "$ref": "#/$defs/BaseUnit"
       }
@@ -16,39 +17,46 @@
     "id": {
       "title": "id",
       "type": "string",
-      "description": "Unique identifier of the unit definition."
+      "description": "Unique identifier of the unit definition.",
+      "$term": "http://schema.org/identifier"
     },
     "name": {
       "title": "name",
       "type": "string",
-      "description": "Common name of the unit definition."
+      "description": "Common or human-readable name of the unit definition.",
+      "$term": "http://www.w3.org/2000/01/rdf-schema#label"
     }
   },
   "$defs": {
     "BaseUnit": {
       "title": "BaseUnit",
       "type": "object",
-      "description": "Represents a base unit in the unit definition.",
+      "description": "Represents a base or factor unit contributing to a derived unit definition.",
       "properties": {
         "exponent": {
           "title": "exponent",
           "type": "integer",
-          "description": "Exponent of the base unit in the unit definition."
+          "description": "Exponent of the base unit in the unit definition.",
+          "$term": "http://qudt.org/schema/qudt#exponent"
         },
         "kind": {
           "title": "kind",
+          "type": "string",
           "description": "Kind of the base unit (e.g., meter, kilogram, second).",
+          "$term": "http://qudt.org/schema/qudt#unit",
           "$ref": "#/$defs/UnitType"
         },
         "multiplier": {
           "title": "multiplier",
           "type": "number",
-          "description": "Multiplier of the base unit in the unit definition."
+          "description": "Multiplier applied to the base unit.",
+          "$term": "http://qudt.org/schema/qudt#multiplier"
         },
         "scale": {
           "title": "scale",
           "type": "number",
-          "description": "Scale of the base unit in the unit definition."
+          "description": "Power-of-ten scale applied to the base unit.",
+          "$term": "http://qudt.org/schema/qudt#scale"
         }
       },
       "required": [

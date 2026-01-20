@@ -52,6 +52,11 @@ pub mod json {
     pub mod validation;
 }
 
+pub mod jsonld {
+    pub mod export;
+    pub mod schema;
+}
+
 pub(crate) mod markdown {
     pub mod frontmatter;
     pub(crate) mod parser;

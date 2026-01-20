@@ -1,0 +1,166 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix tst: <https://www.github.com/my/repo/> .
+@prefix schema: <http://schema.org/> .
+
+#########################################################
+# Class-scoped prefixes
+#########################################################
+@prefix Test: <https://www.github.com/my/repo/Test/> .
+@prefix Test2: <https://www.github.com/my/repo/Test2/> .
+@prefix Ontology: <https://www.github.com/my/repo/Ontology/> .
+
+#########################################################
+# Ontology
+#########################################################
+
+tst:ontology a owl:Ontology ;
+  rdfs:comment "Ontology generated from the tst data model." .
+
+#########################################################
+# Classes
+#########################################################
+
+#########################################################
+# Class: Test
+#########################################################
+# Lorem ipsum dolor sit amet, consectetur
+# adipiscing elit. Sed do eiusmod tempor
+# incididunt ut labore et dolore magna aliqua. Ut
+# enim ad minim veniam, quis nostrud exercitation
+# ullamco laboris nisi ut aliquip ex ea commodo
+# consequat.
+#########################################################
+
+tst:Test a owl:Class
+  ; rdfs:comment "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." .
+
+tst:Test
+  rdfs:subClassOf
+      [
+        a owl:Restriction ;
+        owl:onProperty Test:name
+        ; owl:cardinality "1"^^xsd:nonNegativeInteger
+      ],
+      [
+        a owl:Restriction ;
+        owl:onProperty Test:number
+        ; owl:maxCardinality "1"^^xsd:nonNegativeInteger
+      ],
+      [
+        a owl:Restriction ;
+        owl:onProperty Test:ontology
+        ; owl:onClass tst:Ontology
+        ; owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger
+      ] .
+
+#########################################################
+# Properties of Test
+#########################################################
+
+Test:name
+  a owl:DatatypeProperty;
+  rdfs:domain tst:Test ;
+  rdfs:range xsd:string ;
+  rdfs:subPropertyOf schema:hello ;
+  rdfs:label "Test/name"
+  ; rdfs:comment "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions." .
+
+Test:number
+  a owl:DatatypeProperty;
+  rdfs:domain tst:Test ;
+  rdfs:range xsd:decimal ;
+  rdfs:subPropertyOf schema:one ;
+  rdfs:label "Test/number" .
+
+Test:test2
+  a owl:ObjectProperty;
+  rdfs:domain tst:Test ;
+  rdfs:range tst:Test2 ;
+  rdfs:subPropertyOf schema:something ;
+  rdfs:label "Test/test2" .
+
+Test:ontology
+  a owl:ObjectProperty;
+  rdfs:domain tst:Test ;
+  rdfs:range tst:Ontology ;
+  rdfs:label "Test/ontology" .
+
+#########################################################
+# Class: Test2
+#########################################################
+
+tst:Test2 a owl:Class .
+
+tst:Test2
+  rdfs:subClassOf
+      [
+        a owl:Restriction ;
+        owl:onProperty Test2:number
+        ; owl:maxCardinality "1"^^xsd:nonNegativeInteger
+      ] .
+
+#########################################################
+# Properties of Test2
+#########################################################
+
+Test2:names
+  a owl:DatatypeProperty;
+  rdfs:domain tst:Test2 ;
+  rdfs:range xsd:string ;
+  rdfs:subPropertyOf schema:hello ;
+  rdfs:label "Test2/names" .
+
+Test2:number
+  a owl:DatatypeProperty;
+  rdfs:domain tst:Test2 ;
+  rdfs:range xsd:decimal ;
+  rdfs:subPropertyOf schema:one ;
+  rdfs:label "Test2/number" .
+
+#########################################################
+# Enumerations
+#########################################################
+
+#########################################################
+# Enum metadata properties
+#########################################################
+
+tst:enumKey a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Stable machine-readable enumeration key." .
+
+tst:enumValue a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Human-readable enumeration value." .
+
+#########################################################
+# Enum: Ontology
+#########################################################
+
+tst:Ontology
+  a owl:Class ;
+  owl:oneOf (
+    Ontology:ECO
+    Ontology:GO
+    Ontology:SIO
+  ) .
+
+Ontology:ECO
+  a owl:NamedIndividual ;
+  rdfs:label "https://www.evidenceontology.org/term/" ;
+  tst:enumKey "ECO" ;
+  tst:enumValue "https://www.evidenceontology.org/term/" .
+
+Ontology:GO
+  a owl:NamedIndividual ;
+  rdfs:label "https://amigo.geneontology.org/amigo/term/" ;
+  tst:enumKey "GO" ;
+  tst:enumValue "https://amigo.geneontology.org/amigo/term/" .
+
+Ontology:SIO
+  a owl:NamedIndividual ;
+  rdfs:label "http://semanticscience.org/resource/" ;
+  tst:enumKey "SIO" ;
+  tst:enumValue "http://semanticscience.org/resource/" .

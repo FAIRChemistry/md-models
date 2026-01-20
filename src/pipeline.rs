@@ -150,6 +150,16 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
             Templates::JsonSchemaAll => {
                 serialize_all_json_schemes(&specs.out, paths, &merge_state)?;
             }
+            Templates::JsonLd => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    &specs.config,
+                    &specs.fname_case,
+                )?;
+            }
             Templates::Linkml => {
                 serialize_by_template(
                     &specs.out,
@@ -181,6 +191,16 @@ pub fn process_pipeline(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>
                 )?;
             }
             Templates::Markdown => {
+                serialize_by_template(
+                    &specs.out,
+                    paths,
+                    &merge_state,
+                    &template,
+                    &specs.config,
+                    &specs.fname_case,
+                )?;
+            }
+            Templates::Owl => {
                 serialize_by_template(
                     &specs.out,
                     paths,

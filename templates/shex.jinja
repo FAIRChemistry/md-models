@@ -29,17 +29,40 @@ PREFIX {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}>
 {%- for pre, address in prefixes %}
 PREFIX {{pre}}: <{{address}}>
 {%- endfor %}
+
+#########################################################
+# Class-scoped prefixes
+#########################################################
+{%- for object in objects %}
+PREFIX {{ object.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ object.name }}/>
+{%- endfor %}
+{%- for enum in enums %}
+PREFIX {{ enum.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/>
+{%- endfor %}
+
+#########################################################
+# Shape definitions
+#########################################################
+
 {% for object in objects%}
 {{ prefix }}:{{object.name}} {
     {%- for attr in object.attributes %}
     {%- if attr.term %}
-
+    {# External term exists - use both class-scoped and external term #}
     {%- if attr.dtypes[0] in object_names %}
+    {{ object.name }}:{{ attr.name }} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
     {{attr.term}} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
     {%- else %}
-    {{attr.term}} xsd:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
+    {{ object.name }}:{{ attr.name }} {{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
+    {{attr.term}} {{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
     {%- endif %}
-
+    {%- else %}
+    {# No external term - use class-scoped property only #}
+    {%- if attr.dtypes[0] in object_names %}
+    {{ object.name }}:{{ attr.name }} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
+    {%- else %}
+    {{ object.name }}:{{ attr.name }} {{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
+    {%- endif %}
     {%- endif %}
     {%- endfor %}
 }

@@ -1,53 +1,73 @@
 ---
-repo: "https://github.com/JR-1991/md-models"
+repo: "https://fairchemistry.org/md-models/"
+prefix: "mdmodels"
+prefixes:
+  qudt: "http://qudt.org/schema/qudt#"
+  unit: "http://qudt.org/vocab/unit#"
+  om: "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+  xsd: "http://www.w3.org/2001/XMLSchema#"
+  schema: "http://schema.org/"
 ---
 
 # SI Unit
 
-This data model implements a set of SI units for the representation of physical quantities. The SI unit system is based on seven base units, which are used to derive all other units. The base units are given in [UnitType](#UnitType). The unit definitions are based on the International System of Units (SI) and are defined in terms of the base units. The unit definitions are given in [UnitDefinition](#UnitDefinition).
+This data model implements a set of SI units for the representation of physical quantities.
+The model is aligned with the International System of Units (SI) and semantically compatible
+with SBML unit definitions by reusing established Semantic Web vocabularies.
 
-> This is a direct implementation of the [SBML unit definition](https://synonym.caltech.edu/software/libsbml/5.18.0/docs/formatted/python-api/classlibsbml_1_1_unit_definition.html).
+> This is a direct semantic implementation of the SBML UnitDefinition concept.
 
-### UnitDefinition
+### UnitDefinition (qudt:Unit)
 
 Represents a unit definition that is based on the SI unit system.
+A unit may be a base unit or a derived unit composed of one or more factor units.
 
 - id
   - Type: string
   - Description: Unique identifier of the unit definition.
+  - Term: schema:identifier
   - XML: @id
 - name
   - Type: string
-  - Description: Common name of the unit definition.
+  - Description: Common or human-readable name of the unit definition.
+  - Term: rdfs:label
   - XML: @name
 - base_units
   - Type: BaseUnit[]
-  - Description: Base units that define the unit.
+  - Description: Base or factor units that define this unit.
+  - Term: qudt:factorUnit
 
-### BaseUnit
+### BaseUnit (qudt:FactorUnit)
 
-Represents a base unit in the unit definition.
+Represents a base or factor unit contributing to a derived unit definition.
 
 - __kind__
   - Type: UnitType
   - Description: Kind of the base unit (e.g., meter, kilogram, second).
+  - Term: qudt:unit
   - XML: @kind
 - __exponent__
   - Type: integer
   - Description: Exponent of the base unit in the unit definition.
+  - Term: qudt:exponent
   - XML: @exponent
 - multiplier
   - Type: float
-  - Description: Multiplier of the base unit in the unit definition.
+  - Description: Multiplier applied to the base unit.
+  - Term: qudt:multiplier
   - XML: @multiplier
 - scale
   - Type: float
-  - Description: Scale of the base unit in the unit definition.
+  - Description: Power-of-ten scale applied to the base unit.
+  - Term: qudt:scale
   - XML: @scale
 
 ## Enumerations
 
 ### UnitType
+
+Enumeration of standard SI and derived unit types used in scientific measurements and calculations.
 
 ```
 AMPERE = ampere

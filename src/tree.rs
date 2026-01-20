@@ -33,7 +33,7 @@ use petgraph::{
 ///
 /// This function builds a directed graph where nodes represent objects and edges represent
 /// dependencies between them. A dependency exists when one object's attributes reference
-/// another object as its data type.
+/// another object as its data type. This function includes all objects in the model.
 ///
 /// # Arguments
 ///
@@ -42,9 +42,10 @@ use petgraph::{
 /// # Returns
 ///
 /// A directed graph (DiGraph) where:
-/// - Nodes are labeled with object names (String)
+/// - Nodes contain the full Object structs
 /// - Edges represent dependencies between objects (empty unit type)
-pub fn dependency_graph(model: &DataModel) -> DiGraph<String, ()> {
+/// - All objects in the model are included in the graph
+pub fn dependency_graph(model: &DataModel) -> DiGraph<Object, ()> {
     let mut graph = DiGraph::new();
     let adjacency_map = extract_adjacency_map(&model.objects);
 
@@ -52,7 +53,7 @@ pub fn dependency_graph(model: &DataModel) -> DiGraph<String, ()> {
     let nodes: HashMap<String, NodeIndex> = model
         .objects
         .iter()
-        .map(|o| (o.name.clone(), graph.add_node(o.name.clone())))
+        .map(|o| (o.name.clone(), graph.add_node(o.clone())))
         .collect();
 
     // Add edges based on adjacency map
@@ -65,6 +66,105 @@ pub fn dependency_graph(model: &DataModel) -> DiGraph<String, ()> {
     graph
 }
 
+/// Creates a directed graph representing dependencies between objects in a data model.
+///
+/// This function builds a directed graph where nodes represent objects and edges represent
+/// dependencies between them. A dependency exists when one object's attributes reference
+/// another object as its data type. The graph is built recursively starting from the root
+/// object and includes only objects reachable from the root.
+///
+/// # Arguments
+///
+/// * `model` - The data model containing objects and their relationships
+/// * `root` - The name of the root object to start building the graph from
+///
+/// # Returns
+///
+/// A directed graph (DiGraph) where:
+/// - Nodes contain the full Object structs
+/// - Edges represent dependencies between objects (empty unit type)
+/// - Only objects reachable from the root are included in the graph
+///
+/// # Errors
+///
+/// Returns an error if the root object is not found in the model or if there are
+/// issues traversing the object dependencies.
+pub fn object_graph(model: &DataModel, root: &str) -> Result<DiGraph<Object, ()>, String> {
+    let mut graph = DiGraph::new();
+    let adjacency_map = extract_adjacency_map(&model.objects);
+
+    // Create nodes for each object
+    let nodes: HashMap<String, NodeIndex> = model
+        .objects
+        .iter()
+        .map(|o| (o.name.clone(), graph.add_node(o.clone())))
+        .collect();
+
+    // Verify root exists
+    if !nodes.contains_key(root) {
+        return Err(format!("Object '{}' not found in model", root));
+    }
+
+    // Track visited nodes to avoid infinite recursion
+    let mut visited = HashSet::new();
+
+    // Build the graph recursively starting from root
+    object_graph_helper(&nodes, &adjacency_map, &mut graph, root, &mut visited)?;
+
+    Ok(graph)
+}
+
+/// Recursive helper function to build the object dependency graph.
+///
+/// This function traverses the object dependency tree starting from the given root,
+/// adding edges to the graph for each dependency relationship. It uses a visited set
+/// to prevent infinite recursion in case of circular dependencies.
+///
+/// # Arguments
+///
+/// * `nodes` - Mapping of object names to their node indices in the graph
+/// * `adjacency_map` - Map of object names to their list of dependencies
+/// * `graph` - The graph being built (modified in place)
+/// * `root` - The current object being processed
+/// * `visited` - Set of object names that have already been processed
+fn object_graph_helper(
+    nodes: &HashMap<String, NodeIndex>,
+    adjacency_map: &HashMap<String, Vec<String>>,
+    graph: &mut DiGraph<Object, ()>,
+    root: &str,
+    visited: &mut HashSet<String>,
+) -> Result<(), String> {
+    // If we've already processed this node, return early
+    if visited.contains(root) {
+        return Ok(());
+    }
+
+    // Mark this node as visited
+    visited.insert(root.to_string());
+
+    // Get the dependencies for this object
+    let dependencies = adjacency_map.get(root).map(|v| v.as_slice()).unwrap_or(&[]);
+
+    // Process each dependency
+    for dependency in dependencies {
+        // Verify the dependency exists
+        if !nodes.contains_key(dependency) {
+            return Err(format!(
+                "Dependency '{}' referenced by '{}' not found in model",
+                dependency, root
+            ));
+        }
+
+        // Recursively process the dependency first
+        object_graph_helper(nodes, adjacency_map, graph, dependency, visited)?;
+
+        // Add edge from root to dependency
+        graph.add_edge(nodes[root], nodes[dependency], ());
+    }
+
+    Ok(())
+}
+
 /// Returns a topologically sorted list of node names from the dependency graph.
 ///
 /// This function performs a depth-first traversal of the graph to generate a topological
@@ -73,12 +173,12 @@ pub fn dependency_graph(model: &DataModel) -> DiGraph<String, ()> {
 ///
 /// # Arguments
 ///
-/// * `graph` - The directed graph to traverse, with String node labels
+/// * `graph` - The directed graph to traverse, with Object node values
 ///
 /// # Returns
 ///
-/// A Vec<String> containing the node labels in topological order
-pub fn get_topological_order(graph: &DiGraph<String, ()>) -> Vec<String> {
+/// A Vec<String> containing the object names in topological order
+pub fn get_topological_order(graph: &DiGraph<Object, ()>) -> Vec<String> {
     let mut visited = HashSet::new();
     let mut stack = Vec::new();
 
@@ -92,24 +192,27 @@ pub fn get_topological_order(graph: &DiGraph<String, ()>) -> Vec<String> {
 /// Helper function for depth-first post-order traversal during topological sorting.
 ///
 /// This function performs a recursive depth-first traversal starting from the given node,
-/// marking visited nodes and building up the topologically sorted stack.
+/// marking visited nodes and building up the topologically sorted stack. It tracks visited
+/// nodes by their names to ensure each object is processed only once.
 ///
 /// # Arguments
 ///
 /// * `graph` - The directed graph being traversed
 /// * `node` - The current node being visited
-/// * `visited` - Set of already visited node labels
-/// * `stack` - Vector storing the topologically sorted node labels
+/// * `visited` - Set of already visited object names
+/// * `stack` - Vector storing the topologically sorted object names
 fn visit(
-    graph: &DiGraph<String, ()>,
+    graph: &DiGraph<Object, ()>,
     node: NodeIndex,
     visited: &mut HashSet<String>,
     stack: &mut Vec<String>,
 ) {
-    if visited.contains(&graph[node]) {
+    let object_name = &graph[node].name;
+
+    if visited.contains(object_name) {
         return;
     }
-    visited.insert(graph[node].clone());
+    visited.insert(object_name.clone());
 
     // Visit all dependencies first
     for neighbor in graph.neighbors_directed(node, Direction::Outgoing) {
@@ -117,7 +220,7 @@ fn visit(
     }
 
     // Add to stack only after visiting all dependencies
-    stack.push(graph[node].clone());
+    stack.push(object_name.clone());
 }
 
 /// Extracts an adjacency map from a list of objects, representing their type dependencies.

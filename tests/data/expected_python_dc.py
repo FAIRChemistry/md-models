@@ -58,6 +58,9 @@ class Test:
         default_factory = lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
+            "Test": "https://www.github.com/my/repo/Test/",
+            "Test2": "https://www.github.com/my/repo/Test2/",
+            "Ontology": "https://www.github.com/my/repo/Ontology/",
             "name": {
                 "@id": "schema:hello",
                 "@type": "@id",
@@ -111,6 +114,9 @@ class Test2:
         default_factory = lambda: {
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
+            "Test": "https://www.github.com/my/repo/Test/",
+            "Test2": "https://www.github.com/my/repo/Test2/",
+            "Ontology": "https://www.github.com/my/repo/Ontology/",
             "names": "schema:hello",
             "number": "schema:one",
         }
