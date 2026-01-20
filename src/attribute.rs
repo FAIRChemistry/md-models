@@ -24,8 +24,10 @@
 use crate::{
     markdown::{parser::OptionKey, position::Position},
     option::{AttrOption, RawOption},
+    validation::BASIC_TYPES,
     xmltype::XMLType,
 };
+use convert_case::{Case, Casing};
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
@@ -82,7 +84,7 @@ impl Attribute {
     /// * `required` - Indicates if the attribute is required.
     pub fn new(name: String, required: bool) -> Self {
         Attribute {
-            name: name.clone(),
+            name: name.clone().replace(" ", "_"),
             dtypes: Vec::new(),
             docstring: String::new(),
             options: Vec::new(),
@@ -143,28 +145,33 @@ impl Attribute {
     ///
     /// * `dtype` - The data type to set.
     pub(crate) fn set_dtype(&mut self, dtype: String) -> Result<(), Box<dyn Error>> {
-        let mut dtypes = self.break_up_dtypes(&dtype);
+        let dtypes = self.break_up_dtypes(&dtype);
 
         self.validate_dtypes(&dtypes)?;
 
         let mut new_dtypes = Vec::new();
 
-        for dtype in dtypes.iter_mut() {
-            *dtype = dtype.trim().to_string();
-            if self.is_identifier(dtype) {
-                *dtype = self.process_identifier(dtype);
+        for mut dtype in dtypes {
+            dtype = dtype.trim().to_string();
+            if self.is_identifier(&dtype) {
+                dtype = self.process_identifier(&dtype).to_string();
             }
 
             if let Some((prefix, name)) = dtype.split_once('.') {
                 self.import_prefix = Some(prefix.to_string());
-                *dtype = name.to_string();
+                dtype = name.to_string();
             }
 
             if dtype.ends_with("[]") {
                 self.is_array = true;
+                dtype = dtype.trim_end_matches("[]").to_string();
             }
 
-            new_dtypes.push(dtype.trim_end_matches("[]").to_string());
+            if !BASIC_TYPES.contains(&dtype.as_str()) {
+                dtype = dtype.replace(" ", "_").to_case(Case::Pascal);
+            }
+
+            new_dtypes.push(dtype);
         }
 
         self.dtypes = new_dtypes;
