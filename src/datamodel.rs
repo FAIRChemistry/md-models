@@ -33,6 +33,8 @@ use crate::exporters::{render_jinja_template, Templates};
 use crate::json::export::to_json_schema;
 use crate::json::schema::SchemaObject;
 use crate::json::validation::{validate_json, ValidationError};
+use crate::jsonld::export::to_json_ld;
+use crate::jsonld::schema::JsonLdHeader;
 use crate::linkml::export::serialize_linkml;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::markdown::parser::{parse_markdown, validate_model};
@@ -45,6 +47,9 @@ use pyo3::pyclass;
 
 #[cfg(feature = "wasm")]
 use tsify_next::Tsify;
+
+/// Types that are ignored when merging data models
+const MERGE_IGNORE_TYPES: &[&str] = &["UnitDefinition", "BaseUnit", "UnitType"];
 
 // Data model
 //
@@ -197,6 +202,23 @@ impl DataModel {
         Ok(())
     }
 
+    /// Generates a JSON-LD header (`JsonLdHeader`) for the data model, suitable for use in JSON-LD serialization.
+    ///
+    /// This method constructs a `JsonLdHeader` using the model's configuration and optionally a specified root object.
+    /// The header contains the appropriate JSON-LD `@context`, `@id`, and `@type` for the model or selected object.
+    ///
+    /// # Arguments
+    ///
+    /// * `root` - Optional. The name of the root object to use. If `None`, the first object in the model is used.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(JsonLdHeader)` with the generated JSON-LD header if successful.
+    /// * `Err(Box<dyn Error>)` if the generation fails (for example, if the root is not found).
+    pub fn json_ld_header(&self, root: Option<&str>) -> Result<JsonLdHeader, Box<dyn Error>> {
+        to_json_ld(self, root)
+    }
+
     // Get the internal schema for the markdown file
     //
     // # Panics
@@ -275,6 +297,9 @@ impl DataModel {
         self.sort_attrs();
 
         match template {
+            Templates::JsonLd => {
+                Ok(serde_json::to_string_pretty(&self.json_ld_header(None).unwrap()).unwrap())
+            }
             Templates::JsonSchema => Ok(self.json_schema(None, false).unwrap()),
             Templates::Linkml => Ok(serialize_linkml(self.clone(), None).unwrap()),
             _ => render_jinja_template(template, self, config),
@@ -287,31 +312,41 @@ impl DataModel {
     pub fn merge(&mut self, other: &Self) {
         // Initialize a variable to check if the merge is valid
         let mut valid = true;
+        let ignore_types = self.get_ignore_types();
 
         // Check if there are any duplicate objects or enums
-        for obj in &other.objects {
-            if self.objects.iter().any(|o| o.name == obj.name) {
-                error!(
-                    "[{}] {}: Object {} is defined more than once.",
-                    "Merge".bold(),
-                    "DuplicateError".bold(),
-                    obj.name.red().bold(),
-                );
-
-                valid = false;
+        // Types that are internally defined do not throw an error
+        for other_obj in &other.objects {
+            if ignore_types.contains(&other_obj.name) {
+                continue;
+            }
+            if let Some(duplicate_obj) = self.objects.iter().find(|o| o.name == other_obj.name) {
+                if !duplicate_obj.same_hash(&other_obj) {
+                    error!(
+                        "[{}] {}: Object {} is defined more than once.",
+                        "Merge".bold(),
+                        "DuplicateError".bold(),
+                        other_obj.name.red().bold(),
+                    );
+                    valid = false;
+                }
             }
         }
 
-        for enm in &other.enums {
-            if self.enums.iter().any(|e| e.name == enm.name) {
-                error!(
-                    "[{}] {}: Enumeration {} is defined more than once.",
-                    "Merge".bold(),
-                    "DuplicateError".bold(),
-                    enm.name.red().bold(),
-                );
-
-                valid = false;
+        for other_enm in &other.enums {
+            if ignore_types.contains(&other_enm.name) {
+                continue;
+            }
+            if let Some(duplicate_enm) = self.enums.iter().find(|e| e.name == other_enm.name) {
+                if !duplicate_enm.same_hash(&other_enm) {
+                    error!(
+                        "[{}] {}: Enumeration {} is defined more than once.",
+                        "Merge".bold(),
+                        "DuplicateError".bold(),
+                        other_enm.name.red().bold(),
+                    );
+                    valid = false;
+                }
             }
         }
 
@@ -320,9 +355,73 @@ impl DataModel {
             panic!("Merge is not valid");
         }
 
+        // Merge prefixes: only add new ones, preserve existing
+        self.merge_prefixes(other);
+
         // Merge the objects and enums
-        self.objects.extend(other.objects.clone());
-        self.enums.extend(other.enums.clone());
+        self.objects.extend(
+            other
+                .objects
+                .iter()
+                .filter(|o| !ignore_types.contains(&o.name))
+                .filter(|o| !self.objects.iter().any(|existing| existing.name == o.name))
+                .cloned()
+                .collect::<Vec<Object>>(),
+        );
+        self.enums.extend(
+            other
+                .enums
+                .iter()
+                .filter(|e| !ignore_types.contains(&e.name))
+                .filter(|e| !self.enums.iter().any(|existing| existing.name == e.name))
+                .cloned()
+                .collect::<Vec<Enumeration>>(),
+        );
+    }
+
+    /// Merge prefixes from another data model into this one.
+    /// Only adds new prefixes, preserving existing ones.
+    fn merge_prefixes(&mut self, other: &Self) {
+        if let Some(other_prefixes) = other.config.as_ref().and_then(|c| c.prefixes.as_ref()) {
+            let self_config = self.config.get_or_insert_with(FrontMatter::new);
+            let self_prefixes = self_config.prefixes.get_or_insert_with(HashMap::new);
+
+            for (key, value) in other_prefixes {
+                self_prefixes
+                    .entry(key.clone())
+                    .or_insert_with(|| value.clone());
+            }
+        }
+    }
+
+    /// Get the types that should be ignored when merging.
+    fn get_ignore_types(&self) -> Vec<String> {
+        let mut ignore_types = Vec::new();
+        if self
+            .objects
+            .iter()
+            .any(|o| MERGE_IGNORE_TYPES.contains(&o.name.as_str()))
+        {
+            ignore_types.extend(
+                self.objects
+                    .iter()
+                    .filter(|o| MERGE_IGNORE_TYPES.contains(&o.name.as_str()))
+                    .map(|o| o.name.clone()),
+            );
+        }
+        if self
+            .enums
+            .iter()
+            .any(|e| MERGE_IGNORE_TYPES.contains(&e.name.as_str()))
+        {
+            ignore_types.extend(
+                self.enums
+                    .iter()
+                    .filter(|e| MERGE_IGNORE_TYPES.contains(&e.name.as_str()))
+                    .map(|e| e.name.clone()),
+            );
+        }
+        ignore_types
     }
 
     /// Parse a markdown file and create a data model
