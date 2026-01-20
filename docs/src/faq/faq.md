@@ -1,3 +1,1 @@
 # FAQ
-
-*To be added*
