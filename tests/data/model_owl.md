@@ -1,6 +1,6 @@
 ---
 id-field: true
-iri: "https://www.github.com/my/repo/"
+repo: "https://www.github.com/my/repo/"
 prefix: "tst"
 prefixes:
   schema: http://schema.org/
@@ -8,7 +8,7 @@ nsmap:
   tst: http://example.com/test/
 ---
 
-### Test
+### Test (schema:Test)
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
@@ -22,7 +22,6 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
   - Default: "2.0"
 - number
   - Type: float, string
-  - Term: schema:one
   - XML: @number
   - Default: 1.0
 - test2

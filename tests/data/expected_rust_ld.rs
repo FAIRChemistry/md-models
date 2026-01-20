@@ -125,6 +125,11 @@ pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
     // Add configured prefixes
     context.terms.insert("schema".to_string(), TermDef::Simple("http://schema.org/".to_string()));
 
+    // Add class-scoped prefixes
+    context.terms.insert("Test".to_string(), TermDef::Simple("https://www.github.com/my/repo/Test/".to_string()));
+    context.terms.insert("Test2".to_string(), TermDef::Simple("https://www.github.com/my/repo/Test2/".to_string()));
+    context.terms.insert("Ontology".to_string(), TermDef::Simple("https://www.github.com/my/repo/Ontology/".to_string()));
+
     // Add attribute terms
     context.terms.insert("name".to_string(), TermDef::Detailed(TermDetail {
         id: Some("schema:hello".to_string()),
@@ -158,6 +163,11 @@ pub fn default_test2_jsonld_header() -> Option<JsonLdHeader> {
 
     // Add configured prefixes
     context.terms.insert("schema".to_string(), TermDef::Simple("http://schema.org/".to_string()));
+
+    // Add class-scoped prefixes
+    context.terms.insert("Test".to_string(), TermDef::Simple("https://www.github.com/my/repo/Test/".to_string()));
+    context.terms.insert("Test2".to_string(), TermDef::Simple("https://www.github.com/my/repo/Test2/".to_string()));
+    context.terms.insert("Ontology".to_string(), TermDef::Simple("https://www.github.com/my/repo/Ontology/".to_string()));
 
     // Add attribute terms
     context.terms.insert("names".to_string(), TermDef::Detailed(TermDetail {
@@ -193,6 +203,10 @@ pub struct JsonLdHeader {
     #[serde(rename = "@id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
 
+    // Import context from a file
+    #[serde(rename = "@import", skip_serializing_if = "Vec::is_empty")]
+    pub import: Vec<String>,
+
     /// Type IRI(s) for the node, e.g. schema:Person
     #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     pub type_: Option<TypeOrVec>,
@@ -204,6 +218,7 @@ impl Default for JsonLdHeader {
         Self {
             context: None,
             id: None,
+            import: Vec::new(),
             type_: None,
         }
     }
@@ -299,6 +314,19 @@ impl JsonLdHeader {
         } else {
             false
         }
+    }
+
+    /// Adds a new import to the JSON-LD context.
+    ///
+    /// This method allows for the addition of additional context files to be imported into the
+    /// JSON-LD context, which can be useful when working with complex or large context definitions.
+    /// The method will simply append the new import to the existing list of imports, allowing for
+    /// flexible and dynamic management of context dependencies within the document.
+    ///
+    /// # Arguments
+    /// * `import` - The IRI of the context file to be imported
+    pub fn add_import(&mut self, import: String) {
+        self.import.push(import);
     }
 }
 

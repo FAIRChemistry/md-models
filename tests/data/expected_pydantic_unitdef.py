@@ -133,7 +133,13 @@ class UnitTest(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
         default_factory = lambda: {
-            "md": "http://mdmodel.net/",
+            "md": "http://mdmodel.net",
+            "om": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
+            "qudt": "http://qudt.org/schema/qudt#/",
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#/",
+            "schema": "http://schema.org/",
+            "unit": "http://qudt.org/vocab/unit#/",
+            "xsd": "http://www.w3.org/2001/XMLSchema#/",
         }
     )
 

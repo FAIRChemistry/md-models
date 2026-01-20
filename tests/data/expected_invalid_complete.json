@@ -3,7 +3,7 @@
     "errors": [
         {
             "message": "Name '1number' must start with a letter.",
-            "object": "Test",
+            "object": "TestObject",
             "attribute": "1number",
             "location": "Global",
             "solution": "Resolve the issue by using 'number'.",
@@ -23,29 +23,8 @@
             ]
         },
         {
-            "message": "Name 'some name' contains whitespace, which is not valid. Use underscores instead.",
-            "object": "Test",
-            "attribute": "some name",
-            "location": "Global",
-            "solution": "Resolve the issue by using 'some_name'.",
-            "error_type": "NameError",
-            "positions": [
-                {
-                    "line": 15,
-                    "column": {
-                        "start": 1,
-                        "end": 12
-                    },
-                    "offset": {
-                        "start": 200,
-                        "end": 229
-                    }
-                }
-            ]
-        },
-        {
             "message": "Type 'Undefined' of property 'undefined_type' not found.",
-            "object": "Test",
+            "object": "TestObject",
             "attribute": "undefined_type",
             "location": "Global",
             "solution": "Add the type 'Undefined' to the model or use a base type.",

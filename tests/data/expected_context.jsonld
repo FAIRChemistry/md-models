@@ -1,0 +1,21 @@
+{
+  "@context": {
+    "tst": "https://www.github.com/my/repo/",
+    "schema": "http://schema.org/",
+    "name": "schema:hello",
+    "number": "schema:one",
+    "test2": {
+      "@type": "@id",
+      "@container": "@set",
+      "@context": {
+        "@type": "tst:Test2",
+        "names": {
+          "@container": "@set"
+        },
+        "number": "schema:one"
+      }
+    },
+    "ontology": "tst:Test/ontology"
+  },
+  "@type": "tst:Test"
+}
