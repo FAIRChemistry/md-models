@@ -50,7 +50,7 @@ pub struct FrontMatter {
     /// Optional namespace map.
     pub nsmap: Option<HashMap<String, String>>,
     /// A string field with a default value representing the repository URL.
-    #[serde(default = "default_repo")]
+    #[serde(default = "default_repo", alias = "iri")]
     pub repo: String,
     /// A string field with a default value representing the prefix.
     #[serde(default = "default_prefix")]
@@ -93,7 +93,14 @@ impl FrontMatter {
         self.prefixes.as_ref().map(|prefixes| {
             prefixes
                 .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
+                .map(|(k, v)| {
+                    let with_slash = if v.ends_with('/') {
+                        v.clone()
+                    } else {
+                        format!("{}/", v)
+                    };
+                    (k.clone(), with_slash)
+                })
                 .collect()
         })
     }
@@ -216,7 +223,7 @@ fn default_prefix() -> String {
 /// # Returns
 /// A string with the default value `"http://mdmodel.net/"`.
 fn default_repo() -> String {
-    "http://mdmodel.net/".to_string()
+    "http://mdmodel.net".to_string()
 }
 
 /// Provides the default value for the `allow_empty`.
