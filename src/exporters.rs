@@ -60,14 +60,6 @@ lazy_static! {
         m
     };
 
-    /// Maps generic type names to SHACL-specific type names.
-    static ref SHACL_TYPE_MAPS: std::collections::HashMap<String, String> = {
-        let mut m = std::collections::HashMap::new();
-        m.insert("float".to_string(), "double".to_string());
-        m.insert("bytes".to_string(), "base64Binary".to_string());
-        m
-    };
-
     /// Maps Python-specific type names to XSD-specific type names.
     static ref XSD_TYPE_MAPS: std::collections::HashMap<String, String> = {
         let mut m = std::collections::HashMap::new();
@@ -99,6 +91,19 @@ lazy_static! {
         m
     };
 
+    /// Maps MD-Models type names to Owl-specific type names.
+    static ref OWL_TYPE_MAPS: std::collections::HashMap<String, String> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("integer".to_string(), "xsd:integer".to_string());
+        m.insert("number".to_string(), "xsd:decimal".to_string());
+        m.insert("float".to_string(), "xsd:decimal".to_string());
+        m.insert("boolean".to_string(), "xsd:boolean".to_string());
+        m.insert("string".to_string(), "xsd:string".to_string());
+        m.insert("bytes".to_string(), "xsd:base64Binary".to_string());
+        m.insert("date".to_string(), "xsd:date".to_string());
+        m
+    };
+
     /// Forbidden enum variants for Rust (mainly for windows compatibility)
     static ref FORBIDDEN_RUST_ENUM_VARIANTS: Vec<String> = {
         vec![
@@ -118,13 +123,17 @@ pub enum Templates {
     Markdown,
     /// Compact Markdown
     CompactMarkdown,
-    /// SHACL
-    Shacl,
     /// JSON Schema
     JsonSchema,
     /// JSON Schema All
     JsonSchemaAll,
+    /// JSON-LD
+    JsonLd,
     /// SHACL
+    Shacl,
+    /// OWL
+    Owl,
+    /// ShEx
     Shex,
     /// Python Dataclass
     PythonDataclass,
@@ -168,6 +177,7 @@ impl Display for Templates {
             Templates::Shacl => write!(f, "shacl"),
             Templates::JsonSchema => write!(f, "json-schema"),
             Templates::JsonSchemaAll => write!(f, "json-schema-all"),
+            Templates::JsonLd => write!(f, "json-ld"),
             Templates::Shex => write!(f, "shex"),
             Templates::MkDocs => write!(f, "mk-docs"),
             Templates::Internal => write!(f, "internal"),
@@ -180,6 +190,7 @@ impl Display for Templates {
             Templates::Linkml => write!(f, "linkml"),
             Templates::Julia => write!(f, "julia"),
             Templates::Mermaid => write!(f, "mermaid"),
+            Templates::Owl => write!(f, "owl"),
         }
     }
 }
@@ -212,6 +223,7 @@ impl FromStr for Templates {
             "linkml" => Ok(Templates::Linkml),
             "julia" => Ok(Templates::Julia),
             "mermaid" => Ok(Templates::Mermaid),
+            "owl" => Ok(Templates::Owl),
             _ => {
                 let err = format!("Invalid template type: {s}");
                 Err(err.into())
@@ -255,7 +267,7 @@ pub fn render_jinja_template(
         Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
         Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
         Templates::Shacl | Templates::Shex => {
-            convert_model_types(model, &SHACL_TYPE_MAPS);
+            convert_model_types(model, &OWL_TYPE_MAPS);
             if let Err(e) = filter_objects_wo_terms(model) {
                 println!(
                     " [{}] {}",
@@ -263,6 +275,11 @@ pub fn render_jinja_template(
                     e.to_string().bold(),
                 );
             }
+        }
+        Templates::Owl => {
+            convert_model_types(model, &OWL_TYPE_MAPS);
+            attributes_to_pascal_case(model);
+            remove_default_prefixes(model);
         }
         Templates::PythonDataclass | Templates::PythonPydanticXML | Templates::PythonPydantic => {
             convert_astropy_types(model, &config);
@@ -315,10 +332,11 @@ pub fn render_jinja_template(
         Templates::Golang => env.get_template("golang.jinja")?,
         Templates::Julia => env.get_template("julia.jinja")?,
         Templates::Mermaid => env.get_template("mermaid.jinja")?,
+        Templates::Owl => env.get_template("owl.jinja")?,
         _ => {
             panic!(
                 "The template is not available as a Jinja Template and should not be used using the jinja exporter.
-                Instead, use the dedicated exporter in the DataModel struct."
+                Instead, use the dedicated exporter in the DataModel struct (e.g. `DataModel::json_ld_header`, DataModel::json_schema)."
             )
         }
     };
@@ -655,10 +673,13 @@ fn convert_astropy_types(model: &mut DataModel, config: &HashMap<String, String>
 ///
 /// A vector of prefix tuples (prefix, URI).
 fn get_prefixes(model: &mut DataModel) -> Vec<(String, String)> {
-    match &model.config {
+    let mut prefixes = match &model.config {
         Some(config) => config.prefixes().unwrap_or(vec![]),
         None => vec![],
-    }
+    };
+
+    prefixes.sort_by(|a, b| a.0.cmp(&b.0));
+    prefixes
 }
 
 /// Filters out objects from the model that do not have any terms.
@@ -856,6 +877,33 @@ fn has_union_types(model: &mut DataModel) -> bool {
         .objects
         .iter()
         .any(|o| o.attributes.iter().any(|a| a.dtypes.len() > 1))
+}
+
+/// Converts the attributes of each object in the model to PascalCase.
+///
+/// # Arguments
+///
+/// * `model` - The data model whose attributes are to be converted.
+fn attributes_to_pascal_case(model: &mut DataModel) {
+    for object in &mut model.objects {
+        object
+            .attributes
+            .iter_mut()
+            .for_each(|a| a.name = a.name.to_case(Case::Pascal));
+    }
+}
+
+/// Removes the default prefixes from the model.
+///
+/// # Arguments
+///
+/// * `model` - The data model whose prefixes are to be removed.
+fn remove_default_prefixes(model: &mut DataModel) {
+    if let Some(prefixes) = &mut model.config.as_mut().unwrap().prefixes {
+        prefixes.remove("xsd");
+        prefixes.remove("rdfs");
+        prefixes.remove("owl");
+    }
 }
 
 #[cfg(test)]
