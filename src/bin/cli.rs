@@ -379,6 +379,13 @@ fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
         }
         Templates::Linkml => serialize_linkml(model, args.output.as_ref())?,
         Templates::Internal => render_internal_schema(&model)?,
+        Templates::JsonLd => {
+            let root = match args.root {
+                Some(root) => Some(root),
+                None => None,
+            };
+            serde_json::to_string_pretty(&model.json_ld_header(root.as_deref())?).unwrap()
+        }
         _ => render_jinja_template(&args.template, &mut model, Some(&config))?,
     };
 
