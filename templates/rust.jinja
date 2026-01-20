@@ -164,6 +164,7 @@ pub fn default_{{ object.name | lower }}_jsonld_header() -> Option<JsonLdHeader>
     {%- endfor %}
 
     Some(JsonLdHeader { 
+        import: Vec::new(),
         context: Some(JsonLdContext::Object(context)), 
         id: Some(format!("{{ prefix }}:{{ object.name }}/{}", uuid::Uuid::new_v4())), 
         type_: Some(TypeOrVec::Multi(vec![
@@ -171,7 +172,7 @@ pub fn default_{{ object.name | lower }}_jsonld_header() -> Option<JsonLdHeader>
             {%- if object.term %}
             "{{ object.term }}".to_string(),
             {%- endif %}
-        ]))
+        ])),
     })
 }
 {% endmacro %}

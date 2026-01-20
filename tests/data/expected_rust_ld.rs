@@ -146,11 +146,12 @@ pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
     }));
 
     Some(JsonLdHeader {
+        import: Vec::new(),
         context: Some(JsonLdContext::Object(context)),
         id: Some(format!("tst:Test/{}", uuid::Uuid::new_v4())),
         type_: Some(TypeOrVec::Multi(vec![
             "tst:Test".to_string(),
-        ]))
+        ])),
     })
 }
 
@@ -179,11 +180,12 @@ pub fn default_test2_jsonld_header() -> Option<JsonLdHeader> {
     context.terms.insert("number".to_string(), TermDef::Simple("schema:one".to_string()));
 
     Some(JsonLdHeader {
+        import: Vec::new(),
         context: Some(JsonLdContext::Object(context)),
         id: Some(format!("tst:Test2/{}", uuid::Uuid::new_v4())),
         type_: Some(TypeOrVec::Multi(vec![
             "tst:Test2".to_string(),
-        ]))
+        ])),
     })
 }
 
