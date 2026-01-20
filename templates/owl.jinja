@@ -49,31 +49,41 @@
   rdfs:subClassOf
   {%- set first = true -%}
   {%- for attribute in object.attributes %}
-    {%- if not first %},{% endif %}
-    [
-      a owl:Restriction ;
-      owl:onProperty {{ object.name }}:{{ attribute.name }} ;
-      {%- if attribute.dtypes[0] in object_names %}
-      owl:allValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
-      {%- elif attribute.dtypes[0] in enum_names %}
-      owl:allValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
-      {%- else %}
-      owl:onDataRange {{ attribute.dtypes[0] }}
-      {%- endif %}
-      {%- if attribute.required and not attribute.multiple %}
-      ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
-      {%- elif not attribute.required and not attribute.multiple %}
-      ; owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger
-      {%- elif attribute.required and attribute.multiple %}
-      ; owl:someValuesFrom
-        {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names %}
-        {{ prefix }}:{{ attribute.dtypes[0] }}
-        {%- else %}
-        {{ attribute.dtypes[0] }}
+    {%- set is_obj = attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
+    {%- set emit =
+          (attribute.required and not attribute.multiple)
+       or (not attribute.required and not attribute.multiple)
+       or (attribute.required and attribute.multiple)
+    -%}
+
+    {%- if emit %}
+      {%- if not first %},{% endif %}
+      [
+        a owl:Restriction ;
+        owl:onProperty {{ object.name }}:{{ attribute.name }}
+        {%- if is_obj %}
+        {%- if attribute.required and not attribute.multiple %}
+        ; owl:onClass {{ prefix }}:{{ attribute.dtypes[0] }}
+        ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
+        {%- elif not attribute.required and not attribute.multiple %}
+        ; owl:onClass {{ prefix }}:{{ attribute.dtypes[0] }}
+        ; owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger
+        {%- elif attribute.required and attribute.multiple %}
+        ; owl:someValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
         {%- endif %}
-      {%- endif %}
-    ]
-    {%- set first = false -%}
+        {%- else %}
+        {%- if attribute.required and not attribute.multiple %}
+        ; owl:cardinality "1"^^xsd:nonNegativeInteger
+        {%- elif not attribute.required and not attribute.multiple %}
+        ; owl:maxCardinality "1"^^xsd:nonNegativeInteger
+        {%- elif attribute.required and attribute.multiple %}
+        ; owl:someValuesFrom rdfs:Literal
+        {%- endif %}
+        {%- endif %}
+      ]
+      {%- set first = false -%}
+    {%- endif %}
+
   {%- endfor %} .
 
 #########################################################
@@ -127,7 +137,13 @@
 # Enum: {{ enum.name }}
 #########################################################
 
-{{ prefix }}:{{ enum.name }} a owl:Class
+{{ prefix }}:{{ enum.name }}
+  a owl:Class ;
+  owl:oneOf (
+    {%- for key, value in enum.mappings | dictsort %}
+    {{ enum.name }}:{{ key }}
+    {%- endfor %}
+  )
 {%- if enum.docstring %}
   ; rdfs:comment "{{ enum.docstring | replace('\n',' ') | replace('"','\\"') }}"
 {%- endif %} .
@@ -135,9 +151,10 @@
 {%- for key, value in enum.mappings | dictsort %}
 
 {{ enum.name }}:{{ key }}
-  a owl:NamedIndividual , {{ prefix }}:{{ enum.name }} ;
-  rdfs:label "{{ value | replace('"','\\"') }}" .
+  a owl:NamedIndividual ;
+  rdfs:label "{{ value | replace('"','\\"') }}" ;
+  {{ prefix }}:enumKey "{{ key }}" ;
+  {{ prefix }}:enumValue "{{ value | replace('"','\\"') }}" .
 
 {%- endfor %}
-
 {%- endfor %}

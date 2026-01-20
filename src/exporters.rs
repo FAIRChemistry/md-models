@@ -278,7 +278,6 @@ pub fn render_jinja_template(
         }
         Templates::Owl => {
             convert_model_types(model, &OWL_TYPE_MAPS);
-            attributes_to_pascal_case(model);
             remove_default_prefixes(model);
         }
         Templates::PythonDataclass | Templates::PythonPydanticXML | Templates::PythonPydantic => {
@@ -879,20 +878,6 @@ fn has_union_types(model: &mut DataModel) -> bool {
         .any(|o| o.attributes.iter().any(|a| a.dtypes.len() > 1))
 }
 
-/// Converts the attributes of each object in the model to PascalCase.
-///
-/// # Arguments
-///
-/// * `model` - The data model whose attributes are to be converted.
-fn attributes_to_pascal_case(model: &mut DataModel) {
-    for object in &mut model.objects {
-        object
-            .attributes
-            .iter_mut()
-            .for_each(|a| a.name = a.name.to_case(Case::Pascal));
-    }
-}
-
 /// Removes the default prefixes from the model.
 ///
 /// # Arguments
@@ -954,6 +939,17 @@ mod tests {
 
         // Assert
         let expected = fs::read_to_string("tests/data/expected_shacl.ttl")
+            .expect("Could not read expected file");
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_convert_to_owl() {
+        // Arrange
+        let rendered = build_and_convert("tests/data/model.md", Templates::Owl, None);
+
+        // Assert
+        let expected = fs::read_to_string("tests/data/expected_owl.ttl")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
     }
