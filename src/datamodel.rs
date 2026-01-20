@@ -321,7 +321,7 @@ impl DataModel {
                 continue;
             }
             if let Some(duplicate_obj) = self.objects.iter().find(|o| o.name == other_obj.name) {
-                if !duplicate_obj.same_hash(&other_obj) {
+                if !duplicate_obj.same_hash(other_obj) {
                     error!(
                         "[{}] {}: Object {} is defined more than once.",
                         "Merge".bold(),
@@ -338,7 +338,7 @@ impl DataModel {
                 continue;
             }
             if let Some(duplicate_enm) = self.enums.iter().find(|e| e.name == other_enm.name) {
-                if !duplicate_enm.same_hash(&other_enm) {
+                if !duplicate_enm.same_hash(other_enm) {
                     error!(
                         "[{}] {}: Enumeration {} is defined more than once.",
                         "Merge".bold(),

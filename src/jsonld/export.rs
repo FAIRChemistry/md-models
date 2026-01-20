@@ -186,8 +186,7 @@ fn build_detailed_term_def(
 ) -> TermDef {
     // Determine type using the first dtype, falling back to parent_object if needed
     let object_type = attr
-        .dtypes
-        .get(0)
+        .dtypes.first()
         .and_then(|dtype| find_sub_object(graph, dtype))
         .map(|_idx| "@id".to_string());
 

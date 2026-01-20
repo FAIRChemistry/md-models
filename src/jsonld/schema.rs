@@ -61,8 +61,10 @@ impl JsonLdHeader {
         let import_url = import_url.into();
         match self.context.take() {
             None => {
-                let mut obj = SimpleContext::default();
-                obj.import = Some(import_url);
+                let obj = SimpleContext {
+                    import: Some(import_url),
+                    ..Default::default()
+                };
                 self.context = Some(JsonLdContext::Object(obj));
             }
             Some(JsonLdContext::Object(mut obj)) => {
@@ -70,22 +72,24 @@ impl JsonLdHeader {
                     obj.import = Some(import_url);
                     self.context = Some(JsonLdContext::Object(obj));
                 } else {
-                    let mut arr = Vec::new();
-                    arr.push(JsonLdContext::Object(obj));
-                    arr.push(JsonLdContext::Object(SimpleContext {
-                        import: Some(import_url),
-                        ..Default::default()
-                    }));
+                    let arr = vec![
+                        JsonLdContext::Object(obj),
+                        JsonLdContext::Object(SimpleContext {
+                            import: Some(import_url),
+                            ..Default::default()
+                        }),
+                    ];
                     self.context = Some(JsonLdContext::Array(arr));
                 }
             }
             Some(JsonLdContext::Iri(iri)) => {
-                let mut arr = Vec::new();
-                arr.push(JsonLdContext::Iri(iri));
-                arr.push(JsonLdContext::Object(SimpleContext {
-                    import: Some(import_url),
-                    ..Default::default()
-                }));
+                let arr = vec![
+                    JsonLdContext::Iri(iri),
+                    JsonLdContext::Object(SimpleContext {
+                        import: Some(import_url),
+                        ..Default::default()
+                    }),
+                ];
                 self.context = Some(JsonLdContext::Array(arr));
             }
             Some(JsonLdContext::Array(mut arr)) => {
@@ -117,6 +121,7 @@ pub enum TypeOrVec {
 /// or combining several contexts in a single document.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum JsonLdContext {
     /// The context is a remote document specified by an IRI.
     Iri(String),
