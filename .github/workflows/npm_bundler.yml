@@ -3,6 +3,7 @@ name: Publish to NPM (Bundler)
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -42,5 +43,3 @@ jobs:
           npm install --package-lock-only
           npm ci
           npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
