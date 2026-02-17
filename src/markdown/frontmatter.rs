@@ -186,8 +186,8 @@ impl ImportType {
         } else {
             path.to_string()
         };
-        let data = std::fs::read_to_string(path)?;
-        let model = DataModel::from_markdown_string(&data)?;
+        let path = std::fs::canonicalize(path)?;
+        let model = DataModel::from_markdown(&path)?;
         Ok(model)
     }
 }
