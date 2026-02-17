@@ -48,7 +48,7 @@ variantly = "0.4.0"
 case = "1.0.0"
 
 [features]
-default = []
+default = ["openai"]
 python = ["pyo3"]
 wasm = ["wasm-bindgen", "serde-wasm-bindgen", "tsify-next"]
 openai = ["openai-api-rs"]
@@ -59,6 +59,7 @@ minijinja-embed = "2.0.1"
 [[bin]]
 name = "md-models"
 path = "src/bin/cli.rs"
+required-features = ["openai"]
 
 [dev-dependencies]
 assert_cmd = "2.0.14"
