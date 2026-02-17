@@ -30,7 +30,6 @@ use mdmodels::{
     exporters::{render_jinja_template, Templates},
     json::validation::validate_json,
     linkml::export::serialize_linkml,
-    llm::extraction::query_openai,
     pipeline::process_pipeline,
 };
 use serde::{Deserialize, Serialize};
@@ -43,6 +42,9 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
+
+#[cfg(feature = "openai")]
+use mdmodels::llm::extraction::query_openai;
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
@@ -236,7 +238,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Validate(args) => validate(args),
         Commands::Convert(args) => convert(args),
         Commands::Pipeline(args) => process_pipeline(&args.input),
+        #[cfg(feature = "openai")]
         Commands::Extract(args) => query_llm(args),
+        #[cfg(not(feature = "openai"))]
+        Commands::Extract(_) => Err("OpenAI support is not enabled. Please enable the 'openai' feature using the --features openai flag when building the package.".into()),
         Commands::Dataset(args) => match args.command {
             DatasetCommands::Validate(args) => validate_ds(args),
         },
@@ -306,6 +311,7 @@ fn print_validation_result(result: bool) {
     println!(" └── {message}\n");
 }
 
+#[cfg(feature = "openai")]
 fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
     let path = resolve_input_path(&args.model);
     let model = DataModel::from_markdown(&path)?;
