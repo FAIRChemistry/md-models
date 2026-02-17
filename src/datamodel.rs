@@ -74,7 +74,7 @@ const MERGE_IGNORE_TYPES: &[&str] = &["UnitDefinition", "BaseUnit", "UnitType"];
 // * `json_schema_all` - Generate JSON schemas for all objects in the data model
 // * `internal_schema` - Generate an internal schema from the data model
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct DataModel {

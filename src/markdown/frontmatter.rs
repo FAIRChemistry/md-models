@@ -36,7 +36,7 @@ use crate::prelude::DataModel;
 
 /// Represents the front matter data of a markdown file.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct FrontMatter {
@@ -115,7 +115,7 @@ impl FrontMatter {
 }
 
 #[derive(Debug, Serialize, Clone, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 /// Represents different types of model imports.

@@ -36,7 +36,7 @@ use tsify_next::Tsify;
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 /// Represents an object with a name, attributes, docstring, and an optional term.
@@ -204,7 +204,7 @@ impl Hash for Object {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 /// Represents an enumeration with a name and mappings.

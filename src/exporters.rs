@@ -114,7 +114,7 @@ lazy_static! {
 
 /// Enumeration of available templates.
 #[derive(Debug, ValueEnum, Clone, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(eq, eq_int))]
+#[cfg_attr(feature = "python", pyclass(eq, eq_int, from_py_object))]
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub enum Templates {
     /// XML Schema

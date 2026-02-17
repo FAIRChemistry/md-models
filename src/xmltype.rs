@@ -32,7 +32,7 @@ use tsify_next::Tsify;
 
 /// Represents an XML type, either an attribute or an element.
 #[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "python", pyclass(from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub enum XMLType {

@@ -44,7 +44,7 @@ use tsify_next::Tsify;
 /// - Custom options via the `Other` variant
 ///
 #[derive(Debug, Clone, PartialEq, EnumString, Display)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 #[derive(Serialize, Deserialize)]
@@ -211,7 +211,7 @@ impl AttrOption {
 /// which is useful for serialization/deserialization and when working
 /// with untyped data.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(get_all))]
+#[cfg_attr(feature = "python", pyclass(get_all, from_py_object))]
 #[cfg_attr(feature = "wasm", derive(Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi))]
 pub struct RawOption {
