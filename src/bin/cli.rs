@@ -24,7 +24,7 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use log::error;
-use mdmodels::{
+use mdmodels_core::{
     datamodel::DataModel,
     error::DataModelError,
     exporters::{render_jinja_template, Templates},

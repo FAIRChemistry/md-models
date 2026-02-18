@@ -84,7 +84,7 @@ pub mod linkml {
 }
 
 #[cfg(feature = "python")]
-#[pymodule]
+#[pymodule(name = "mdmodels_core")]
 fn mdmodels_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("__all__", ["DataModel", "Templates"])?;

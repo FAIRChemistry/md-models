@@ -2,12 +2,13 @@
 name = "mdmodels"
 authors = ["Jan Range <jan.range@simtech.uni-stuttgart.de>"]
 description = "A tool to generate models, code and schemas from markdown files"
-version = "0.2.8"
+version = "0.2.9"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/FAIRChemistry/md-models"
 
 [lib]
+name = "mdmodels_core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

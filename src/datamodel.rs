@@ -432,7 +432,7 @@ impl DataModel {
     ///
     /// ```
     /// use std::path::Path;
-    /// use mdmodels::datamodel::DataModel;
+    /// use mdmodels_core::datamodel::DataModel;
     ///
     /// let path = Path::new("tests/data/model.md");
     /// let model = DataModel::from_markdown(path);
@@ -454,7 +454,7 @@ impl DataModel {
     /// ```
     /// use std::path::Path;
     /// use std::fs;
-    /// use mdmodels::datamodel::DataModel;
+    /// use mdmodels_core::datamodel::DataModel;
     ///
     /// let path = Path::new("tests/data/model.md");
     /// let content = fs::read_to_string(path).unwrap();

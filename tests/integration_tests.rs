@@ -21,11 +21,11 @@
  *
  */
 
-extern crate mdmodels;
+extern crate mdmodels_core;
 
 #[cfg(test)]
 mod tests {
-    use mdmodels::{self, datamodel::DataModel};
+    use mdmodels_core::{self, datamodel::DataModel};
     use pretty_assertions::assert_eq;
     use serde_json::Value;
     use std::path::Path;
@@ -136,7 +136,7 @@ mod tests {
     #[should_panic]
     fn test_json_schema_no_objects() {
         // Arrange
-        let model = mdmodels::datamodel::DataModel::new(None, None);
+        let model = mdmodels_core::datamodel::DataModel::new(None, None);
 
         // Act
         model
@@ -214,7 +214,7 @@ mod tests {
     #[should_panic]
     fn test_internal_schema_no_objects() {
         // Arrange
-        let model = mdmodels::datamodel::DataModel::new(None, None);
+        let model = mdmodels_core::datamodel::DataModel::new(None, None);
 
         // Act
         model.internal_schema();
