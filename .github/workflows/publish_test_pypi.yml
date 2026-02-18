@@ -41,8 +41,10 @@ jobs:
           manylinux: auto
           before-script-linux: |
             # Set the correct linker for aarch64
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
-            export CC=aarch64-linux-gnu-gcc
+            if [[ "${{ matrix.platform.target }}" == "aarch64" ]]; then
+                export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
+                export CC=aarch64-linux-gnu-gcc
+            fi
 
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
