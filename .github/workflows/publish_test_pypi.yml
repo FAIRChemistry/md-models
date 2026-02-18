@@ -40,6 +40,10 @@ jobs:
           sccache: "true"
           manylinux: auto
           before-script-linux: |
+            # Set the correct linker for aarch64
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
+            export CC=aarch64-linux-gnu-gcc
+
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
