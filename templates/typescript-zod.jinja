@@ -30,6 +30,12 @@
  */
 
 
+{# Renders an attribute name as an object key, quoting it when it is not a plain #}
+{# identifier (e.g. when it contains a dash). Quoting preserves the wire name. #}
+{% macro key(attr) -%}
+{%- if (attr.name | to_identifier) != attr.name -%}"{{ attr.name }}"{%- else -%}{{ attr.name }}{%- endif -%}
+{%- endmacro %}
+
 {% macro is_multiple(attr) %}
   {%- if attr.multiple -%}[]{%- endif -%}
 {% endmacro %}
@@ -115,7 +121,7 @@ const BaseSchema = z.object({});
 {%- endif %}
 export const {{ object.name }}Schema = z.lazy(() => BaseSchema.extend({
   {%- for attr in object.attributes %}
-  {{ attr.name }}: {{ wrap_zod_type(get_type(attr), attr) }}{% if attr.docstring %}.describe(`
+  {{ key(attr) }}: {{ wrap_zod_type(get_type(attr), attr) }}{% if attr.docstring %}.describe(`
     {{ wrap(attr.docstring, 70, "", "    ", None) }}
   `){% endif %},
   {%- endfor %}

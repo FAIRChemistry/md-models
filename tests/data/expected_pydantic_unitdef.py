@@ -104,6 +104,7 @@ class UnitTest(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
         validate_assignment = True,
+        populate_by_name = True,
     ) # type: ignore
 
     units: list[UnitDefinitionAnnot] = Field(

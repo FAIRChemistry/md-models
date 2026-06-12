@@ -32,7 +32,7 @@
     {%- if attr.xml.wrapped and attr.multiple and attr.dtypes[0] in object_names and wrap_index is not none -%}
         {{ attr.xml.wrapped[wrap_index] | cap_first }}
     {%- elif attr.dtypes | length > 1 -%}
-        {{ parent_name }}{{ attr.name | capitalize }}Type
+        {{ parent_name }}{{ attr.name | to_identifier | capitalize }}Type
     {%- elif attr.dtypes[0] in object_names -%}
         {{ attr.dtypes[0] }}
     {%- else -%}
@@ -52,7 +52,7 @@
 {# Adds builder attribute for handling multiple values in derive_builder #}
 {% macro array_builder_setter(attr) %}
     {%- if attr.multiple -%}
-    #[builder(setter(into, each(name = "to_{{ attr.name }}")))]
+    #[builder(setter(into, each(name = "to_{{ attr.name | to_identifier }}")))]
     {%- endif -%}
 {% endmacro %}
 
@@ -66,7 +66,7 @@
 {# Determines the appropriate builder attribute for a field #}
 {% macro get_builder_attribute(attr) %}
     {%- if attr.multiple -%}
-        #[builder(default, setter(into, each(name = "to_{{ attr.name }}")))]
+        #[builder(default, setter(into, each(name = "to_{{ attr.name | to_identifier }}")))]
     {%- else -%}
         {%- if attr.dtypes | length > 1 -%}
             #[builder(default, setter(into))]
@@ -80,14 +80,28 @@
     {%- endif -%}
 {% endmacro %}
 
-{# Determines the appropriate serde attribute for optional fields #}
+{# Determines the appropriate serde attribute for optional fields. #}
+{# When the attribute name is not a valid Rust identifier (e.g. it contains a #}
+{# dash like `coupling-scheme`), a `rename` is emitted so the original name is #}
+{# used for both serialization and deserialization. #}
 {% macro get_serde_attribute(attr) %}
+    {%- set ident = attr.name | to_identifier -%}
     {%- if attr.required is false -%}
         {%- if attr.multiple -%}
+            {%- if ident != attr.name -%}
+            #[serde(rename = "{{ attr.name }}", skip_serializing_if = "Vec::is_empty")]
+            {%- else -%}
             #[serde(skip_serializing_if = "Vec::is_empty")]
+            {%- endif -%}
         {%- else -%}
+            {%- if ident != attr.name -%}
+            #[serde(rename = "{{ attr.name }}", skip_serializing_if = "Option::is_none")]
+            {%- else -%}
             #[serde(skip_serializing_if = "Option::is_none")]
+            {%- endif -%}
         {%- endif -%}
+    {%- elif ident != attr.name -%}
+        #[serde(rename = "{{ attr.name }}")]
     {%- endif -%}
 {% endmacro %}
 
@@ -208,7 +222,7 @@ pub struct {{ object.name }} {
    pub jsonld: Option<JsonLdHeader>,
    {% endif %}
    {%- for attr in object.attributes %}
-   pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names, None) }},
+   pub {{ attr.name | to_identifier }}: {{ wrap_type(attr, object.name, object_names, None) }},
    {%- endfor %}
    {%- if "jsonld" in config %}
 
@@ -228,7 +242,10 @@ impl<'de> Deserialize<'de> for {{ object.name }} {
         #[serde(rename="{{ object.name }}")]
         struct Helper {
             {%- for attr in object.attributes %}
-            pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names, 0) }},
+            {%- if (attr.name | to_identifier) != attr.name %}
+            #[serde(rename = "{{ attr.name }}")]
+            {%- endif %}
+            pub {{ attr.name | to_identifier }}: {{ wrap_type(attr, object.name, object_names, 0) }},
             {%- endfor %}
         }
 
@@ -249,7 +266,7 @@ impl<'de> Deserialize<'de> for {{ object.name }} {
 
         Ok(Self {
             {%- for attr in object.attributes %}
-            {{ attr.name }},
+            {{ attr.name | to_identifier }},
             {%- endfor %}
         })
     }
@@ -290,7 +307,7 @@ pub struct {{ object.name }} {
     {{ get_serde_attribute(attr) }}
     {{ get_builder_attribute(attr) }}
     {{ get_derivative_attribute(attr) }}
-    pub {{ attr.name }}: {{ wrap_type(attr, object.name, object_names) }},
+    pub {{ attr.name | to_identifier }}: {{ wrap_type(attr, object.name, object_names) }},
     {%- endfor %}
 
     {%- if "jsonld" in config %}
@@ -328,7 +345,7 @@ pub enum {{ enum.name }} {
 /// Union type for {{ object.name }}.{{ attr.name }}
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub enum {{ object.name }}{{ attr.name | capitalize }}Type {
+pub enum {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type {
     {%- for dtype in attr.dtypes %}
     {%- if dtype in object_names %}
     Object({{ dtype }}),

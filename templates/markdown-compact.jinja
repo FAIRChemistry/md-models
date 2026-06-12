@@ -8,11 +8,14 @@
 {% endif %}
 {%- for attribute in object.attributes %}
 - <details>
-  <summary>{{attribute.name}}</summary>
+  <summary>{% if attribute.required %}__{{ attribute.name }}__{% else %}{{ attribute.name }}{% endif %}</summary>
 
-  - Type: {% for dtype in attribute.dtypes -%} {{dtype}}{% if not loop.last %}, {% endif %}{% endfor -%}
+  - Type: {% for dtype in attribute.dtypes -%} {{dtype}}{% if not loop.last %}, {% endif %}{% endfor %}{%- if attribute.multiple %}[]{% endif -%}
   {%- if attribute.term %}
   - Term: {{ attribute.term }}
+  {%- endif %}
+  {%- if attribute.default is defined and attribute.default is not none %}
+  - Default: {% if attribute.default is string %}{{ trim(attribute.default, '"') }}{% else %}{{ attribute.default }}{% endif %}
   {%- endif %}
   {%- for option in attribute.options %}
   - {{ option.key }}: {{ option.value }}

@@ -90,12 +90,31 @@ Union[
 {%- if object.name == name -%}
         self,
         {%- for attr in object.attributes %}
-        {{ attr.name }}: {{ get_type(attr) }}{{ get_default(attr) }},
+        {{ attr.name | to_identifier }}: {{ get_type(attr) }}{{ get_default(attr) }},
         {%- endfor %}
         **kwargs,
 {%- endif -%}
 {%- endfor -%}
 {%- endmacro -%}
+
+{#
+    This macro returns only the default value of an attribute (without the
+    leading ` = `). Used when the default must be embedded inside a
+    `field(default=...)` call, e.g. when a dashed name needs a `field_name` alias.
+#}
+{% macro default_value_only(attr) -%}
+{%- if attr.multiple -%}
+[]
+{%- elif 'default' in attr -%}
+{%- if attr.default is true or attr.default is false -%}
+{{ attr.default | capitalize }}
+{%- else -%}
+{{ default_value(attr) }}
+{%- endif -%}
+{%- elif attr.required is false -%}
+None
+{%- endif -%}
+{%- endmacro %}
 
 {#
     This macro is used to determine the default of an attribute
@@ -122,7 +141,7 @@ Union[
 {%- for object in objects -%}
 {%- if object.name == name %}
         {%- for attr in object.attributes %}
-            "{{ attr.name }}": {{ attr.name }}{% if not loop.last %}, {% endif %}
+            "{{ attr.name | to_identifier }}": {{ attr.name | to_identifier }}{% if not loop.last %}, {% endif %}
         {%- endfor %}
 {%- endif %}
 {%- endfor %}

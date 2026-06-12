@@ -1,4 +1,13 @@
 {#
+    This macro renders an attribute name as an object key, quoting it when it is
+    not a plain identifier (e.g. when it contains a dash like `coupling-scheme`).
+    Quoting preserves the original wire name without needing an alias.
+#}
+{% macro key(attr) -%}
+{%- if (attr.name | to_identifier) != attr.name -%}"{{ attr.name }}"{%- else -%}{{ attr.name }}{%- endif -%}
+{%- endmacro %}
+
+{#
     This macro determines whether the type is multiple
 #}
 {% macro is_multiple(attr) %}
@@ -86,13 +95,13 @@ export interface JsonLd {
 **/
 export interface {{ object.name }} extends JsonLd {
   {%- for attr in object.attributes %}
-  {{ attr.name }}{{ is_optional(attr) }}: {{ get_type(attr) }}{{ is_multiple(attr) }} {%- if attr.required is false %} | null{% endif %};
+  {{ key(attr) }}{{ is_optional(attr) }}: {{ get_type(attr) }}{{ is_multiple(attr) }} {%- if attr.required is false %} | null{% endif %};
   {%- endfor %}
 }
 
 export const {{ object.name }}Codec = D.lazy("{{ object.name }}", () => D.struct({
   {%- for attr in object.attributes %}
-    {{ attr.name }}: {{ wrap_codec_type(get_type(attr), attr) }},
+    {{ key(attr) }}: {{ wrap_codec_type(get_type(attr), attr) }},
   {%- endfor %}
 }));
 

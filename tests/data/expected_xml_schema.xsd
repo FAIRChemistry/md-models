@@ -11,13 +11,13 @@
             <xs:element name="test2">
                 <xs:complexType>
                     <xs:sequence>
-                        <xs:element name="Test2" type="Test2Type" maxOccurs="unbounded"/>
+                        <xs:element name="Test2" type="Test2Type" minOccurs="0" maxOccurs="unbounded"/>
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
             <xs:element name="ontology" type="OntologyType"/>
         </xs:sequence>
-        <xs:attribute name="name" type="xs:string"  use="required" default="2.0">
+        <xs:attribute name="name" type="xs:string"  use="required">
             <xs:annotation>
                 <xs:documentation>
                     The name of the test. This is a unique identifier that helps track
@@ -26,13 +26,13 @@
                     conventions.
                 </xs:documentation>
             </xs:annotation>
-        </xs:attribute><xs:attribute name="number" type="xs:float" default="1.0"/>
+        </xs:attribute><xs:attribute name="number" type="xs:float"  default="1.0"/>
     </xs:complexType>
 
     <!-- Test2 Definition -->
     <xs:complexType name="Test2Type">
         <xs:sequence>
-            <xs:element name="names" type="xs:string"  maxOccurs="unbounded"/>
+            <xs:element name="names" type="xs:string"  minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence><xs:attribute name="number" type="xs:float"/>
     </xs:complexType>
 

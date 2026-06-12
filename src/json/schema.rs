@@ -73,6 +73,8 @@ pub struct SchemaObject {
     pub definitions: BTreeMap<String, SchemaType>,
     #[serde(default)]
     pub required: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub optional: Vec<String>,
     #[serde(
         rename = "additionalProperties",
         default = "default_false",
@@ -99,7 +101,7 @@ pub struct EnumObject {
     pub enum_values: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Property {
     #[serde(alias = "name", skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -113,6 +115,19 @@ pub struct Property {
     pub term: Option<String>,
     #[serde(rename = "$ref", skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub properties: BTreeMap<String, Property>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub optional: Vec<String>,
+    #[serde(
+        rename = "additionalProperties",
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_optional_additional_properties"
+    )]
+    pub additional_properties: Option<bool>,
     #[serde(flatten)]
     pub options: HashMap<String, PrimitiveType>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -135,8 +150,7 @@ pub enum Item {
     ReferenceItem(ReferenceItemType),
     OneOfItem(OneOfItemType),
     AnyOfItem(AnyOfItemType),
-    DataTypeItem(DataTypeItemType),
-    // TODO: Add PropertyItem?
+    PropertyItem(Box<Property>),
 }
 
 impl Item {
@@ -155,8 +169,33 @@ impl Item {
                 .iter()
                 .flat_map(|item| item.get_types())
                 .collect(),
-            Item::DataTypeItem(data_type_item) => vec![data_type_item.dtype.to_string()],
+            Item::PropertyItem(property) => property.get_types(),
         }
+    }
+
+    pub(crate) fn as_property(&self) -> Option<&Property> {
+        match self {
+            Item::PropertyItem(property) => Some(property),
+            _ => None,
+        }
+    }
+}
+
+impl Property {
+    pub(crate) fn get_types(&self) -> Vec<String> {
+        if let Some(reference) = &self.reference {
+            return vec![reference.clone()];
+        }
+
+        if let Some(dtype) = &self.dtype {
+            return vec![dtype.to_string()];
+        }
+
+        Vec::new()
+    }
+
+    pub(crate) fn has_inline_object(&self) -> bool {
+        !self.properties.is_empty()
     }
 }
 
@@ -169,7 +208,7 @@ impl Serialize for Item {
             Item::ReferenceItem(ref_item) => ref_item.serialize(serializer),
             Item::OneOfItem(one_of_item) => one_of_item.serialize(serializer),
             Item::AnyOfItem(any_of_item) => any_of_item.serialize(serializer),
-            Item::DataTypeItem(data_type_item) => data_type_item.serialize(serializer),
+            Item::PropertyItem(property) => property.serialize(serializer),
         }
     }
 }
@@ -190,12 +229,6 @@ pub struct OneOfItemType {
 pub struct AnyOfItemType {
     #[serde(rename = "anyOf")]
     pub any_of: Vec<Item>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct DataTypeItemType {
-    #[serde(rename = "type")]
-    pub dtype: DataType,
 }
 
 /// Represents various data types that can be used in a JSON schema.
@@ -287,7 +320,7 @@ impl TryFrom<&String> for DataType {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum PrimitiveType {
     String(String),
@@ -399,6 +432,58 @@ where
     deserializer.deserialize_str(TitleVisitor)
 }
 
+fn deserialize_optional_additional_properties<'de, D>(
+    deserializer: D,
+) -> Result<Option<bool>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use serde_json::Value;
+    use std::fmt;
+
+    struct OptionalAdditionalPropertiesVisitor;
+
+    impl<'de> Visitor<'de> for OptionalAdditionalPropertiesVisitor {
+        type Value = Option<bool>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a boolean or an object")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value))
+        }
+
+        fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+        where
+            M: de::MapAccess<'de>,
+        {
+            while map.next_entry::<String, Value>()?.is_some() {}
+            Ok(Some(true))
+        }
+    }
+
+    deserializer.deserialize_any(OptionalAdditionalPropertiesVisitor)
+}
+
 fn deserialize_additional_properties<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -442,6 +527,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     /// Tests the conversion from string to DataType enum variants.
@@ -495,5 +581,69 @@ mod tests {
 
         let schema3: SchemaObject = serde_json::from_str(json_no_whitespace).unwrap();
         assert_eq!(schema3.title, "MyTitle");
+    }
+
+    #[test]
+    fn test_nested_property_deserialization() {
+        let property_json = json!({
+            "optional": ["name"],
+            "properties": {
+                "display_standard_values": {
+                    "default": false,
+                    "type": "boolean"
+                },
+                "filter": {
+                    "optional": ["type"],
+                    "properties": {
+                        "limit": {
+                            "default": 1e-16,
+                            "exclusiveMinimum": 0,
+                            "type": "number"
+                        },
+                        "type": {
+                            "enum": ["QR1", "QR2"],
+                            "type": "string"
+                        }
+                    },
+                    "required": ["limit"],
+                    "type": "object"
+                }
+            },
+            "required": [],
+            "type": "object"
+        });
+
+        let property: Property = serde_json::from_value(property_json).unwrap();
+        assert_eq!(property.properties.len(), 2);
+        assert_eq!(property.optional, vec!["name"]);
+        assert!(property.properties.contains_key("filter"));
+
+        let filter = property.properties.get("filter").unwrap();
+        assert_eq!(filter.properties.len(), 2);
+        assert_eq!(filter.required, vec!["limit"]);
+    }
+
+    #[test]
+    fn test_array_items_with_inline_object() {
+        let property_json = json!({
+            "type": "array",
+            "items": {
+                "properties": {
+                    "name": { "type": "string" },
+                    "solver": { "type": "string" }
+                },
+                "required": ["name", "solver"],
+                "type": "object"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+        });
+
+        let property: Property = serde_json::from_value(property_json).unwrap();
+        let items = property.items.as_ref().unwrap();
+        let item_property = items.as_property().expect("expected inline object items");
+        assert_eq!(item_property.properties.len(), 2);
+        assert_eq!(property.options.get("minItems"), Some(&PrimitiveType::Number(1.0)));
+        assert_eq!(property.options.get("uniqueItems"), Some(&PrimitiveType::Boolean(true)));
     }
 }

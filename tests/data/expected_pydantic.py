@@ -103,6 +103,7 @@ class Test(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
         validate_assignment = True,
+        populate_by_name = True,
     ) # type: ignore
 
     name: str = Field(
@@ -258,6 +259,7 @@ class Test2(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
         validate_assignment = True,
+        populate_by_name = True,
     ) # type: ignore
 
     names: list[str] = Field(

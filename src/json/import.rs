@@ -29,10 +29,11 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use convert_case::{Case, Casing};
 use regex::Regex;
 
 use crate::{
-    attribute::Attribute,
+    attribute::{self, Attribute},
     object::{Enumeration, Object},
     option::AttrOption,
     prelude::DataModel,
@@ -52,8 +53,13 @@ impl TryFrom<SchemaObject> for DataModel {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(schema_obj: SchemaObject) -> Result<Self, Self::Error> {
-        let mut objects = vec![schema_obj.clone().try_into()?];
-        let mut enums = vec![];
+        let mut nested_objects = Vec::new();
+        let mut nested_enums = Vec::new();
+        let root =
+            schema_object_to_object(schema_obj.clone(), &mut nested_objects, &mut nested_enums)?;
+        let mut objects = vec![root];
+        objects.extend(nested_objects);
+        let mut enums = nested_enums;
 
         // Process all definitions in the schema
         for (name, definition) in schema_obj.definitions {
@@ -88,35 +94,7 @@ impl TryFrom<SchemaObject> for Object {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(schema_obj: SchemaObject) -> Result<Self, Self::Error> {
-        // Convert all properties to attributes
-        let mut attributes = schema_obj
-            .properties
-            .into_iter()
-            .map(|(name, property)| {
-                let mut attribute: Attribute = property.try_into()?;
-                attribute.name = name.clone();
-                Ok(attribute)
-            })
-            .collect::<Result<Vec<Attribute>, Self::Error>>()?;
-
-        // Mark required attributes
-        for required_attribute in schema_obj.required {
-            let attribute = attributes
-                .iter_mut()
-                .find(|attr| attr.name == required_attribute);
-            if let Some(attr) = attribute {
-                attr.required = true;
-            }
-        }
-
-        Ok(Object {
-            name: schema_obj.title,
-            attributes,
-            docstring: schema_obj.description.unwrap_or_default(),
-            term: None,
-            mixins: Vec::new(),
-            position: None,
-        })
+        schema_object_to_object(schema_obj, &mut Vec::new(), &mut Vec::new())
     }
 }
 
@@ -131,19 +109,190 @@ impl TryFrom<Property> for Attribute {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(property: Property) -> Result<Self, Self::Error> {
-        let is_array = property
-            .dtype
-            .as_ref()
-            .is_some_and(|dtype| dtype.is_array());
+        let name = property
+            .title
+            .clone()
+            .unwrap_or_else(|| "MISSING_TITLE".to_string());
+        property_to_attribute(&name, property, None, &mut Vec::new(), &mut Vec::new())
+    }
+}
 
-        let mut dtypes = HashSet::new();
+fn schema_object_to_object(
+    schema_obj: SchemaObject,
+    nested_objects: &mut Vec<Object>,
+    nested_enums: &mut Vec<Enumeration>,
+) -> Result<Object, Box<dyn std::error::Error>> {
+    let object_name = schema_obj.title.clone();
 
-        // Handle array items or direct data type
-        if is_array {
-            // If the property is an array, we need to handle the items
-            // which can be a reference, a oneOf, or a data type. We will
-            // ignore the dtype in this case.
-            if let Some(items) = &property.items {
+    let mut attributes = schema_obj
+        .properties
+        .into_iter()
+        .map(|(name, property)| {
+            let mut attribute =
+                property_to_attribute(&name, property, None, nested_objects, nested_enums)?;
+            attribute.name = name;
+            Ok(attribute)
+        })
+        .collect::<Result<Vec<Attribute>, Box<dyn std::error::Error>>>()?;
+
+    apply_required_fields(&mut attributes, &schema_obj.required);
+
+    Ok(Object {
+        name: object_name,
+        attributes,
+        docstring: schema_obj.description.unwrap_or_default(),
+        term: None,
+        mixins: Vec::new(),
+        position: None,
+    })
+}
+
+fn inline_object_to_object(
+    property_name: &str,
+    property: Property,
+    parent_property: Option<&str>,
+    nested_objects: &mut Vec<Object>,
+    nested_enums: &mut Vec<Enumeration>,
+) -> Result<Object, Box<dyn std::error::Error>> {
+    let object_name = synthetic_type_name(
+        property_name,
+        property.title.as_deref(),
+        parent_property,
+    );
+
+    let mut attributes = property
+        .properties
+        .into_iter()
+        .map(|(name, nested_property)| {
+            let mut attribute = property_to_attribute(
+                &name,
+                nested_property,
+                Some(property_name),
+                nested_objects,
+                nested_enums,
+            )?;
+            attribute.name = name;
+            Ok(attribute)
+        })
+        .collect::<Result<Vec<Attribute>, Box<dyn std::error::Error>>>()?;
+
+    apply_required_fields(&mut attributes, &property.required);
+
+    Ok(Object {
+        name: object_name,
+        attributes,
+        docstring: property.description.unwrap_or_default(),
+        term: property.term,
+        mixins: Vec::new(),
+        position: None,
+    })
+}
+
+fn apply_required_fields(attributes: &mut [Attribute], required: &[String]) {
+    for required_attribute in required {
+        if let Some(attr) = attributes.iter_mut().find(|attr| attr.name == *required_attribute) {
+            attr.required = true;
+        }
+    }
+}
+
+fn synthetic_type_name(
+    property_name: &str,
+    title: Option<&str>,
+    parent_property: Option<&str>,
+) -> String {
+    let base = title
+        .filter(|value| !value.is_empty())
+        .map(|value| value.chars().filter(|c| !c.is_whitespace()).collect::<String>())
+        .unwrap_or_else(|| property_name.to_case(Case::Pascal));
+
+    match parent_property {
+        Some(parent) => format!("{}{}", parent.to_case(Case::Pascal), base),
+        None => base,
+    }
+}
+
+fn property_to_attribute(
+    property_name: &str,
+    property: Property,
+    parent_property: Option<&str>,
+    nested_objects: &mut Vec<Object>,
+    nested_enums: &mut Vec<Enumeration>,
+) -> Result<Attribute, Box<dyn std::error::Error>> {
+    if property.has_inline_object() {
+        let docstring = property.description.clone().unwrap_or_default();
+        let term = property.term.clone();
+        let options = parse_options(&property.options)?;
+        let object = inline_object_to_object(
+            property_name,
+            property,
+            parent_property,
+            nested_objects,
+            nested_enums,
+        )?;
+        let type_name = object.name.clone();
+        nested_objects.push(object);
+
+        return Ok(Attribute {
+            name: property_name.to_string(),
+            is_array: false,
+            dtypes: vec![type_name],
+            is_id: false,
+            docstring,
+            options,
+            term,
+            required: false,
+            default: None,
+            xml: None,
+            is_enum: false,
+            position: None,
+            import_prefix: None,
+        });
+    }
+
+    let is_array = property
+        .dtype
+        .as_ref()
+        .is_some_and(|dtype| dtype.is_array());
+
+    let mut dtypes = HashSet::new();
+    let mut is_enum = false;
+
+    if is_array {
+        if let Some(items) = &property.items {
+            if let Some(item_property) = items.as_property() {
+                if item_property.has_inline_object() {
+                    let object = inline_object_to_object(
+                        property_name,
+                        item_property.clone(),
+                        parent_property,
+                        nested_objects,
+                        nested_enums,
+                    )?;
+                    let type_name = object.name.clone();
+                    nested_objects.push(object);
+                    dtypes.insert(type_name);
+                } else if let Some(values) = enum_values(item_property) {
+                    // Array of inline enum values: synthesize a named enumeration.
+                    let enum_name = make_inline_enum(
+                        property_name,
+                        parent_property,
+                        values,
+                        item_property.description.as_deref(),
+                        nested_enums,
+                    );
+                    dtypes.insert(enum_name);
+                    is_enum = true;
+                } else {
+                    dtypes.extend(
+                        items
+                            .get_types()
+                            .into_iter()
+                            .map(extract_reference)
+                            .collect::<Result<Vec<String>, String>>()?,
+                    );
+                }
+            } else {
                 dtypes.extend(
                     items
                         .get_types()
@@ -152,61 +301,73 @@ impl TryFrom<Property> for Attribute {
                         .collect::<Result<Vec<String>, String>>()?,
                 );
             }
-        } else if let Some(dtype) = &property.dtype {
-            // If the property is not an array, we can just add the dtype
-            dtypes.insert(extract_reference(dtype.to_string())?);
         }
-
-        // Add reference if present
-        if let Some(reference) = &property.reference {
-            dtypes.insert(extract_reference(reference.clone())?);
-        }
-
-        // Process oneOf items
-        if let Some(one_of) = property.one_of {
-            for item in one_of.iter() {
-                dtypes.extend(
-                    item.get_types()
-                        .into_iter()
-                        .map(extract_reference)
-                        .collect::<Result<Vec<String>, String>>()?,
-                );
-            }
-        }
-
-        if let Some(all_of) = property.all_of {
-            if all_of.len() == 1 {
-                dtypes.extend(
-                    all_of[0]
-                        .get_types()
-                        .into_iter()
-                        .map(extract_reference)
-                        .collect::<Result<Vec<String>, String>>()?,
-                );
-            } else {
-                return Err("allOf with multiple items is not supported yet".into());
-            }
-        }
-
-        Ok(Attribute {
-            name: property.title.unwrap_or("MISSING_TITLE".to_string()),
-            is_array,
-            dtypes: dtypes
-                .into_iter()
-                .filter(|dtype| !IGNORE_TYPES.contains(&dtype.as_str()))
-                .collect::<Vec<String>>(),
-            is_id: false,
-            docstring: property.description.unwrap_or_default(),
-            options: parse_options(&property.options)?,
-            term: property.term,
-            required: false,
-            default: None,
-            xml: None,
-            is_enum: false,
-            position: None,
-            import_prefix: None,
-        })
+    } else if let Some(values) = enum_values(&property) {
+        // Inline enum values (e.g. `{ "type": "string", "enum": [...] }`) are
+        // converted into a named enumeration instead of being flattened to a plain
+        // string, so the allowed values are preserved.
+        let enum_name = make_inline_enum(
+            property_name,
+            parent_property,
+            values,
+            property.description.as_deref(),
+            nested_enums,
+        );
+        dtypes.insert(enum_name);
+        is_enum = true;
+    } else if let Some(dtype) = &property.dtype {
+        dtypes.insert(extract_reference(dtype.to_string())?);
     }
+
+    if let Some(reference) = &property.reference {
+        dtypes.insert(extract_reference(reference.clone())?);
+    }
+
+    if let Some(one_of) = property.one_of {
+        for item in one_of.iter() {
+            dtypes.extend(
+                item.get_types()
+                    .into_iter()
+                    .map(extract_reference)
+                    .collect::<Result<Vec<String>, String>>()?,
+            );
+        }
+    }
+
+    if let Some(all_of) = property.all_of {
+        if all_of.len() == 1 {
+            dtypes.extend(
+                all_of[0]
+                    .get_types()
+                    .into_iter()
+                    .map(extract_reference)
+                    .collect::<Result<Vec<String>, String>>()?,
+            );
+        } else {
+            return Err("allOf with multiple items is not supported yet".into());
+        }
+    }
+
+    Ok(Attribute {
+        name: property
+            .title
+            .unwrap_or_else(|| property_name.to_string()),
+        is_array,
+        dtypes: dtypes
+            .into_iter()
+            .filter(|dtype| !IGNORE_TYPES.contains(&dtype.as_str()))
+            .collect::<Vec<String>>(),
+        is_id: false,
+        docstring: property.description.unwrap_or_default(),
+        options: parse_options(&property.options)?,
+        term: property.term,
+        required: false,
+        default: property.default.map(|p| primitive_to_datatype(&p)),
+        xml: None,
+        is_enum,
+        position: None,
+        import_prefix: None,
+    })
 }
 
 /// Converts a JSON Schema enum object to an Enumeration
@@ -217,30 +378,96 @@ impl TryFrom<EnumObject> for Enumeration {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(enum_obj: EnumObject) -> Result<Self, Self::Error> {
-        let mappings = enum_obj
-            .enum_values
-            .iter()
-            .enumerate()
-            .map(|(i, value)| {
-                if is_valid_key(value) {
-                    // If there are no special characters, we can use the value as is
-                    (value.clone().to_uppercase(), value.clone())
-                } else if value.len() < 15 {
-                    // If there are special characters, we need to escape them
-                    let cleaned_key = clean_key(value);
-                    (cleaned_key.to_uppercase(), value.clone())
-                } else {
-                    (format!("VALUE_{i}"), value.clone())
-                }
-            })
-            .collect::<BTreeMap<String, String>>();
-
         Ok(Enumeration {
             name: enum_obj.title,
             docstring: enum_obj.description.unwrap_or_default(),
             position: None,
-            mappings,
+            mappings: enum_values_to_mappings(&enum_obj.enum_values),
         })
+    }
+}
+
+/// Builds the `{KEY: value}` mappings for an enumeration from its raw values,
+/// escaping values that are not valid identifier keys.
+fn enum_values_to_mappings(values: &[String]) -> BTreeMap<String, String> {
+    values
+        .iter()
+        .enumerate()
+        .map(|(i, value)| {
+            if is_valid_key(value) {
+                // If there are no special characters, we can use the value as is
+                (value.clone().to_uppercase(), value.clone())
+            } else if value.len() < 15 {
+                // If there are special characters, we need to escape them
+                let cleaned_key = clean_key(value);
+                (cleaned_key.to_uppercase(), value.clone())
+            } else {
+                (format!("VALUE_{i}"), value.clone())
+            }
+        })
+        .collect::<BTreeMap<String, String>>()
+}
+
+/// Returns the inline enum values of a property, if it declares a non-empty
+/// `enum` list.
+fn enum_values(property: &Property) -> Option<&[String]> {
+    property
+        .enum_values
+        .as_deref()
+        .filter(|values| !values.is_empty())
+}
+
+/// Synthesizes a named enumeration from inline enum values and records it in the
+/// accumulator, returning the enumeration's name.
+///
+/// Identical value sets are de-duplicated (the existing enum's name is reused),
+/// and name collisions between distinct value sets are disambiguated with a
+/// numeric suffix.
+fn make_inline_enum(
+    property_name: &str,
+    parent_property: Option<&str>,
+    values: &[String],
+    docstring: Option<&str>,
+    nested_enums: &mut Vec<Enumeration>,
+) -> String {
+    let mappings = enum_values_to_mappings(values);
+
+    // Reuse an existing enumeration with the exact same mappings.
+    if let Some(existing) = nested_enums.iter().find(|e| e.mappings == mappings) {
+        return existing.name.clone();
+    }
+
+    let base_name = synthetic_type_name(property_name, None, parent_property);
+    let mut name = base_name.clone();
+    let mut suffix = 2;
+    while nested_enums.iter().any(|e| e.name == name) {
+        name = format!("{base_name}{suffix}");
+        suffix += 1;
+    }
+
+    nested_enums.push(Enumeration {
+        name: name.clone(),
+        docstring: docstring.unwrap_or_default().to_string(),
+        position: None,
+        mappings,
+    });
+
+    name
+}
+
+/// Converts a JSON Schema primitive default value into the model's `DataType`.
+///
+/// String defaults are stored quoted to match the representation produced by the
+/// markdown parser, so both import paths agree.
+fn primitive_to_datatype(value: &PrimitiveType) -> attribute::DataType {
+    match value {
+        PrimitiveType::String(s) => attribute::DataType::String(format!("\"{s}\"")),
+        PrimitiveType::Number(n) if n.fract() == 0.0 && n.is_finite() => {
+            attribute::DataType::Integer(*n as i64)
+        }
+        PrimitiveType::Number(n) => attribute::DataType::Float(*n),
+        PrimitiveType::Integer(i) => attribute::DataType::Integer(*i),
+        PrimitiveType::Boolean(b) => attribute::DataType::Boolean(*b),
     }
 }
 
@@ -952,5 +1179,177 @@ mod tests {
         assert!(schema.additional_properties);
         assert_eq!(data_model.objects.len(), 1);
         assert_eq!(data_model.objects[0].attributes.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_inline_nested_objects() {
+        let schema = json!({
+            "title": "Root",
+            "type": "object",
+            "properties": {
+                "settings": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "limit": { "type": "number" }
+                    },
+                    "required": ["enabled"]
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": { "type": "string" }
+                        },
+                        "required": ["name"]
+                    }
+                }
+            },
+            "required": ["settings"]
+        });
+
+        let schema: SchemaObject = serde_json::from_value(schema).expect("Failed to parse schema");
+        let data_model =
+            DataModel::try_from(schema).expect("Failed to convert schema to data model");
+
+        assert!(data_model.objects.len() >= 3);
+
+        let root = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "Root")
+            .expect("root object");
+        let settings_attr = root
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "settings")
+            .expect("settings attribute");
+        assert_eq!(settings_attr.dtypes, vec!["Settings"]);
+        assert!(settings_attr.required);
+
+        let settings = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "Settings")
+            .expect("settings object");
+        assert_eq!(settings.attributes.len(), 2);
+        assert!(settings.attributes.iter().any(|attr| attr.name == "enabled" && attr.required));
+
+        let items_attr = root
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "items")
+            .expect("items attribute");
+        assert!(items_attr.is_array);
+        assert_eq!(items_attr.dtypes, vec!["Items"]);
+
+        let item_object = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "Items")
+            .expect("items object");
+        assert!(item_object.attributes.iter().any(|attr| attr.name == "name" && attr.required));
+    }
+
+    #[test]
+    fn test_parse_precice_topology_schema() {
+        let schema_path = "tests/data/precice_topology_schema.json";
+        let schema = std::fs::read_to_string(schema_path).expect("Failed to read schema");
+        let schema: SchemaObject = serde_json::from_str(&schema).expect("Failed to parse schema");
+
+        assert_eq!(schema.optional, vec!["acceleration"]);
+        assert!(schema.properties.contains_key("acceleration"));
+
+        let acceleration = schema.properties.get("acceleration").unwrap();
+        assert_eq!(acceleration.properties.len(), 3);
+        assert!(acceleration.properties.contains_key("filter"));
+
+        let data_model =
+            DataModel::try_from(schema).expect("Failed to convert schema to data model");
+
+        let root = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "preCICETopologyConfiguration")
+            .expect("root object");
+
+        let acceleration_attr = root
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "acceleration")
+            .expect("acceleration attribute");
+        assert_eq!(acceleration_attr.dtypes, vec!["Acceleration"]);
+        assert!(!acceleration_attr.required);
+
+        let coupling_attr = root
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "coupling-scheme")
+            .expect("coupling-scheme attribute");
+        assert_eq!(coupling_attr.dtypes, vec!["CouplingScheme"]);
+        assert!(coupling_attr.required);
+
+        let exchanges_attr = root
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "exchanges")
+            .expect("exchanges attribute");
+        assert!(exchanges_attr.is_array);
+        assert_eq!(exchanges_attr.dtypes, vec!["Exchanges"]);
+
+        let participants_attr = root
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "participants")
+            .expect("participants attribute");
+        assert!(participants_attr.is_array, "participants is a collection");
+        assert_eq!(participants_attr.dtypes, vec!["Participants"]);
+
+        let filter_object = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "AccelerationFilter")
+            .expect("filter object");
+        assert!(filter_object
+            .attributes
+            .iter()
+            .any(|attr| attr.name == "limit" && attr.required));
+
+        // Inline enum values are converted into named enumerations rather than
+        // being flattened to a plain string.
+        let coupling_scheme = data_model
+            .objects
+            .iter()
+            .find(|object| object.name == "CouplingScheme")
+            .expect("coupling scheme object");
+        let coupling = coupling_scheme
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "coupling")
+            .expect("coupling attribute");
+        assert!(coupling.is_enum, "coupling should be an enum");
+        let coupling_enum = data_model
+            .enums
+            .iter()
+            .find(|e| e.name == coupling.dtypes[0])
+            .expect("coupling enumeration");
+        let values: std::collections::HashSet<_> = coupling_enum.mappings.values().collect();
+        assert_eq!(
+            values,
+            ["parallel".to_string(), "serial".to_string()].iter().collect()
+        );
+
+        // Default values are captured from the schema.
+        assert_eq!(
+            coupling.default,
+            Some(attribute::DataType::String("\"parallel\"".to_string()))
+        );
+        let max_iter = coupling_scheme
+            .attributes
+            .iter()
+            .find(|attr| attr.name == "max-iterations")
+            .expect("max-iterations attribute");
+        assert_eq!(max_iter.default, Some(attribute::DataType::Integer(50)));
     }
 }

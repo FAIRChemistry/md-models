@@ -11,70 +11,37 @@ tst:TestShape
     a sh:NodeShape ;
     sh:targetClass tst:Test ;
     sh:property [
-
-
         sh:or (
             [ sh:path Test:name ]
             [ sh:path schema:hello ]
         ) ;
-
-
         sh:datatype xsd:string ;
-
-
         sh:minCount 1 ;
         sh:maxCount 1 ;
-
-
         sh:description "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions." ;
-
     ] ;
     sh:property [
-
-
         sh:or (
             [ sh:path Test:number ]
             [ sh:path schema:one ]
         ) ;
-
-
         sh:datatype xsd:decimal ;
-
-
         sh:minCount 0 ;
         sh:maxCount 1 ;
-
-
     ] ;
     sh:property [
-
-
         sh:or (
             [ sh:path Test:test2 ]
             [ sh:path schema:something ]
         ) ;
-
-
         sh:node tst:Test2Shape ;
-
-
         sh:minCount 0 ;
-
-
     ] ;
     sh:property [
-
-
         sh:path Test:ontology ;
-
-
         sh:class tst:Ontology ;
-
-
         sh:minCount 0 ;
         sh:maxCount 1 ;
-
-
     ] ;
 .
 
@@ -82,36 +49,20 @@ tst:Test2Shape
     a sh:NodeShape ;
     sh:targetClass tst:Test2 ;
     sh:property [
-
-
         sh:or (
             [ sh:path Test2:names ]
             [ sh:path schema:hello ]
         ) ;
-
-
         sh:datatype xsd:string ;
-
-
         sh:minCount 0 ;
-
-
     ] ;
     sh:property [
-
-
         sh:or (
             [ sh:path Test2:number ]
             [ sh:path schema:one ]
         ) ;
-
-
         sh:datatype xsd:decimal ;
-
-
         sh:minCount 0 ;
         sh:maxCount 1 ;
-
-
     ] ;
 .

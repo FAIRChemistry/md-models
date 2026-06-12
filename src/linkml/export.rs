@@ -277,7 +277,7 @@ impl From<Object> for ClassDefinition {
             description: Some(obj.docstring),
             class_uri: obj.term.clone(),
             slots: Vec::new(),
-            is_a: obj.term,
+            is_a: None,
             mixins: obj.mixins,
             tree_root: None,
             attributes: Some(attrib),
@@ -407,7 +407,7 @@ mod tests {
             class_def.class_uri,
             Some("http://example.org/TestClass".to_string())
         );
-        assert!(class_def.is_a.is_some());
+        assert!(class_def.is_a.is_none());
         assert!(class_def.slot_usage.is_some());
     }
 

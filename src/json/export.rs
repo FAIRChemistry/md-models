@@ -29,7 +29,7 @@ use std::{
 use crate::{
     attribute::{self, Attribute},
     datamodel::DataModel,
-    json::schema::{AnyOfItemType, DataType, DataTypeItemType, Item, ReferenceItemType},
+    json::schema::{AnyOfItemType, DataType, Item, Property, ReferenceItemType},
     markdown::frontmatter::FrontMatter,
     object::{Enumeration, Object},
     option::AttrOption,
@@ -337,9 +337,10 @@ fn convert_one_of_to_any_of(property: &mut schema::Property) {
 ///
 /// * `property` - A mutable reference to the property to make nullable.
 fn make_property_nullable(property: &mut schema::Property) {
-    let mut any_of = vec![Item::DataTypeItem(DataTypeItemType {
-        dtype: DataType::Null,
-    })];
+    let mut any_of = vec![Item::PropertyItem(Box::new(Property {
+        dtype: Some(DataType::Null),
+        ..Default::default()
+    }))];
 
     handle_property_data_type(property, &mut any_of);
     handle_property_reference(property, &mut any_of);
@@ -362,9 +363,10 @@ fn handle_property_data_type(property: &mut schema::Property, any_of: &mut Vec<I
 
         match dtype {
             DataType::Array => {
-                any_of.push(Item::DataTypeItem(DataTypeItemType {
-                    dtype: DataType::Null,
-                }));
+                any_of.push(Item::PropertyItem(Box::new(Property {
+                    dtype: Some(DataType::Null),
+                    ..Default::default()
+                })));
             }
             DataType::Object => {
                 property.dtype = None;
@@ -373,9 +375,10 @@ fn handle_property_data_type(property: &mut schema::Property, any_of: &mut Vec<I
                 add_multiple_data_types(any_of, data_types);
             }
             _ => {
-                any_of.push(Item::DataTypeItem(DataTypeItemType {
-                    dtype: dtype.clone(),
-                }));
+                any_of.push(Item::PropertyItem(Box::new(Property {
+                    dtype: Some(dtype.clone()),
+                    ..Default::default()
+                })));
             }
         }
 
@@ -394,9 +397,10 @@ fn handle_property_data_type(property: &mut schema::Property, any_of: &mut Vec<I
 fn add_multiple_data_types(any_of: &mut Vec<Item>, data_types: &[DataType]) {
     for dtype in data_types.iter() {
         if dtype.is_not_object() || dtype.is_array() {
-            any_of.push(Item::DataTypeItem(DataTypeItemType {
-                dtype: dtype.clone(),
-            }));
+            any_of.push(Item::PropertyItem(Box::new(Property {
+                dtype: Some(dtype.clone()),
+                ..Default::default()
+            })));
         }
     }
 }
@@ -517,6 +521,7 @@ impl TryFrom<&Object> for schema::SchemaObject {
             properties: properties?,
             definitions: BTreeMap::new(),
             required,
+            optional: Vec::new(),
             schema: None,
             id: None,
             additional_properties: false,
@@ -617,6 +622,7 @@ impl TryFrom<&Attribute> for schema::Property {
             any_of: None,
             all_of: None,
             examples: Vec::new(),
+            ..Default::default()
         })
     }
 }
@@ -738,9 +744,10 @@ impl From<&Attribute> for Vec<schema::Item> {
 /// An `Item` representing the data type.
 fn process_dtype(dtype: &str) -> schema::Item {
     match schema::DataType::from_str(dtype) {
-        Ok(basic_type) => {
-            schema::Item::DataTypeItem(schema::DataTypeItemType { dtype: basic_type })
-        }
+        Ok(basic_type) => schema::Item::PropertyItem(Box::new(schema::Property {
+            dtype: Some(basic_type),
+            ..Default::default()
+        })),
         Err(_) => schema::Item::ReferenceItem(schema::ReferenceItemType {
             reference: format!("#/$defs/{dtype}"),
         }),

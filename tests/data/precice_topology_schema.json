@@ -1,0 +1,87 @@
+{
+  "description": "JSON schema defining the topology configuration for precice-generator.",
+  "optional": ["acceleration"],
+  "properties": {
+    "acceleration": {
+      "optional": ["name", "filter"],
+      "properties": {
+        "display_standard_values": {
+          "default": false,
+          "type": "boolean"
+        },
+        "filter": {
+          "optional": ["type"],
+          "properties": {
+            "limit": {
+              "default": 1e-16,
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            "type": {
+              "enum": ["QR1", "QR2"],
+              "type": "string"
+            }
+          },
+          "required": ["limit"],
+          "type": "object"
+        },
+        "name": {
+          "default": "IQN-ILS",
+          "enum": ["constant", "aitken", "IQN-ILS", "IQN-IMVJ"],
+          "type": "string"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "coupling-scheme": {
+      "optional": ["coupling"],
+      "properties": {
+        "coupling": {
+          "default": "parallel",
+          "enum": ["parallel", "serial"],
+          "type": "string"
+        },
+        "max-iterations": {
+          "default": 50,
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "exchanges": {
+      "items": {
+        "optional": ["data-type"],
+        "properties": {
+          "data": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "type": {
+            "enum": ["strong", "weak"],
+            "type": "string"
+          }
+        },
+        "required": ["from", "to", "data", "type"],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "participants": {
+      "items": {
+        "properties": {
+          "name": { "type": "string" },
+          "solver": { "type": "string" }
+        },
+        "required": ["name", "solver"],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": ["coupling-scheme", "participants", "exchanges"],
+  "title": "preCICE Topology Configuration",
+  "type": "object"
+}

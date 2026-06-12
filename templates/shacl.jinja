@@ -16,9 +16,6 @@
     sh:targetClass {{ prefix }}:{{ object.name }} ;
     {%- for attribute in object.attributes %}
     sh:property [
-        {# ------------------------------------------------ #}
-        {# Predicate paths                                  #}
-        {# ------------------------------------------------ #}
         {%- if attribute.term %}
         sh:or (
             [ sh:path {{ object.name }}:{{ attribute.name }} ]
@@ -27,9 +24,6 @@
         {%- else %}
         sh:path {{ object.name }}:{{ attribute.name }} ;
         {%- endif %}
-        {# ------------------------------------------------ #}
-        {# Value constraint                                 #}
-        {# ------------------------------------------------ #}
         {%- if attribute.dtypes[0] in object_names %}
         sh:node {{ prefix }}:{{ attribute.dtypes[0] }}Shape ;
         {%- elif attribute.dtypes[0] in enum_names %}
@@ -37,9 +31,6 @@
         {%- else %}
         sh:datatype {{ attribute.dtypes[0] }} ;
         {%- endif %}
-        {# ------------------------------------------------ #}
-        {# Cardinality                                      #}
-        {# ------------------------------------------------ #}
         {%- if attribute.required %}
         sh:minCount 1 ;
         {%- else %}
@@ -48,13 +39,9 @@
         {%- if not attribute.multiple %}
         sh:maxCount 1 ;
         {%- endif %}
-        {# ------------------------------------------------ #}
-        {# Documentation                                    #}
-        {# ------------------------------------------------ #}
         {%- if attribute.docstring %}
         sh:description "{{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}" ;
         {%- endif %}
-
     ] ;
 
     {%- endfor %}

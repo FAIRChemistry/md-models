@@ -74,7 +74,7 @@ message {{ object.name }} {
   {%- if attr.docstring %}
   // {{ wrap(attr.docstring, 70, "", "  // ", None) }}
   {%- endif %}
-  {{ field_rule(attr) }}{%- if not attr.required %} {% endif -%}{{ get_type(attr) }} {{ attr.name | snake_case }} = {{ loop.index }};
+  {{ field_rule(attr) }}{%- if not attr.required %} {% endif -%}{{ get_type(attr) }} {{ attr.name | snake_case }} = {{ loop.index }}{% if (attr.name | to_identifier) != attr.name %} [json_name = "{{ attr.name }}"]{% endif %};
   {%- endfor %}
 }
 {% endfor %}

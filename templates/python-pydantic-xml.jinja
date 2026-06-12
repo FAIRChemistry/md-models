@@ -26,12 +26,12 @@
 {# Creates a complete attribute definition with XML wrapping if needed #}
 {% macro create_attribute(attr) -%}
 {%- if attr.xml.wrapped %}
-    {{ attr.name }}: {{ utils.get_type(attr) }} = wrapped(
+    {{ attr.name | to_identifier }}: {{ utils.get_type(attr) }} = wrapped(
         "{{ attr.xml.wrapped | join('/') }}",
         {{ create_inner_type(attr) | indent(4) }},
     )
 {%- else %}
-    {{ attr.name }}: {{ utils.get_type(attr) }} = {{ create_inner_type(attr) }}
+    {{ attr.name | to_identifier }}: {{ utils.get_type(attr) }} = {{ create_inner_type(attr) }}
 {%- endif %}
 {%- endmacro %}
 
@@ -124,18 +124,18 @@ class {{object.name}}(
     {%- for dtype in attr.dtypes %}
     {%- if dtype in object_names and attr.multiple is true %}
 
-    def add_to_{{ attr.name }}(
+    def add_to_{{ attr.name | to_identifier }}(
         {{ utils.signature(objects, dtype) }}
     ):
         """Helper method to add a new {{ dtype }} to the {{ attr.name }} list."""
         params = { {{ utils.params(objects, dtype) }}
         }
 
-        self.{{ attr.name }}.append(
+        self.{{ attr.name | to_identifier }}.append(
             {{ dtype }}(**params)
         )
 
-        return self.{{ attr.name }}[-1]
+        return self.{{ attr.name | to_identifier }}[-1]
 
     {%- endif %}
     {%- endfor %}

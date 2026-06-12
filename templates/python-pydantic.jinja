@@ -107,26 +107,39 @@ class {{ object.name }}(BaseModel):
 
     model_config: ConfigDict = ConfigDict( # type: ignore
         validate_assignment = True,
+        populate_by_name = True,
     ) # type: ignore
     {% for attribute in object.attributes %}
     {%- if attribute.multiple is true %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+    {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
         default_factory=list,
+        {%- if (attribute.name | to_identifier) != attribute.name %}
+        alias="{{ attribute.name }}",
+        {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
     )
     {%- elif 'default' in attribute%}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+    {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
         default{{ utils.get_default(attribute) }},
+        {%- if (attribute.name | to_identifier) != attribute.name %}
+        alias="{{ attribute.name }}",
+        {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
     )
     {%- elif attribute.required is true %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+    {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
         default=...,
+        {%- if (attribute.name | to_identifier) != attribute.name %}
+        alias="{{ attribute.name }}",
+        {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
     )
     {%- else %}
-    {{ attribute.name }}: {{ utils.get_type(attribute) }} = Field(
+    {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
         default=None,
+        {%- if (attribute.name | to_identifier) != attribute.name %}
+        alias="{{ attribute.name }}",
+        {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
     )
     {%- endif %}
@@ -174,7 +187,7 @@ class {{ object.name }}(BaseModel):
     )
     {% for attr in object.attributes -%}
     {%- if attr.multiple is true and attr.dtypes[0] in object_names %}
-    def filter_{{ attr.name }}(self, **kwargs) -> list[{{ attr.dtypes[0] }}]:
+    def filter_{{ attr.name | to_identifier }}(self, **kwargs) -> list[{{ attr.dtypes[0] }}]:
         """Filters the {{ attr.name }} attribute based on the given kwargs
 
         Args:
@@ -184,7 +197,7 @@ class {{ object.name }}(BaseModel):
             list[{{ attr.dtypes[0] }}]: The filtered list of {{ attr.dtypes[0] }} objects
         """
 
-        return FilterWrapper[{{ attr.dtypes[0] }}](self.{{ attr.name }}, **kwargs).filter()
+        return FilterWrapper[{{ attr.dtypes[0] }}](self.{{ attr.name | to_identifier }}, **kwargs).filter()
     {% endif %}
     {%- endfor %}
 
@@ -257,7 +270,7 @@ class {{ object.name }}(BaseModel):
     {% for attr in object.attributes %}
     {% for dtype in attr.dtypes %}
     {%- if dtype in object_names and attr.multiple is true %}
-    def add_to_{{ attr.name }}(
+    def add_to_{{ attr.name | to_identifier }}(
         {{ utils.signature(objects, dtype) }}
     ):
         params = { {{ utils.params(objects, dtype) }}
@@ -266,11 +279,11 @@ class {{ object.name }}(BaseModel):
         if "id" in kwargs:
             params["id"] = kwargs["id"]
 
-        self.{{ attr.name }}.append(
+        self.{{ attr.name | to_identifier }}.append(
             {{ dtype }}(**params)
         )
 
-        return self.{{ attr.name }}[-1]
+        return self.{{ attr.name | to_identifier }}[-1]
 
     {%- endif %}
     {%- endfor %}

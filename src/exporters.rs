@@ -65,6 +65,8 @@ lazy_static! {
         let mut m = std::collections::HashMap::new();
         m.insert("str".to_string(), "string".to_string());
         m.insert("bytes".to_string(), "base64Binary".to_string());
+        m.insert("number".to_string(), "decimal".to_string());
+        m.insert("date".to_string(), "date".to_string());
         m
     };
 
@@ -304,12 +306,14 @@ pub fn render_jinja_template(
     env.add_function("replace", replace);
     env.add_function("trim", trim);
     env.add_function("default_value", default_value);
+    env.add_function("xml_escape", xml_escape);
     env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
     env.add_filter("split_path_pairs", split_path_pairs);
     env.add_filter("pascal_case", pascal_case);
     env.add_filter("camel_case", camel_case);
     env.add_filter("snake_case", snake_case);
+    env.add_filter("to_identifier", to_identifier);
     env.add_filter("replace_lower", replace_lower);
 
     // Get the appropriate template
@@ -504,9 +508,39 @@ fn snake_case(s: String) -> String {
     s.to_case(Case::Snake)
 }
 
+/// Filter used only for Jinja templates.
+///
+/// Converts a name into a native-safe identifier by replacing any character that
+/// is not alphanumeric or an underscore (most importantly dashes, e.g. in
+/// `coupling-scheme`) with an underscore. The original name is preserved
+/// separately in the templates as a serialization alias, so this only affects the
+/// generated programming-language identifier, never the wire/serialized name.
+fn to_identifier(s: String) -> String {
+    s.chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .collect()
+}
+
 /// Removes leading and trailing whitespace and multiple spaces from a string.
 fn remove_multiple_spaces(input: &str) -> String {
     input.split_whitespace().collect::<Vec<&str>>().join(" ")
+}
+
+/// Escapes text for use in XML attribute values and text nodes.
+fn xml_escape(text: Value) -> String {
+    let raw = text.to_string();
+    let mut out = String::with_capacity(raw.len());
+    for c in raw.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&apos;"),
+            _ => out.push(c),
+        }
+    }
+    out
 }
 
 /// Removes trailing underscores from a string.
@@ -1151,6 +1185,120 @@ mod tests {
         let expected = fs::read_to_string("tests/data/expected_protobuf.proto")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_markdown_export_marks_arrays() {
+        // Array attributes must render the `[]` marker so the exported markdown
+        // round-trips back to an array (e.g. `Type2[]`, `string[]`), rather than
+        // silently dropping the multiplicity.
+        let rendered = build_and_convert("tests/data/model.md", Templates::Markdown, None);
+
+        assert!(
+            rendered.contains("Type: Test2[]"),
+            "array of object-typed attribute should render with []"
+        );
+        assert!(
+            rendered.contains("Type: string[]"),
+            "array of scalar-typed attribute should render with []"
+        );
+
+        // A re-parse of the exported markdown must preserve the array flag.
+        let reparsed = parse_markdown(&rendered, None).expect("exported markdown should re-parse");
+        let test = reparsed
+            .objects
+            .iter()
+            .find(|o| o.name == "Test")
+            .expect("Test object");
+        let test2 = test
+            .attributes
+            .iter()
+            .find(|a| a.name == "test2")
+            .expect("test2 attribute");
+        assert!(test2.is_array, "array flag must survive a markdown round-trip");
+    }
+
+    #[test]
+    fn test_markdown_export_marks_required_and_defaults() {
+        // Required attributes render as bold (`__name__`) and default values render
+        // as a `- Default:` line, so neither is silently dropped.
+        let rendered = build_and_convert("tests/data/model.md", Templates::Markdown, None);
+
+        assert!(
+            rendered.contains("- __name__"),
+            "required attribute should render in bold"
+        );
+        assert!(
+            rendered.contains("- Default: 2.0"),
+            "default value should render"
+        );
+
+        // Required flag and default survive a re-parse of the exported markdown.
+        let reparsed = parse_markdown(&rendered, None).expect("exported markdown should re-parse");
+        let name = reparsed
+            .objects
+            .iter()
+            .find(|o| o.name == "Test")
+            .and_then(|o| o.attributes.iter().find(|a| a.name == "name"))
+            .expect("name attribute");
+        assert!(name.required, "required flag must survive a markdown round-trip");
+        assert!(name.default.is_some(), "default must survive a markdown round-trip");
+    }
+
+    #[test]
+    fn test_dashed_attribute_names_rust() {
+        // Attribute names containing dashes (e.g. `coupling-scheme`) are converted
+        // to native-safe Rust identifiers, with a serde rename preserving the
+        // original wire name for both serialization and deserialization.
+        let rendered = build_and_convert("tests/data/model_dashed_names.md", Templates::Rust, None);
+
+        assert!(
+            rendered.contains("pub coupling_scheme:"),
+            "dash should be converted to an underscore in the Rust field name"
+        );
+        assert!(
+            rendered.contains("#[serde(rename = \"coupling-scheme\""),
+            "original dashed name should be preserved via serde rename"
+        );
+        // Union-typed dashed attribute produces a valid enum type name.
+        assert!(rendered.contains("pub enum ConfigurationData_valueType"));
+        // Builder setter for the dashed list attribute uses a safe identifier.
+        assert!(rendered.contains("name = \"to_sub_items\""));
+        // The dashed name must never leak into a Rust identifier position.
+        assert!(!rendered.contains("coupling-scheme:"));
+    }
+
+    #[test]
+    fn test_dashed_attribute_names_pydantic() {
+        // Pydantic models use a safe field name plus a Field alias that maps to the
+        // original dashed wire name.
+        let rendered =
+            build_and_convert("tests/data/model_dashed_names.md", Templates::PythonPydantic, None);
+
+        assert!(rendered.contains("coupling_scheme: "));
+        assert!(rendered.contains("alias=\"coupling-scheme\""));
+        // populate_by_name lets the model still be constructed via the safe name.
+        assert!(rendered.contains("populate_by_name = True"));
+    }
+
+    #[test]
+    fn test_dashed_attribute_names_dataclass() {
+        // Dataclasses map the dashed wire name through dataclasses-json `field_name`.
+        let rendered =
+            build_and_convert("tests/data/model_dashed_names.md", Templates::PythonDataclass, None);
+
+        assert!(rendered.contains("coupling_scheme:"));
+        assert!(rendered.contains("field_name=\"coupling-scheme\""));
+    }
+
+    #[test]
+    fn test_dashed_attribute_names_typescript() {
+        // TypeScript preserves the wire name by quoting the property key.
+        let rendered =
+            build_and_convert("tests/data/model_dashed_names.md", Templates::Typescript, None);
+
+        assert!(rendered.contains("\"coupling-scheme\"?:"));
+        assert!(rendered.contains("\"coupling-scheme\": D.nullable"));
     }
 
     #[test]

@@ -32,7 +32,7 @@
 {# Determines the Go type for an attribute #}
 {% macro get_type(attr, parent_name) %}
     {%- if attr.dtypes | length > 1 -%}
-        {{ parent_name }}{{ attr.name | capitalize }}Type
+        {{ parent_name }}{{ attr.name | to_identifier | capitalize }}Type
     {%- elif attr.dtypes[0] in object_names -%}
         {{ attr.dtypes[0] }}
     {%- elif attr.dtypes[0] in enum_names -%}
@@ -188,11 +188,11 @@ const (
 {%- for attr in object.attributes %}
     {%- if attr.dtypes | length > 1 %}
 
-// {{ object.name }}{{ attr.name | capitalize }}Type represents a union type that can hold any of the following types:
+// {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type represents a union type that can hold any of the following types:
 {%- for dtype in attr.dtypes %}
 // - {{ dtype }}
 {%- endfor %}
-type {{ object.name }}{{ attr.name | capitalize }}Type struct {
+type {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type struct {
     {%- for dtype in attr.dtypes %}
         {%- if dtype in object_names %}
     Object {{ dtype }}
@@ -210,8 +210,8 @@ type {{ object.name }}{{ attr.name | capitalize }}Type struct {
     {%- endfor %}
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for {{ object.name }}{{ attr.name | capitalize }}Type
-func (t *{{ object.name }}{{ attr.name | capitalize }}Type) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON implements custom JSON unmarshaling for {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type
+func (t *{{ object.name }}{{ attr.name | to_identifier | capitalize }}Type) UnmarshalJSON(data []byte) error {
     // Reset existing values
     {%- for dtype in attr.dtypes %}
         {%- if dtype in object_names %}
@@ -268,11 +268,11 @@ func (t *{{ object.name }}{{ attr.name | capitalize }}Type) UnmarshalJSON(data [
     }
         {%- endif %}
     {%- endfor %}
-    return fmt.Errorf("{{ object.name }}{{ attr.name | capitalize }}Type: data is neither {{ attr.dtypes | join(', ') }}")
+    return fmt.Errorf("{{ object.name }}{{ attr.name | to_identifier | capitalize }}Type: data is neither {{ attr.dtypes | join(', ') }}")
 }
 
-// MarshalJSON implements custom JSON marshaling for {{ object.name }}{{ attr.name | capitalize }}Type
-func (t {{ object.name }}{{ attr.name | capitalize }}Type) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements custom JSON marshaling for {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type
+func (t {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type) MarshalJSON() ([]byte, error) {
     {%- for dtype in attr.dtypes %}
         {%- if dtype in object_names %}
     if t.Object != ({{ dtype }}{}) {

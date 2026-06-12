@@ -10,7 +10,7 @@
 #}
 {% macro get_type(attr, parent_name, object_names) -%}
 {%- if attr.dtypes | length > 1 -%}
-{{ parent_name }}{{ attr.name | capitalize }}Type
+{{ parent_name }}{{ attr.name | to_identifier | capitalize }}Type
 {%- elif attr.dtypes[0] in object_names -%}
 {{ attr.dtypes[0] }}
 {%- elif attr.dtypes[0] == "string" or attr.dtypes[0] in enum_names -%}
@@ -57,27 +57,27 @@ Union{ {{ get_type(attr, parent_name, object_names) }}, Nothing}
 #}
 {% macro generate_union_struct(object_name, attr_name, dtype, object_names) -%}
 {%- if dtype in object_names or dtype in enum_names %}
-struct {{ object_name }}{{ attr_name | capitalize }}{{ dtype }} <: {{ object_name }}{{ attr_name | capitalize }}Type
+struct {{ object_name }}{{ attr_name | to_identifier | capitalize }}{{ dtype }} <: {{ object_name }}{{ attr_name | to_identifier | capitalize }}Type
     value::{{ dtype }}
 end
 {%- elif dtype == "string" %}
-struct {{ object_name }}{{ attr_name | capitalize }}String <: {{ object_name }}{{ attr_name | capitalize }}Type
+struct {{ object_name }}{{ attr_name | to_identifier | capitalize }}String <: {{ object_name }}{{ attr_name | to_identifier | capitalize }}Type
     value::String
 end
 {%- elif dtype == "float" %}
-struct {{ object_name }}{{ attr_name | capitalize }}Float <: {{ object_name }}{{ attr_name | capitalize }}Type
+struct {{ object_name }}{{ attr_name | to_identifier | capitalize }}Float <: {{ object_name }}{{ attr_name | to_identifier | capitalize }}Type
     value::Float64
 end
 {%- elif dtype == "integer" %}
-struct {{ object_name }}{{ attr_name | capitalize }}Integer <: {{ object_name }}{{ attr_name | capitalize }}Type
+struct {{ object_name }}{{ attr_name | to_identifier | capitalize }}Integer <: {{ object_name }}{{ attr_name | to_identifier | capitalize }}Type
     value::Int64
 end
 {%- elif dtype == "boolean" %}
-struct {{ object_name }}{{ attr_name | capitalize }}Boolean <: {{ object_name }}{{ attr_name | capitalize }}Type
+struct {{ object_name }}{{ attr_name | to_identifier | capitalize }}Boolean <: {{ object_name }}{{ attr_name | to_identifier | capitalize }}Type
     value::Bool
 end
 {%- else %}
-struct {{ object_name }}{{ attr_name | capitalize }}{{ dtype | capitalize }} <: {{ object_name }}{{ attr_name | capitalize }}Type
+struct {{ object_name }}{{ attr_name | to_identifier | capitalize }}{{ dtype | capitalize }} <: {{ object_name }}{{ attr_name | to_identifier | capitalize }}Type
     value::{{ dtype }}
 end
 {%- endif -%}
@@ -112,26 +112,26 @@ using StructTypes
 """
 Union type for {{ object.name }}.{{ attr.name }}
 """
-abstract type {{ object.name }}{{ attr.name | capitalize }}Type end
+abstract type {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type end
 
 {%- for dtype in attr.dtypes %}
 {{ generate_union_struct(object.name, attr.name, dtype, object_names) }}
 {%- endfor %}
 
-export {{ object.name }}{{ attr.name | capitalize }}Type
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}Type
 {%- for dtype in attr.dtypes %}
 {%- if dtype in object_names or dtype in enum_names %}
-export {{ object.name }}{{ attr.name | capitalize }}{{ dtype }}
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}{{ dtype }}
 {%- elif dtype == "string" %}
-export {{ object.name }}{{ attr.name | capitalize }}String
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}String
 {%- elif dtype == "float" %}
-export {{ object.name }}{{ attr.name | capitalize }}Float
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}Float
 {%- elif dtype == "integer" %}
-export {{ object.name }}{{ attr.name | capitalize }}Integer
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}Integer
 {%- elif dtype == "boolean" %}
-export {{ object.name }}{{ attr.name | capitalize }}Boolean
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}Boolean
 {%- else %}
-export {{ object.name }}{{ attr.name | capitalize }}{{ dtype | capitalize }}
+export {{ object.name }}{{ attr.name | to_identifier | capitalize }}{{ dtype | capitalize }}
 {%- endif %}
 {%- endfor %}
 
@@ -151,7 +151,7 @@ Base.@kwdef mutable struct {{ object.name }}
     {{ wrap(attr.docstring, 70, "", "    ", None) }}
     """
     {%- endif %}
-    {{ attr.name }}::{{ wrap_type(attr, object.name, object_names) }}{% if attr.required is false %} = nothing{% endif %}
+    {{ attr.name | to_identifier }}::{{ wrap_type(attr, object.name, object_names) }}{% if attr.required is false %} = nothing{% endif %}
     {% endfor %}
 end
 

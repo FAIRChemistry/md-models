@@ -50,7 +50,7 @@ type {{ dtype }}Value {
 {%- for object in objects -%}
   {%- for attr in object.attributes -%}
     {%- if attr.dtypes | length > 1 %}
-union {{ object.name }}{{ attr.name | capitalize }} = {% for dtype in attr.dtypes %}{% if dtype in object_names %}{{ dtype }}{% else %}{{ dtype }}Value{% endif %}{% if not loop.last %} | {% endif %}{% endfor %}
+union {{ object.name }}{{ attr.name | to_identifier | capitalize }} = {% for dtype in attr.dtypes %}{% if dtype in object_names %}{{ dtype }}{% else %}{{ dtype }}Value{% endif %}{% if not loop.last %} | {% endif %}{% endfor %}
 
     {%- endif -%}
   {%- endfor -%}
@@ -60,8 +60,8 @@ union {{ object.name }}{{ attr.name | capitalize }} = {% for dtype in attr.dtype
 {%- for object in objects %}
 type {{ object.name }} {
   {%- for attr in object.attributes %}
-  {{ attr.name }}: {% if attr.dtypes | length > 1 -%}
-  {{ wrap_type(object.name + attr.name | capitalize, attr) }}
+  {{ attr.name | to_identifier }}: {% if attr.dtypes | length > 1 -%}
+  {{ wrap_type(object.name + attr.name | to_identifier | capitalize, attr) }}
   {%- else -%}
   {{ wrap_type(get_type(attr), attr) }}
   {%- endif -%}
@@ -88,7 +88,7 @@ type Query {
   all{{ object.name }}s: [{{ object.name }}]
   {%- for attr in object.attributes %}
   {%- if not attr.multiple and attr.dtypes | length == 1 and attr.dtypes[0] not in object_names %}
-  {{ object.name | lower }}By{{ attr.name | pascal_case }}({{ attr.name }}: {{ get_type(attr) }}): [{{ object.name }}]
+  {{ object.name | lower }}By{{ attr.name | pascal_case }}({{ attr.name | to_identifier }}: {{ get_type(attr) }}): [{{ object.name }}]
   {%- endif %}
   {%- endfor %}
   {%- endfor %}

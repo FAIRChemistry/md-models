@@ -371,7 +371,7 @@ impl Validator {
     /// * `name` - The name of the object to be validated.
     fn validate_object_name(&mut self, name: &str) {
         let checks = vec![starts_with_character, contains_white_space, |name: &str| {
-            contains_special_characters(name, false)
+            contains_special_characters(name, false, false)
         }];
 
         for check in checks {
@@ -525,8 +525,11 @@ impl Validator {
     /// * `name` - The name of the attribute to be validated.
     /// * `obj_name` - The name of the object that contains the attribute.
     fn validate_attribute_name(&mut self, name: &str, object: &Object) {
+        // Attribute names may legally contain dashes (e.g. `coupling-scheme`). The
+        // exporters convert these to native-safe identifiers and preserve the
+        // original name through a serde/pydantic alias, so dashes are tolerated here.
         let checks = vec![starts_with_character, contains_white_space, |name: &str| {
-            contains_special_characters(name, false)
+            contains_special_characters(name, false, true)
         }];
 
         let attribute_positions = extract_attribute_positions(object);
@@ -578,7 +581,7 @@ impl Validator {
 
         let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
         for opt in options {
-            if let Err((e, solution)) = contains_special_characters(opt.trim(), false) {
+            if let Err((e, solution)) = contains_special_characters(opt.trim(), false, true) {
                 self.add_error(ValidationError {
                     message: e,
                     object: Some(object_name.to_string()),
@@ -637,7 +640,7 @@ impl Validator {
             }
 
             wrapped_types.iter().for_each(|wrapped_type| {
-                if let Err((e, solution)) = contains_special_characters(wrapped_type, true) {
+                if let Err((e, solution)) = contains_special_characters(wrapped_type, true, true) {
                     self.add_error(ValidationError {
                         message: e,
                         object: Some(object_name.to_string()),
@@ -653,7 +656,7 @@ impl Validator {
 
         let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
         for opt in options {
-            if let Err((e, solution)) = contains_special_characters(opt.trim(), false) {
+            if let Err((e, solution)) = contains_special_characters(opt.trim(), false, true) {
                 self.add_error(ValidationError {
                     message: e,
                     object: Some(object_name.to_string()),
@@ -707,7 +710,7 @@ impl Validator {
 
         let options = option.split(',').map(|s| s.trim()).collect::<Vec<_>>();
         for opt in options {
-            if let Err((e, solution)) = contains_special_characters(opt, false) {
+            if let Err((e, solution)) = contains_special_characters(opt, false, true) {
                 self.add_error(ValidationError {
                     message: e,
                     object: Some(object_name.to_string()),
@@ -855,11 +858,18 @@ fn contains_white_space(name: &str) -> Result<(), (String, String)> {
 /// A `Result` which is:
 /// - `Ok(())` if the name does not contain special characters.
 /// - `Err(String)` if the name contains special characters.
-fn contains_special_characters(name: &str, allow_slash: bool) -> Result<(), (String, String)> {
-    if name
-        .chars()
-        .any(|c| !c.is_alphanumeric() && c != '_' && c != ' ' && (!allow_slash || c != '/'))
-    {
+fn contains_special_characters(
+    name: &str,
+    allow_slash: bool,
+    allow_dash: bool,
+) -> Result<(), (String, String)> {
+    if name.chars().any(|c| {
+        !c.is_alphanumeric()
+            && c != '_'
+            && c != ' '
+            && (!allow_slash || c != '/')
+            && (!allow_dash || c != '-')
+    }) {
         Err((
         format!("Name '{name}' contains special characters, which are not valid except for underscores."),
             name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect::<String>().to_string(),
@@ -959,4 +969,56 @@ fn get_line_numbers(positions: &[Position]) -> String {
         .map(|p| p.line.to_string())
         .collect::<Vec<String>>()
         .join(", ")
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::markdown::parser::parse_markdown;
+
+    /// Dashed attribute names (e.g. `coupling-scheme`) are tolerated by the
+    /// validator; the exporters convert them to native-safe identifiers and keep
+    /// the original name as a serialization alias.
+    #[test]
+    fn test_dashed_attribute_name_is_valid() {
+        let content = "### Configuration\n\n- coupling-scheme\n  - Type: string\n";
+        let result = parse_markdown(content, None);
+        assert!(
+            result.is_ok(),
+            "dashed attribute names should pass validation, got: {:?}",
+            result.err()
+        );
+    }
+
+    /// The dashed attribute name is preserved verbatim on the model (not stripped
+    /// to `couplingscheme`), so the exporters can reproduce it as the wire name via
+    /// a serde/pydantic alias.
+    #[test]
+    fn test_dashed_attribute_name_is_preserved() {
+        let content = "### Configuration\n\n- coupling-scheme\n  - Type: string\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+        let attr = &model.objects[0].attributes[0];
+        assert_eq!(attr.name, "coupling-scheme");
+    }
+
+    /// Object/type names, by contrast, must remain valid identifiers. Directly
+    /// validating a model whose object name contains a dash yields a NameError.
+    #[test]
+    fn test_dashed_object_name_is_invalid() {
+        let mut model = parse_markdown(
+            "### Configuration\n\n- name\n  - Type: string\n",
+            None,
+        )
+        .expect("model should parse");
+        model.objects[0].name = "coupling-scheme".to_string();
+
+        let mut validator = super::Validator::new();
+        validator.validate(&model);
+
+        assert!(!validator.is_valid);
+        assert!(validator
+            .errors
+            .iter()
+            .any(|e| e.error_type == super::ErrorType::NameError
+                && e.object.as_deref() == Some("coupling-scheme")));
+    }
 }
