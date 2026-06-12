@@ -32,6 +32,7 @@ use pyo3::pyclass;
 #[cfg(feature = "wasm")]
 use tsify_next::Tsify;
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::git;
 use crate::prelude::DataModel;
 
@@ -165,6 +166,7 @@ impl ImportType {
     /// # Returns
     /// A Result containing the parsed DataModel or an error.
     fn fetch_remote_model(&self, url: &str) -> Result<DataModel, Box<dyn Error>> {
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some((repo, path)) = git::parse_github_file_url(url) {
             return DataModel::from_github(&repo, &path);
         }

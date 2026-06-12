@@ -32,6 +32,7 @@ pub mod attribute;
 pub mod datamodel;
 pub mod error;
 pub mod exporters;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod git;
 pub mod object;
 pub mod option;

@@ -356,11 +356,10 @@ fn process_object_event(
         Event::Text(text) if text.to_string() == "]" => {
             handle_array_marker(objects);
         }
-        Event::Text(text) => {
-            if *state == ParserState::InDefinition {
+        Event::Text(text)
+            if *state == ParserState::InDefinition => {
                 handle_docstring(objects, text);
             }
-        }
         _ => {}
     }
 }

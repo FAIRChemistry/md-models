@@ -30,6 +30,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::DataModelError;
 use crate::exporters::{render_jinja_template, Templates};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::git::cache_github_repo;
 use crate::json::export::to_json_schema;
 use crate::json::schema::SchemaObject;
@@ -446,6 +447,7 @@ impl DataModel {
         parse_markdown(&content, Some(path))
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_github(repo: &str, path: &str) -> Result<Self, Box<dyn Error>> {
         let cached = cache_github_repo(repo)?;
         let path = path.trim_start_matches('/');

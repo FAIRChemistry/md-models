@@ -53,6 +53,12 @@ thiserror = "2.0.12"
 variantly = "0.4.0"
 case = "1.0.0"
 dirs = "6.0.0"
+
+# Git-based GitHub import is native-only: `gix` depends on `gix-fs`, which uses
+# `std::os::unix` and other native-only APIs that don't exist on wasm32. Gating
+# by target (rather than a cargo feature) makes it impossible for a wasm build to
+# pull in `gix` regardless of which `--features` flags are passed.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gix = { version = "0.70.0", default-features = false, features = [
     "blocking-http-transport-reqwest-rust-tls",
     "worktree-mutation",
