@@ -1004,11 +1004,8 @@ mod tests {
     /// validating a model whose object name contains a dash yields a NameError.
     #[test]
     fn test_dashed_object_name_is_invalid() {
-        let mut model = parse_markdown(
-            "### Configuration\n\n- name\n  - Type: string\n",
-            None,
-        )
-        .expect("model should parse");
+        let mut model = parse_markdown("### Configuration\n\n- name\n  - Type: string\n", None)
+            .expect("model should parse");
         model.objects[0].name = "coupling-scheme".to_string();
 
         let mut validator = super::Validator::new();

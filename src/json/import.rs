@@ -154,11 +154,8 @@ fn inline_object_to_object(
     nested_objects: &mut Vec<Object>,
     nested_enums: &mut Vec<Enumeration>,
 ) -> Result<Object, Box<dyn std::error::Error>> {
-    let object_name = synthetic_type_name(
-        property_name,
-        property.title.as_deref(),
-        parent_property,
-    );
+    let object_name =
+        synthetic_type_name(property_name, property.title.as_deref(), parent_property);
 
     let mut attributes = property
         .properties
@@ -190,7 +187,10 @@ fn inline_object_to_object(
 
 fn apply_required_fields(attributes: &mut [Attribute], required: &[String]) {
     for required_attribute in required {
-        if let Some(attr) = attributes.iter_mut().find(|attr| attr.name == *required_attribute) {
+        if let Some(attr) = attributes
+            .iter_mut()
+            .find(|attr| attr.name == *required_attribute)
+        {
             attr.required = true;
         }
     }
@@ -203,7 +203,12 @@ fn synthetic_type_name(
 ) -> String {
     let base = title
         .filter(|value| !value.is_empty())
-        .map(|value| value.chars().filter(|c| !c.is_whitespace()).collect::<String>())
+        .map(|value| {
+            value
+                .chars()
+                .filter(|c| !c.is_whitespace())
+                .collect::<String>()
+        })
         .unwrap_or_else(|| property_name.to_case(Case::Pascal));
 
     match parent_property {
@@ -349,9 +354,7 @@ fn property_to_attribute(
     }
 
     Ok(Attribute {
-        name: property
-            .title
-            .unwrap_or_else(|| property_name.to_string()),
+        name: property.title.unwrap_or_else(|| property_name.to_string()),
         is_array,
         dtypes: dtypes
             .into_iter()
@@ -1234,7 +1237,10 @@ mod tests {
             .find(|object| object.name == "Settings")
             .expect("settings object");
         assert_eq!(settings.attributes.len(), 2);
-        assert!(settings.attributes.iter().any(|attr| attr.name == "enabled" && attr.required));
+        assert!(settings
+            .attributes
+            .iter()
+            .any(|attr| attr.name == "enabled" && attr.required));
 
         let items_attr = root
             .attributes
@@ -1249,7 +1255,10 @@ mod tests {
             .iter()
             .find(|object| object.name == "Items")
             .expect("items object");
-        assert!(item_object.attributes.iter().any(|attr| attr.name == "name" && attr.required));
+        assert!(item_object
+            .attributes
+            .iter()
+            .any(|attr| attr.name == "name" && attr.required));
     }
 
     #[test]
@@ -1337,7 +1346,9 @@ mod tests {
         let values: std::collections::HashSet<_> = coupling_enum.mappings.values().collect();
         assert_eq!(
             values,
-            ["parallel".to_string(), "serial".to_string()].iter().collect()
+            ["parallel".to_string(), "serial".to_string()]
+                .iter()
+                .collect()
         );
 
         // Default values are captured from the schema.

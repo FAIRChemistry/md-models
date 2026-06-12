@@ -517,7 +517,13 @@ fn snake_case(s: String) -> String {
 /// generated programming-language identifier, never the wire/serialized name.
 fn to_identifier(s: String) -> String {
     s.chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect()
 }
 
@@ -1215,7 +1221,10 @@ mod tests {
             .iter()
             .find(|a| a.name == "test2")
             .expect("test2 attribute");
-        assert!(test2.is_array, "array flag must survive a markdown round-trip");
+        assert!(
+            test2.is_array,
+            "array flag must survive a markdown round-trip"
+        );
     }
 
     #[test]
@@ -1241,8 +1250,14 @@ mod tests {
             .find(|o| o.name == "Test")
             .and_then(|o| o.attributes.iter().find(|a| a.name == "name"))
             .expect("name attribute");
-        assert!(name.required, "required flag must survive a markdown round-trip");
-        assert!(name.default.is_some(), "default must survive a markdown round-trip");
+        assert!(
+            name.required,
+            "required flag must survive a markdown round-trip"
+        );
+        assert!(
+            name.default.is_some(),
+            "default must survive a markdown round-trip"
+        );
     }
 
     #[test]
@@ -1272,8 +1287,11 @@ mod tests {
     fn test_dashed_attribute_names_pydantic() {
         // Pydantic models use a safe field name plus a Field alias that maps to the
         // original dashed wire name.
-        let rendered =
-            build_and_convert("tests/data/model_dashed_names.md", Templates::PythonPydantic, None);
+        let rendered = build_and_convert(
+            "tests/data/model_dashed_names.md",
+            Templates::PythonPydantic,
+            None,
+        );
 
         assert!(rendered.contains("coupling_scheme: "));
         assert!(rendered.contains("alias=\"coupling-scheme\""));
@@ -1284,8 +1302,11 @@ mod tests {
     #[test]
     fn test_dashed_attribute_names_dataclass() {
         // Dataclasses map the dashed wire name through dataclasses-json `field_name`.
-        let rendered =
-            build_and_convert("tests/data/model_dashed_names.md", Templates::PythonDataclass, None);
+        let rendered = build_and_convert(
+            "tests/data/model_dashed_names.md",
+            Templates::PythonDataclass,
+            None,
+        );
 
         assert!(rendered.contains("coupling_scheme:"));
         assert!(rendered.contains("field_name=\"coupling-scheme\""));
@@ -1294,8 +1315,11 @@ mod tests {
     #[test]
     fn test_dashed_attribute_names_typescript() {
         // TypeScript preserves the wire name by quoting the property key.
-        let rendered =
-            build_and_convert("tests/data/model_dashed_names.md", Templates::Typescript, None);
+        let rendered = build_and_convert(
+            "tests/data/model_dashed_names.md",
+            Templates::Typescript,
+            None,
+        );
 
         assert!(rendered.contains("\"coupling-scheme\"?:"));
         assert!(rendered.contains("\"coupling-scheme\": D.nullable"));

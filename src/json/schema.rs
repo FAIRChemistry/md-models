@@ -643,7 +643,13 @@ mod tests {
         let items = property.items.as_ref().unwrap();
         let item_property = items.as_property().expect("expected inline object items");
         assert_eq!(item_property.properties.len(), 2);
-        assert_eq!(property.options.get("minItems"), Some(&PrimitiveType::Number(1.0)));
-        assert_eq!(property.options.get("uniqueItems"), Some(&PrimitiveType::Boolean(true)));
+        assert_eq!(
+            property.options.get("minItems"),
+            Some(&PrimitiveType::Number(1.0))
+        );
+        assert_eq!(
+            property.options.get("uniqueItems"),
+            Some(&PrimitiveType::Boolean(true))
+        );
     }
 }
