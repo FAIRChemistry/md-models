@@ -32,6 +32,7 @@ pub mod attribute;
 pub mod datamodel;
 pub mod error;
 pub mod exporters;
+pub mod git;
 pub mod object;
 pub mod option;
 pub mod pipeline;

@@ -32,6 +32,7 @@ use pyo3::pyclass;
 #[cfg(feature = "wasm")]
 use tsify_next::Tsify;
 
+use crate::git;
 use crate::prelude::DataModel;
 
 /// Represents the front matter data of a markdown file.
@@ -163,10 +164,12 @@ impl ImportType {
     ///
     /// # Returns
     /// A Result containing the parsed DataModel or an error.
-    fn fetch_remote_model(&self, _: &str) -> Result<DataModel, Box<dyn Error>> {
-        unimplemented!(
-            "Fetching remote models is not supported yet due to incompatibility with WASM"
-        );
+    fn fetch_remote_model(&self, url: &str) -> Result<DataModel, Box<dyn Error>> {
+        if let Some((repo, path)) = git::parse_github_file_url(url) {
+            return DataModel::from_github(&repo, &path);
+        }
+
+        Err(format!("Unsupported remote import URL: {url}").into())
     }
 
     /// Fetches and parses a model from a local file path.

@@ -24,9 +24,16 @@ Validates markdown model files for structural integrity, naming conventions, and
 
 ```bash
 md-models validate -i model.md
+
+# Validate from a GitHub repository snapshot
+md-models validate -i models/model.md --git acme/example-models
+md-models validate -i models/model.md --git acme/example-models@main
+md-models validate -i models/model.md --git acme/example-models@v1.0.0
+md-models validate -i models/model.md --git acme/example-models@a1b2c3d
 ```
 
 **Use cases:**
+
 - Check models before code generation
 - Validate models in CI/CD pipelines
 - Ensure models meet naming and structure requirements
@@ -47,9 +54,13 @@ md-models convert -i model.md -t python-pydantic -o models.py
 
 # Generate JSON Schema
 md-models convert -i model.md -t json-schema -r Document -o schema.json
+
+# Convert a model from GitHub (repo-root relative input path)
+md-models convert -i models/model.md --git acme/example-models@main -t json-schema
 ```
 
 **Use cases:**
+
 - Generate type-safe code for your application
 - Create API schemas and specifications
 - Produce documentation from models
@@ -72,6 +83,7 @@ md-models pipeline -i pipeline.toml
 ```
 
 **Use cases:**
+
 - Generate multiple formats in one command
 - Automate code generation for entire projects
 - Maintain consistency across generated outputs
@@ -89,9 +101,13 @@ Uses Large Language Models (LLMs) to extract structured data from unstructured t
 
 ```bash
 md-models extract -m model.md -i text.txt -o output.json
+
+# Use a model from GitHub
+md-models extract -m models/model.md --git acme/example-models@v1.0.0 -i text.txt -o output.json
 ```
 
 **Use cases:**
+
 - Extract structured data from documents
 - Parse unstructured text into typed objects
 - Convert legacy data formats to structured JSON
@@ -109,9 +125,13 @@ Validates JSON datasets against markdown models to ensure data conforms to the m
 
 ```bash
 md-models dataset validate -i data.json -m model.md
+
+# Validate dataset with a model from GitHub
+md-models dataset validate -i data.json -m models/model.md --git acme/example-models@main
 ```
 
 **Use cases:**
+
 - Validate API request/response data
 - Check data quality in ETL pipelines
 - Ensure data consistency before processing
@@ -158,6 +178,15 @@ All commands that accept input files support:
 
 - **Local file paths**: `md-models validate -i model.md`
 - **Remote URLs**: `md-models validate -i https://example.com/model.md`
+- **GitHub repository snapshots** (for markdown model inputs only): `--git owner/repo[@ref]`
+
+When `--git` is used, the model path (`-i` for `validate`/`convert`, `-m` for `extract`/`dataset validate`) must be a path relative to the repository root.
+
+Supported refs in `owner/repo[@ref]`:
+
+- **Branch**: `acme/example-models@main`
+- **Tag / release tag**: `acme/example-models@v1.0.0`
+- **Commit SHA**: `acme/example-models@a1b2c3d`
 
 MD-Models automatically detects whether the input is a URL (starts with `http`/`https`) or a local file path.
 
@@ -177,13 +206,13 @@ md-models pipeline --help
 
 ## Command Reference
 
-| Command | Purpose | Documentation |
-|---------|---------|---------------|
-| `validate` | Validate model structure and syntax | [Schema Validation](schema_validation.md) |
-| `convert` | Generate code and schemas | [Code Generation](generation.md) |
-| `pipeline` | Batch generation from config | [Pipelines](pipelines.md) |
-| `extract` | LLM-powered data extraction | [Large Language Models](llm.md) |
-| `dataset validate` | Validate data against models | See `md-models dataset validate --help` |
+| Command            | Purpose                             | Documentation                             |
+| ------------------ | ----------------------------------- | ----------------------------------------- |
+| `validate`         | Validate model structure and syntax | [Schema Validation](schema_validation.md) |
+| `convert`          | Generate code and schemas           | [Code Generation](generation.md)          |
+| `pipeline`         | Batch generation from config        | [Pipelines](pipelines.md)                 |
+| `extract`          | LLM-powered data extraction         | [Large Language Models](llm.md)           |
+| `dataset validate` | Validate data against models        | See `md-models dataset validate --help`   |
 
 ## Next Steps
 

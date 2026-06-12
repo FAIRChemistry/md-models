@@ -48,16 +48,21 @@ impl DataModel {
     /// # Arguments
     ///
     /// * `path` - A string slice that holds the path to the markdown file.
+    /// * `git` - Optional GitHub repository in the form `owner/repo[@ref]`.
     ///
     /// # Returns
     ///
     /// A new instance of `DataModel`.
     #[classmethod]
-    #[pyo3(signature = (path))]
-    fn from_markdown(_cls: &Bound<'_, PyType>, path: String) -> Self {
-        Self {
-            model: datamodel::DataModel::from_markdown(Path::new(&path)).unwrap(),
-        }
+    #[pyo3(signature = (path, git=None))]
+    fn from_markdown(_cls: &Bound<'_, PyType>, path: String, git: Option<String>) -> Self {
+        let model = if let Some(repo) = git {
+            datamodel::DataModel::from_github(&repo, &path).unwrap()
+        } else {
+            datamodel::DataModel::from_markdown(Path::new(&path)).unwrap()
+        };
+
+        Self { model }
     }
 
     /// Creates a new `DataModel` instance from a json schema file.

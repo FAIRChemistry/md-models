@@ -75,6 +75,13 @@ struct ValidateArgs {
     /// Path or URL to the markdown file.
     #[arg(short, long, help = "Path or URL to the markdown file")]
     input: InputType,
+
+    /// GitHub repository in pip-style shorthand: owner/repo[@ref]
+    ///
+    /// The ref can be a branch, tag (including release tags), or commit SHA.
+    /// Example: acme/example-models@v1.0.0
+    #[arg(long = "git", help = "GitHub repository in the form owner/repo[@ref]")]
+    git: Option<String>,
 }
 
 /// Arguments for the convert subcommand.
@@ -83,6 +90,13 @@ struct ConvertArgs {
     /// Path or URL to the markdown file.
     #[arg(short, long, help = "Path or URL to the markdown file")]
     input: InputType,
+
+    /// GitHub repository in pip-style shorthand: owner/repo[@ref]
+    ///
+    /// The ref can be a branch, tag (including release tags), or commit SHA.
+    /// Example: acme/example-models@main
+    #[arg(long = "git", help = "GitHub repository in the form owner/repo[@ref]")]
+    git: Option<String>,
 
     /// Path to the output file.
     #[arg(short, long, help = "Path to the output file")]
@@ -125,6 +139,13 @@ struct ExtractArgs {
     /// Path or URL to the markdown model.
     #[arg(short, long, help = "Path or URL to the markdown model")]
     model: InputType,
+
+    /// GitHub repository in pip-style shorthand: owner/repo[@ref]
+    ///
+    /// The ref can be a branch, tag (including release tags), or commit SHA.
+    /// Example: acme/example-models@a1b2c3d
+    #[arg(long = "git", help = "GitHub repository in the form owner/repo[@ref]")]
+    git: Option<String>,
 
     /// Prompt to use for extraction.
     #[arg(short, long, help = "Path to the file to parse")]
@@ -190,6 +211,12 @@ struct ValidateDatasetArgs {
     /// Path to the markdown model.
     #[arg(short, long, help = "Path to the markdown model")]
     model: InputType,
+
+    /// GitHub repository in pip-style shorthand: owner/repo[@ref]
+    ///
+    /// The ref can be a branch, tag (including release tags), or commit SHA.
+    #[arg(long = "git", help = "GitHub repository in the form owner/repo[@ref]")]
+    git: Option<String>,
 }
 
 /// Represents the input type, either remote URL or local file path.
@@ -251,6 +278,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn validate(args: ValidateArgs) -> Result<(), Box<dyn Error>> {
     println!("\n Validating model {} ...", args.input.to_string().bold());
 
+    if args.git.is_some() {
+        let model = load_markdown_model(&args.input, args.git.as_deref());
+        return match model {
+            Ok(_) => {
+                print_validation_result(true);
+                Ok(())
+            }
+            Err(err) => {
+                print_validation_result(false);
+                Err(err)
+            }
+        };
+    }
+
     let path = resolve_input_path(&args.input);
 
     if is_json_schema(&path)? {
@@ -307,8 +348,7 @@ fn print_validation_result(result: bool) {
 }
 
 fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
-    let path = resolve_input_path(&args.model);
-    let model = DataModel::from_markdown(&path)?;
+    let model = load_markdown_model(&args.model, args.git.as_deref())?;
     let prompt = std::fs::read_to_string(&args.input)?;
     let pre_prompt = args.pre_prompt;
     let llm_model = args.llm_model;
@@ -352,13 +392,16 @@ fn query_llm(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
 ///
 /// * `args` - Arguments for the convert subcommand.
 fn convert(args: ConvertArgs) -> Result<(), Box<dyn Error>> {
-    // Parse the markdown model.
-    let path = resolve_input_path(&args.input);
-
-    let mut model = if is_json_schema(&path)? {
-        DataModel::from_json_schema(&path)?
+    // Parse the model.
+    let mut model = if let Some(repo) = args.git.as_deref() {
+        load_markdown_model(&args.input, Some(repo))?
     } else {
-        DataModel::from_markdown(&path)?
+        let path = resolve_input_path(&args.input);
+        if is_json_schema(&path)? {
+            DataModel::from_json_schema(&path)?
+        } else {
+            DataModel::from_markdown(&path)?
+        }
     };
 
     // Special case JSON Schema all
@@ -448,6 +491,26 @@ fn resolve_input_path(input: &InputType) -> PathBuf {
     }
 }
 
+/// Loads a markdown model either from local/remote input or from a GitHub repository cache.
+fn load_markdown_model(input: &InputType, git: Option<&str>) -> Result<DataModel, Box<dyn Error>> {
+    if let Some(repo) = git {
+        let path = match input {
+            InputType::Local(path) => path.as_str(),
+            InputType::Remote(_) => {
+                return Err(
+                    "When using --git, provide --input as a repository-root path, not a URL".into(),
+                )
+            }
+        };
+
+        return DataModel::from_github(repo, path);
+    }
+
+    let path = resolve_input_path(input);
+    let model = DataModel::from_markdown(&path)?;
+    Ok(model)
+}
+
 /// Renders all JSON Schemas for the model.
 fn render_all_json_schemes(
     model: &DataModel,
@@ -487,8 +550,7 @@ fn render_internal_schema(model: &DataModel) -> Result<String, Box<dyn Error>> {
 
 /// Validates a dataset against a markdown model.
 fn validate_ds(args: ValidateDatasetArgs) -> Result<(), Box<dyn Error>> {
-    let model_path = resolve_input_path(&args.model);
-    let model = DataModel::from_markdown(&model_path)?;
+    let model = load_markdown_model(&args.model, args.git.as_deref())?;
     let dataset_path = resolve_input_path(&args.input);
     let result = validate_json(dataset_path, &model, None)?;
 

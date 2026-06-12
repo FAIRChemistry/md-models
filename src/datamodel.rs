@@ -30,6 +30,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::DataModelError;
 use crate::exporters::{render_jinja_template, Templates};
+use crate::git::cache_github_repo;
 use crate::json::export::to_json_schema;
 use crate::json::schema::SchemaObject;
 use crate::json::validation::{validate_json, ValidationError};
@@ -443,6 +444,23 @@ impl DataModel {
     pub fn from_markdown(path: &Path) -> Result<Self, Validator> {
         let content = fs::read_to_string(path).expect("Could not read file");
         parse_markdown(&content, Some(path))
+    }
+
+    pub fn from_github(repo: &str, path: &str) -> Result<Self, Box<dyn Error>> {
+        let cached = cache_github_repo(repo)?;
+        let path = path.trim_start_matches('/');
+        let model_path = cached.root.join(path);
+
+        if !model_path.exists() {
+            return Err(format!(
+                "Model path '{}' does not exist in cached repo {} at {}",
+                path, repo, cached.commit
+            )
+            .into());
+        }
+
+        let model = DataModel::from_markdown(&model_path)?;
+        Ok(model)
     }
 
     /// Parse a markdown file and create a data model
