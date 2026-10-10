@@ -194,7 +194,7 @@ fn collect_definitions(
 /// * `schema` - A mutable reference to the `SchemaObject`.
 /// * `prefixes` - A reference to a map containing prefix-to-URI mappings.
 fn resolve_prefixes(schema: &mut schema::SchemaObject, prefixes: &HashMap<String, String>) {
-    for (_, property) in schema.properties.iter_mut() {
+    for property in schema.properties.values_mut() {
         if let Some(reference) = property.term.clone() {
             let (prefix, term) = reference.split_once(":").unwrap_or(("", ""));
             if let Some(prefix) = prefixes.get(prefix) {
@@ -220,7 +220,7 @@ fn post_process_schema(
     schema_object.id = Some(config.repo.clone());
     post_process_object(schema_object, config, openai, used_enums)?;
 
-    for (_, definition) in schema_object.definitions.iter_mut() {
+    for definition in schema_object.definitions.values_mut() {
         if let schema::SchemaType::Object(definition) = definition {
             post_process_object(definition, config, openai, used_enums)?;
         }
@@ -253,7 +253,7 @@ fn post_process_object(
         set_required_and_nullable(object);
     }
 
-    for (_, property) in object.properties.iter_mut() {
+    for property in object.properties.values_mut() {
         if let Some(reference) = &property.reference {
             if used_enums.contains(
                 reference
@@ -279,7 +279,7 @@ fn post_process_object(
 ///
 /// * `schema` - A mutable reference to the `SchemaObject`.
 fn remove_options(schema: &mut schema::SchemaObject) {
-    for (_, property) in schema.properties.iter_mut() {
+    for property in schema.properties.values_mut() {
         property.options = HashMap::new();
     }
 }
