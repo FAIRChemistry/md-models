@@ -71,7 +71,7 @@
         {%- if attr.dtypes | length > 1 -%}
             #[builder(default, setter(into))]
         {%- elif attr.default is string -%}
-            #[builder(default = "\"{{ attr.default }}\".to_string().into()", setter(into))]
+            #[builder(default = {{ json_string(json_string(attr.default) ~ ".to_string().into()") }}, setter(into))]
         {%- elif attr.default -%}
             #[builder(default = "{{ attr.default }}{{- to_string(attr) -}}.into()", setter(into))]
         {%- elif attr.required is false -%}
@@ -118,7 +118,7 @@
 {% macro get_derivative_attribute(attr) %}
     {%- if attr.default and attr.dtypes | length == 1 -%}
         {%- if attr.dtypes[0] == "string" -%}
-        #[derivative(Default(value = "\"{{ attr.default }}\".to_string()"))]
+        #[derivative(Default(value = {{ json_string(json_string(attr.default) ~ ".to_string()") }}))]
         {%- else -%}
         #[derivative(Default(value = "{{ attr.default }}{{- to_string(attr) -}}{{- into(attr) -}}"))]
         {%- endif -%}

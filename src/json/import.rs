@@ -462,8 +462,8 @@ fn make_inline_enum(
 
 /// Converts a JSON Schema primitive default value into the model's `DataType`.
 ///
-/// String defaults are stored quoted to match the representation produced by the
-/// markdown parser, so both import paths agree.
+/// `DataType::String` holds the unquoted text, matching the markdown parser, so
+/// both import paths agree.
 fn primitive_to_datatype(value: &PrimitiveType) -> attribute::DataType {
     match value {
         PrimitiveType::String(s) => attribute::DataType::String(s.clone()),

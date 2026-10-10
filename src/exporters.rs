@@ -1371,4 +1371,32 @@ mod tests {
             "{rust}"
         );
     }
+
+    #[test]
+    fn test_string_defaults_are_escaped_in_rust_and_python() {
+        let md = "### Doc\n\n- path\n  - Type: string\n  - Default: \"say \"hi\" C:\\tmp\"\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let rust = render_jinja_template(&Templates::Rust, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        // The Rust string literal is escaped once, the attribute argument a second time
+        assert!(
+            rust.contains(
+                r#"#[builder(default = "\"say \\\"hi\\\" C:\\\\tmp\".to_string().into()", setter(into))]"#
+            ),
+            "{rust}"
+        );
+        assert!(
+            rust.contains(
+                r#"#[derivative(Default(value = "\"say \\\"hi\\\" C:\\\\tmp\".to_string()"))]"#
+            ),
+            "{rust}"
+        );
+
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains(r#"default= "say \"hi\" C:\\tmp","#), "{py}");
+    }
 }
