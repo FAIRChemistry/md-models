@@ -93,6 +93,9 @@ fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext
         .terms
         .insert(model_id.clone(), prefix_term(&config.repo));
 
+    // Fallback IRI for keys that are not part of the model
+    context.vocab = Some(Some(config.repo.clone()));
+
     // Add prefixes from DataModel config
     if let Some(prefixes) = &config.prefixes {
         for (prefix, uri) in prefixes {
@@ -159,7 +162,7 @@ fn build_object_context(
 
     for attr in &object.attributes {
         let has_nested = attr.dtypes.iter().any(|dt| object_names.contains(dt));
-        let term_def = if has_nested || attr.is_array {
+        let term_def = if has_nested || attr.is_array || attr.is_iri {
             build_detailed_term_def(graph, node_idx, attr, model_id, has_nested, cache)
         } else {
             let term_id = get_attr_term_id(attr, object, model_id);
@@ -210,7 +213,8 @@ fn build_detailed_term_def(
 
     // Build term detail, setting @container and nested @context as needed
     let mut detail = TermDetail {
-        type_: object_type,
+        id: Some(get_attr_term_id(attr, &graph[node_idx], model_id)),
+        type_: object_type.or_else(|| attr.is_iri.then(|| "@id".to_string())),
         container: if attr.is_array {
             Some(OneOrMany::One("@set".to_string()))
         } else {
@@ -250,16 +254,6 @@ fn get_attr_term_id(attr: &crate::attribute::Attribute, object: &Object, model_i
     }
 }
 
-/// Retrieve a term for an attribute from its explicit term, or default to constructed IRI.
-///
-/// Accepts the explicit annotated term or synthesizes a term if missing.
-fn get_object_term_or_default(term: &Option<String>, model_id: &str, object_name: &str) -> String {
-    match term {
-        Some(term) => term.clone(),
-        None => format!("{}:{}", model_id, object_name),
-    }
-}
-
 /// Recursively build the nested context for an attribute's referenced object(s).
 ///
 /// Returns a [`SimpleContext`] capturing nested keys/objects for JSON-LD.
@@ -283,11 +277,9 @@ fn build_nested_for_attr(
         let neighbor_obj = &graph[neighbor_idx];
 
         if attr.dtypes.contains(&neighbor_obj.name) {
+            // No `@type` here: JSON-LD 1.1 does not allow it inside a scoped context;
+            // node types belong on the nodes themselves.
             let nested_context = build_object_context(graph, neighbor_idx, model_id, cache);
-
-            // We need to add the type as `@id` to tell JSON-LD that this attribute references a  IRI
-            let term = get_object_term_or_default(&neighbor_obj.term, model_id, &neighbor_obj.name);
-            context.type_ = Some(TypeOrVec::Single(term));
 
             for (key, value) in nested_context.terms {
                 context.terms.insert(key, value);
@@ -330,5 +322,40 @@ mod tests {
         );
         assert_eq!(ctx["rdfs"], json!("http://www.w3.org/2000/01/rdf-schema#"));
         assert_eq!(ctx["ex"], json!("https://example.org/jsonld/"));
+    }
+
+    #[test]
+    fn test_every_attribute_has_an_iri() {
+        let ctx = context();
+        assert_eq!(ctx["@vocab"], json!("https://example.org/jsonld/"));
+        assert_eq!(ctx["version"], json!("ex:Document/version"));
+        assert_eq!(ctx["molecules"]["@id"], json!("ex:Document/molecules"));
+        assert_eq!(
+            ctx["molecules"]["@context"]["references"]["@id"],
+            json!("schema:citation")
+        );
+    }
+
+    #[test]
+    fn test_identifiers_are_literals_and_iris_are_coerced() {
+        let ctx = context();
+        assert_eq!(ctx["id"], json!("schema:identifier"));
+        assert_eq!(
+            ctx["molecules"]["@context"]["vessel_id"],
+            json!("ex:Molecule/vessel_id")
+        );
+        assert_eq!(
+            ctx["homepage"],
+            json!({"@id": "schema:url", "@type": "@id"})
+        );
+        assert_eq!(
+            ctx["molecules"]["@context"]["references"]["@type"],
+            json!("@id")
+        );
+    }
+
+    #[test]
+    fn test_scoped_contexts_have_no_type_entry() {
+        assert_eq!(context()["molecules"]["@context"].get("@type"), None);
     }
 }
