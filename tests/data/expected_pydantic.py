@@ -107,7 +107,7 @@ class Test(BaseModel):
     ) # type: ignore
 
     name: str = Field(
-        default= "2",
+        default= "2.0",
         description="""The name of the test. This is a unique identifier
         that helps track individual test
         cases across the system. It should be
@@ -115,7 +115,7 @@ class Test(BaseModel):
         conventions.""",
     )
     number: Union[None,float,str] = Field(
-        default= 1,
+        default= 1.0,
         description="""""",
     )
     test2: list[Test2] = Field(

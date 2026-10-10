@@ -70,6 +70,8 @@
     {%- else -%}
         {%- if attr.dtypes | length > 1 -%}
             #[builder(default, setter(into))]
+        {%- elif attr.default is string -%}
+            #[builder(default = "\"{{ attr.default }}\".to_string().into()", setter(into))]
         {%- elif attr.default -%}
             #[builder(default = "{{ attr.default }}{{- to_string(attr) -}}.into()", setter(into))]
         {%- elif attr.required is false -%}

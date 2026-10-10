@@ -648,9 +648,7 @@ fn process_default(
     dtype: &Option<schema::DataType>,
 ) -> Option<PrimitiveType> {
     if matches!(dtype, Some(schema::DataType::String)) {
-        default
-            .as_string()
-            .map(|d| PrimitiveType::String(d.trim_matches('"').to_string()))
+        default.as_string().map(PrimitiveType::String)
     } else {
         Some(default.into())
     }

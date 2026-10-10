@@ -556,5 +556,6 @@ mod tests {
         assert_eq!(schema["properties"]["homepage"]["format"], "iri");
         assert_eq!(schema["properties"]["id"].get("format"), None);
         assert_eq!(schema["properties"]["version"]["pattern"], r"^(\d+)\.\d+$");
+        assert_eq!(schema["properties"]["version"]["default"], "2.0");
     }
 }

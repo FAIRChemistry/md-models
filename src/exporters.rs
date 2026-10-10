@@ -873,7 +873,7 @@ fn json_string(value: String) -> String {
 /// # Returns
 fn default_value(attribute: ViaDeserialize<Attribute>) -> String {
     match &attribute.default {
-        Some(DataType::String(s)) => format!("\"{s}\""),
+        Some(DataType::String(s)) => serde_json::to_string(s).expect("a string always serializes"),
         Some(DataType::Integer(i)) => {
             if contains_numeric_type(&attribute) {
                 i.to_string()
@@ -882,10 +882,11 @@ fn default_value(attribute: ViaDeserialize<Attribute>) -> String {
             }
         }
         Some(DataType::Float(f)) => {
+            // `{:?}` keeps the decimal point: 2.0 renders as "2.0", not "2"
             if contains_numeric_type(&attribute) {
-                f.to_string()
+                format!("{f:?}")
             } else {
-                format!("\"{f}\"")
+                format!("\"{f:?}\"")
             }
         }
         _ => "".to_string(),
@@ -1353,5 +1354,21 @@ mod tests {
         let expected = fs::read_to_string("tests/data/expected_mermaid.md")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_string_defaults_keep_their_text() {
+        let pydantic = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::PythonPydantic,
+            None,
+        );
+        assert!(pydantic.contains(r#"default= "2.0","#), "{pydantic}");
+
+        let rust = build_and_convert("tests/data/model.md", Templates::Rust, None);
+        assert!(
+            rust.contains(r#"#[builder(default = "\"2.0\".to_string().into()", setter(into))]"#),
+            "{rust}"
+        );
     }
 }

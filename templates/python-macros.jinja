@@ -5,7 +5,7 @@
 {% macro create_attribute(attr) %}
     {{ attr.name }}: {{ get_type(attr) }} = {{ xml_type(attr.xml) }}(
             {% if attr.required is false and attr.multiple is false -%}
-            default={%- if attr.default -%}{{ attr.default }}{%- else -%}None{%- endif -%},
+            default={{ default_value_only(attr) }},
             {% endif -%}
             {% if attr.multiple is true -%}
             default_factory=list,

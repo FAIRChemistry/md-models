@@ -8,6 +8,7 @@
     "name": {
       "title": "name",
       "type": "string",
+      "default": "2.0",
       "description": "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.",
       "$term": "http://schema.org/hello"
     },

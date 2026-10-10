@@ -37,8 +37,8 @@ from datetime import date, datetime
 @dataclass_json
 @dataclass
 class Test:
-    name: str = "2"
-    number: Union[None,float,str] = 1
+    name: str = "2.0"
+    number: Union[None,float,str] = 1.0
     test2: list[Test2] = field(default_factory=list)
     ontology: Optional[Ontology] = field(default=None, metadata=config(exclude=lambda x: x is None))
 

@@ -14,7 +14,7 @@
           "options": [],
           "term": "schema:hello",
           "required": true,
-          "default": 2.0,
+          "default": "2.0",
           "xml": {
             "is_attr": true,
             "name": "name",

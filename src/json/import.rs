@@ -466,7 +466,7 @@ fn make_inline_enum(
 /// markdown parser, so both import paths agree.
 fn primitive_to_datatype(value: &PrimitiveType) -> attribute::DataType {
     match value {
-        PrimitiveType::String(s) => attribute::DataType::String(format!("\"{s}\"")),
+        PrimitiveType::String(s) => attribute::DataType::String(s.clone()),
         PrimitiveType::Number(n) if n.fract() == 0.0 && n.is_finite() => {
             attribute::DataType::Integer(*n as i64)
         }
@@ -1356,7 +1356,7 @@ mod tests {
         // Default values are captured from the schema.
         assert_eq!(
             coupling.default,
-            Some(attribute::DataType::String("\"parallel\"".to_string()))
+            Some(attribute::DataType::String("parallel".to_string()))
         );
         let max_iter = coupling_scheme
             .attributes
