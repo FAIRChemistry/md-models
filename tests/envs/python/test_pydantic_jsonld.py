@@ -81,6 +81,36 @@ def test_iri_fields_are_iris():
     assert (None, SCHEMA.citation, rdflib.URIRef("https://doi.org/10.1000/xyz")) in g
 
 
+def roundtrip(document: Document) -> tuple[dict, dict]:
+    written = json.loads(document.model_dump_json(by_alias=True, exclude_none=True))
+    reread = Document.model_validate(written)
+    return written, json.loads(reread.model_dump_json(by_alias=True, exclude_none=True))
+
+
+def test_roundtrip_keeps_ids():
+    written, rewritten = roundtrip(build_document())
+    assert rewritten["@id"] == written["@id"]
+    assert rewritten["molecules"][0]["@id"] == written["molecules"][0]["@id"]
+
+
+def test_roundtrip_keeps_extra_types():
+    document = build_document()
+    document.molecules[0].add_type_term("CHEBI:15377")
+    _, rewritten = roundtrip(document)
+    assert rewritten["molecules"][0]["@type"] == ["ex:Molecule", "CHEBI:15377"]
+    _, rewritten_twice = roundtrip(Document.model_validate(rewritten))
+    assert rewritten_twice == rewritten
+
+
+def test_read_repairs_old_context_and_keeps_extra_prefixes():
+    written = json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
+    written["@context"]["id"] = {"@id": "schema:identifier", "@type": "@id"}  # pre-fix context
+    written["@context"]["myprefix"] = "https://my.example/"
+    reread = Document.model_validate(written)
+    assert reread.ld_context["id"] == "schema:identifier"
+    assert reread.ld_context["myprefix"] == "https://my.example/"
+
+
 if __name__ == "__main__":
     for name, test in list(globals().items()):
         if name.startswith("test_"):

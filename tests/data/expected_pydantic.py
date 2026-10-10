@@ -33,7 +33,7 @@ Do not edit directly - any changes will be overwritten.
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
@@ -105,6 +105,17 @@ def validate_prefix(term: str | dict, prefix: str):
     elif isinstance(term, str) and not term.startswith(prefix + ":"):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
 
+
+def merge_ld_type(defaults: list[str], value: list[str]) -> list[str]:
+    """Keeps the generated types and appends extra types read from a document"""
+    return defaults + [t for t in value if t not in defaults]
+
+
+def merge_ld_context(defaults: dict, value: dict) -> dict:
+    """Keeps extra prefixes and terms read from a document; generated mappings win,
+    so documents written with an older context get the current term definitions"""
+    return {**defaults, **{k: v for k, v in value.items() if k not in defaults}}
+
 # Model Definitions
 
 class Test(BaseModel):
@@ -137,17 +148,17 @@ class Test(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "tst:Test/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "tst:Test",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
             "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
@@ -160,6 +171,16 @@ class Test(BaseModel):
             "ontology": "tst:Test/ontology",
         }
     )
+
+    @field_validator("ld_type", mode="after")
+    @classmethod
+    def _merge_ld_type(cls, value: list[str]) -> list[str]:
+        return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
+
+    @field_validator("ld_context", mode="after")
+    @classmethod
+    def _merge_ld_context(cls, value: dict[str, str | dict]) -> dict[str, str | dict]:
+        return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
 
     def filter_test2(self, **kwargs) -> list[Test2]:
         """Filters the test2 attribute based on the given kwargs
@@ -280,17 +301,17 @@ class Test2(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "tst:Test2/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "tst:Test2",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
             "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
@@ -299,6 +320,16 @@ class Test2(BaseModel):
             "number": "schema:one",
         }
     )
+
+    @field_validator("ld_type", mode="after")
+    @classmethod
+    def _merge_ld_type(cls, value: list[str]) -> list[str]:
+        return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
+
+    @field_validator("ld_context", mode="after")
+    @classmethod
+    def _merge_ld_context(cls, value: dict[str, str | dict]) -> dict[str, str | dict]:
+        return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
 
 
     def set_attr_term(

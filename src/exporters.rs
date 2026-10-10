@@ -1467,4 +1467,25 @@ mod tests {
             assert!(rust.contains(expected), "missing `{expected}` in:\n{rust}");
         }
     }
+
+    #[test]
+    fn test_pydantic_reads_jsonld_keywords() {
+        let rendered = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::PythonPydantic,
+            None,
+        );
+        for expected in [
+            r#"alias="@id","#,
+            r#"alias="@type","#,
+            r#"alias="@context","#,
+            r#"@field_validator("ld_context", mode="after")"#,
+        ] {
+            assert!(
+                rendered.contains(expected),
+                "missing `{expected}` in:\n{rendered}"
+            );
+        }
+        assert!(!rendered.contains("serialization_alias=\"@"), "{rendered}");
+    }
 }
