@@ -142,6 +142,7 @@ class UnitTest(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
         default_factory = lambda: {
+            "@vocab": "http://mdmodel.net",
             "md": {"@id": "http://mdmodel.net", "@prefix": True},
             "om": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
             "qudt": "http://qudt.org/schema/qudt#",
@@ -149,6 +150,9 @@ class UnitTest(BaseModel):
             "schema": "http://schema.org/",
             "unit": "http://qudt.org/vocab/unit#",
             "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "units": "md:UnitTest/units",
+            "optional_unit": "md:UnitTest/optional_unit",
+            "unit": "md:UnitTest/unit",
         }
     )
 

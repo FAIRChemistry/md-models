@@ -56,17 +56,16 @@ class Test:
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "Test": "https://www.github.com/my/repo/Test/",
             "Test2": "https://www.github.com/my/repo/Test2/",
             "Ontology": "https://www.github.com/my/repo/Ontology/",
-            "name": {
-                "@id": "schema:hello",
-                "@type": "@id",
-            },
+            "name": "schema:hello",
             "number": "schema:one",
             "test2": "schema:something",
+            "ontology": "tst:Test/ontology",
         }
     )
 
@@ -112,6 +111,7 @@ class Test2:
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "Test": "https://www.github.com/my/repo/Test/",

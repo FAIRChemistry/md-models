@@ -60,6 +60,27 @@ def test_add_namespace_underscore_prefix_expands():
     assert (None, RDF.type, OBO["GO_0008150"]) in to_graph(molecule)
 
 
+def test_fields_without_term_are_in_graph():
+    g = to_graph(build_document())
+    assert (None, EX["Document/molecules"], None) in g
+    assert (None, RDF.type, EX["Molecule"]) in g
+    assert (None, EX["Document/version"], rdflib.Literal("2.0")) in g
+    assert (None, EX["Molecule/id"], rdflib.Literal("ManNAc")) in g
+
+
+def test_identifiers_are_literals():
+    g = to_graph(build_document())
+    assert (None, SCHEMA.identifier, rdflib.Literal("doc1")) in g
+    assert (None, EX["Molecule/vessel_id"], rdflib.Literal("v0")) in g
+    assert not [t for t in g if any(str(term).startswith("file:") for term in t)]
+
+
+def test_iri_fields_are_iris():
+    g = to_graph(build_document())
+    assert (None, SCHEMA.url, rdflib.URIRef("https://example.org/home")) in g
+    assert (None, SCHEMA.citation, rdflib.URIRef("https://doi.org/10.1000/xyz")) in g
+
+
 if __name__ == "__main__":
     for name, test in list(globals().items()):
         if name.startswith("test_"):

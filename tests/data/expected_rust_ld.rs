@@ -118,6 +118,7 @@ pub enum TestNumberType {
 
 pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
     let mut context = SimpleContext::default();
+    context.vocab = Some("https://www.github.com/my/repo/".to_string());
 
     // Add main prefix and repository URL
     context.terms.insert("tst".to_string(), TermDef::Simple("https://www.github.com/my/repo/".to_string()));
@@ -130,22 +131,15 @@ pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
     context.terms.insert("Test2".to_string(), TermDef::Simple("https://www.github.com/my/repo/Test2/".to_string()));
     context.terms.insert("Ontology".to_string(), TermDef::Simple("https://www.github.com/my/repo/Ontology/".to_string()));
 
-    // Add attribute terms
-    context.terms.insert("name".to_string(), TermDef::Detailed(TermDetail {
-        id: Some("schema:hello".to_string()),
-        type_: Some("@id".to_string()),
-        container: None,
-        context: None,
-        prefix: None,
-    }));
+    // Add attribute terms: identifiers are literals, only IRI fields are coerced to @id
+    context.terms.insert("name".to_string(), TermDef::Simple("schema:hello".to_string()));
     context.terms.insert("number".to_string(), TermDef::Simple("schema:one".to_string()));
     context.terms.insert("test2".to_string(), TermDef::Detailed(TermDetail {
         id: Some("schema:something".to_string()),
-        type_: None,
         container: Some("@list".to_string()),
-        context: None,
-        prefix: None,
+        ..Default::default()
     }));
+    context.terms.insert("ontology".to_string(), TermDef::Simple("tst:Test/ontology".to_string()));
 
     Some(JsonLdHeader {
         import: Vec::new(),
@@ -160,6 +154,7 @@ pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
 
 pub fn default_test2_jsonld_header() -> Option<JsonLdHeader> {
     let mut context = SimpleContext::default();
+    context.vocab = Some("https://www.github.com/my/repo/".to_string());
 
     // Add main prefix and repository URL
     context.terms.insert("tst".to_string(), TermDef::Simple("https://www.github.com/my/repo/".to_string()));
@@ -172,13 +167,11 @@ pub fn default_test2_jsonld_header() -> Option<JsonLdHeader> {
     context.terms.insert("Test2".to_string(), TermDef::Simple("https://www.github.com/my/repo/Test2/".to_string()));
     context.terms.insert("Ontology".to_string(), TermDef::Simple("https://www.github.com/my/repo/Ontology/".to_string()));
 
-    // Add attribute terms
+    // Add attribute terms: identifiers are literals, only IRI fields are coerced to @id
     context.terms.insert("names".to_string(), TermDef::Detailed(TermDetail {
         id: Some("schema:hello".to_string()),
-        type_: None,
         container: Some("@list".to_string()),
-        context: None,
-        prefix: None,
+        ..Default::default()
     }));
     context.terms.insert("number".to_string(), TermDef::Simple("schema:one".to_string()));
 

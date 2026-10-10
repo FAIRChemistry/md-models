@@ -1429,4 +1429,42 @@ mod tests {
             "{rust}"
         );
     }
+
+    #[test]
+    fn test_jsonld_contexts_map_every_field() {
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
+            for expected in [
+                r#""@vocab": "https://example.org/jsonld/","#,
+                r#""id": "schema:identifier","#,
+                r#""vessel_id": "ex:Molecule/vessel_id","#,
+                r#""molecules": "ex:Document/molecules","#,
+                r#""@id": "schema:url","#,
+                r#""@id": "schema:citation","#,
+            ] {
+                assert!(
+                    rendered.contains(expected),
+                    "missing `{expected}` in:\n{rendered}"
+                );
+            }
+            assert!(
+                !rendered.contains(r#""@id": "schema:identifier","#),
+                "identifier coerced to @id:\n{rendered}"
+            );
+        }
+
+        let rust = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+        for expected in [
+            r#"context.vocab = Some("https://example.org/jsonld/".to_string());"#,
+            r#"context.terms.insert("id".to_string(), TermDef::Simple("schema:identifier".to_string()));"#,
+            r#"context.terms.insert("vessel_id".to_string(), TermDef::Simple("ex:Molecule/vessel_id".to_string()));"#,
+            r#"id: Some("schema:url".to_string()),"#,
+        ] {
+            assert!(rust.contains(expected), "missing `{expected}` in:\n{rust}");
+        }
+    }
 }

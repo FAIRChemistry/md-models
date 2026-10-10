@@ -149,16 +149,15 @@ class Test(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "Test2": "https://www.github.com/my/repo/Test2/",
             "Ontology": "https://www.github.com/my/repo/Ontology/",
-            "name": {
-                "@id": "schema:hello",
-                "@type": "@id",
-            },
+            "name": "schema:hello",
             "number": "schema:one",
             "test2": "schema:something",
+            "ontology": "tst:Test/ontology",
         }
     )
 
@@ -293,6 +292,7 @@ class Test2(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "names": "schema:hello",

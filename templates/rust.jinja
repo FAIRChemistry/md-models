@@ -140,6 +140,7 @@ TermDef::Detailed(TermDetail { id: Some("{{ iri }}".to_string()), prefix: Some(t
 {% macro get_jsonld_header(object) %}
 pub fn default_{{ object.name | lower }}_jsonld_header() -> Option<JsonLdHeader> {
     let mut context = SimpleContext::default();
+    context.vocab = Some("{{ repo }}".to_string());
 
     // Add main prefix and repository URL
     context.terms.insert("{{ prefix }}".to_string(), {{ prefix_term(repo) }});
@@ -157,36 +158,22 @@ pub fn default_{{ object.name | lower }}_jsonld_header() -> Option<JsonLdHeader>
     context.terms.insert("{{ enum.name }}".to_string(), TermDef::Simple("{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/".to_string()));
     {%- endfor %}
 
-    // Add attribute terms
+    // Add attribute terms: identifiers are literals, only IRI fields are coerced to @id
     {%- for attr in object.attributes %}
-    {%- if attr.is_id %}
+    {%- set iri = attr.term if attr.term else prefix ~ ":" ~ object.name ~ "/" ~ attr.name %}
+    {%- if attr.is_iri or attr.multiple %}
     context.terms.insert("{{ attr.name }}".to_string(), TermDef::Detailed(TermDetail {
-        {%- if attr.term %}
-        id: Some("{{ attr.term }}".to_string()),
-        {%- else %}
-        id: None,
-        {%- endif %}
+        id: Some("{{ iri }}".to_string()),
+        {%- if attr.is_iri %}
         type_: Some("@id".to_string()),
+        {%- endif %}
         {%- if attr.multiple %}
         container: Some("@list".to_string()),
-        {%- else %}
-        container: None,
         {%- endif %}
-        context: None,
-        prefix: None,
-    }));
-    {%- elif attr.term %}
-    {%- if attr.multiple %}
-    context.terms.insert("{{ attr.name }}".to_string(), TermDef::Detailed(TermDetail {
-        id: Some("{{ attr.term }}".to_string()),
-        type_: None,
-        container: Some("@list".to_string()),
-        context: None,
-        prefix: None,
+        ..Default::default()
     }));
     {%- else %}
-    context.terms.insert("{{ attr.name }}".to_string(), TermDef::Simple("{{ attr.term }}".to_string()));
-    {%- endif %}
+    context.terms.insert("{{ attr.name }}".to_string(), TermDef::Simple("{{ iri }}".to_string()));
     {%- endif %}
     {%- endfor %}
 
