@@ -541,4 +541,19 @@ mod tests {
         assert_eq!(overrides.dtypes[0], "string");
         assert_eq!(overrides.is_array, false, "Expected non-array, got array");
     }
+
+    #[test]
+    fn test_json_schema_jsonld_model() {
+        let path = Path::new("tests/data/model_jsonld.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+        let schema: Value = serde_json::from_str(
+            &model
+                .json_schema(None, false)
+                .expect("Could not generate JSON schema"),
+        )
+        .unwrap();
+
+        assert_eq!(schema["properties"]["homepage"]["format"], "iri");
+        assert_eq!(schema["properties"]["id"].get("format"), None);
+    }
 }

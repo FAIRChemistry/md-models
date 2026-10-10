@@ -574,13 +574,19 @@ impl TryFrom<&Attribute> for schema::Property {
             .then(|| schema::DataType::try_from(attr))
             .transpose()?;
 
-        let options: HashMap<String, PrimitiveType> = attr
+        let mut options: HashMap<String, PrimitiveType> = attr
             .options
             .iter()
             .map(|o| -> Result<(String, PrimitiveType), String> {
                 Ok((o.key().to_string(), o.try_into()?))
             })
             .collect::<Result<HashMap<String, PrimitiveType>, String>>()?;
+        if attr.is_iri && !attr.is_array {
+            options.insert(
+                "format".to_string(),
+                PrimitiveType::String("iri".to_string()),
+            );
+        }
 
         let reference: Option<String> = if (attr.is_enum
             || matches!(dtype, Some(schema::DataType::Object)))
@@ -791,6 +797,7 @@ mod tests {
             name: "test_attribute".to_string(),
             is_array: false,
             is_id: false,
+            is_iri: false,
             dtypes: vec!["string".to_string(), "RefType".to_string()],
             docstring: "".to_string(),
             options: vec![],
@@ -826,6 +833,7 @@ mod tests {
             name: "test_attribute".to_string(),
             is_array: true,
             is_id: false,
+            is_iri: false,
             dtypes: vec!["string".to_string(), "RefType".to_string()],
             docstring: "".to_string(),
             options: vec![],

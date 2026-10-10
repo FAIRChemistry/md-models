@@ -50,6 +50,9 @@ pub struct Attribute {
     pub is_array: bool,
     /// Is an identifier or not
     pub is_id: bool,
+    /// Holds an IRI; JSON-LD contexts coerce it with `"@type": "@id"`
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_iri: bool,
     /// Data types associated with the attribute.
     pub dtypes: Vec<String>,
     /// Documentation string for the attribute.
@@ -90,6 +93,7 @@ impl Attribute {
             options: Vec::new(),
             is_array: false,
             is_id: false,
+            is_iri: false,
             term: None,
             required,
             xml: Some(XMLType::from_str(name.as_str()).unwrap()),
@@ -155,6 +159,10 @@ impl Attribute {
             dtype = dtype.trim().to_string();
             if self.is_identifier(&dtype) {
                 dtype = self.process_identifier(&dtype).to_string();
+            } else if dtype.trim_end_matches("[]").eq_ignore_ascii_case("iri") {
+                // IRI-valued field: generated as a string, coerced to an IRI in JSON-LD
+                self.is_iri = true;
+                dtype = format!("string{}", &dtype[3..]);
             }
 
             if let Some((prefix, name)) = dtype.split_once('.') {
@@ -724,5 +732,35 @@ mod tests {
     fn from_str_returns_error_for_invalid_data_type() {
         let dt = DataType::from_str("");
         assert!(dt.is_err());
+    }
+
+    #[test]
+    fn test_iri_type_is_a_flagged_string() {
+        let mut attr = Attribute::new("homepage".to_string(), false);
+        attr.add_option(RawOption::new("type".to_string(), "IRI".to_string()))
+            .expect("Failed to add option");
+        assert_eq!(attr.dtypes, vec!["string".to_string()]);
+        assert!(attr.is_iri);
+        assert!(!attr.is_id);
+        assert!(!attr.is_array);
+    }
+
+    #[test]
+    fn test_iri_array_type() {
+        let mut attr = Attribute::new("references".to_string(), false);
+        attr.add_option(RawOption::new("type".to_string(), "IRI[]".to_string()))
+            .expect("Failed to add option");
+        assert_eq!(attr.dtypes, vec!["string".to_string()]);
+        assert!(attr.is_iri);
+        assert!(attr.is_array);
+    }
+
+    #[test]
+    fn test_identifier_is_not_an_iri() {
+        let mut attr = Attribute::new("id".to_string(), true);
+        attr.add_option(RawOption::new("type".to_string(), "Identifier".to_string()))
+            .expect("Failed to add option");
+        assert!(attr.is_id);
+        assert!(!attr.is_iri);
     }
 }

@@ -243,6 +243,7 @@ fn property_to_attribute(
             is_array: false,
             dtypes: vec![type_name],
             is_id: false,
+            is_iri: false,
             docstring,
             options,
             term,
@@ -361,6 +362,7 @@ fn property_to_attribute(
             .filter(|dtype| !IGNORE_TYPES.contains(&dtype.as_str()))
             .collect::<Vec<String>>(),
         is_id: false,
+        is_iri: false,
         docstring: property.description.unwrap_or_default(),
         options: parse_options(&property.options)?,
         term: property.term,
