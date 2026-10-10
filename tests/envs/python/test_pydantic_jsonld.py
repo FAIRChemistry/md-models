@@ -111,6 +111,36 @@ def test_read_repairs_old_context_and_keeps_extra_prefixes():
     assert reread.ld_context["myprefix"] == "https://my.example/"
 
 
+def written_document() -> dict:
+    return json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
+
+
+def test_read_bare_string_type():
+    written = written_document()
+    written["@type"] = "schema:Thing"
+    assert Document.model_validate(written).ld_type == ["ex:Document", "schema:Thing"]
+
+
+def test_read_remote_string_context():
+    written = written_document()
+    written["@context"] = "https://schema.org"
+    assert Document.model_validate(written).ld_context == Document(id="d").ld_context
+
+
+def test_read_list_context():
+    written = written_document()
+    written["@context"] = ["https://schema.org", {"myprefix": "https://my.example/", "id": "ex:wrong"}]
+    context = Document.model_validate(written).ld_context
+    assert context["myprefix"] == "https://my.example/"
+    assert context["id"] == "schema:identifier"
+
+
+def test_read_null_id_gets_fresh_id():
+    written = written_document()
+    written["@id"] = None
+    assert Document.model_validate(written).ld_id.startswith("ex:Document/")
+
+
 if __name__ == "__main__":
     for name, test in list(globals().items()):
         if name.startswith("test_"):

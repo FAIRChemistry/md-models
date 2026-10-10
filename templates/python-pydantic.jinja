@@ -109,15 +109,26 @@ def validate_prefix(term: str | dict, prefix: str):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
 
 
-def merge_ld_type(defaults: list[str], value: list[str]) -> list[str]:
-    """Keeps the generated types and appends extra types read from a document"""
+def merge_ld_type(defaults: list[str], value: str | list | None) -> list[str]:
+    """Keeps the generated types and appends extra types read from a document;
+    a bare string (compacted JSON-LD) is treated as a single type"""
+    if value is None:
+        return defaults
+    if isinstance(value, str):
+        value = [value]
     return defaults + [t for t in value if t not in defaults]
 
 
-def merge_ld_context(defaults: dict, value: dict) -> dict:
+def merge_ld_context(defaults: dict, value: dict | list | str | None) -> dict:
     """Keeps extra prefixes and terms read from a document; generated mappings win,
-    so documents written with an older context get the current term definitions"""
-    return {**defaults, **{k: v for k, v in value.items() if k not in defaults}}
+    so documents written with an older context get the current term definitions.
+    Lists are merged element-wise; remote context URLs are ignored"""
+    if isinstance(value, dict):
+        value = [value]
+    elif not isinstance(value, list):
+        return defaults
+    extras = {k: v for d in value if isinstance(d, dict) for k, v in d.items()}
+    return {**defaults, **{k: v for k, v in extras.items() if k not in defaults}}
 
 # Model Definitions
 {% for object in objects %}
@@ -209,14 +220,19 @@ class {{ object.name }}(BaseModel):
         }
     )
 
-    @field_validator("ld_type", mode="after")
+    @field_validator("ld_id", mode="before")
     @classmethod
-    def _merge_ld_type(cls, value: list[str]) -> list[str]:
+    def _default_ld_id(cls, value):
+        return cls.model_fields["ld_id"].default_factory() if value is None else value # type: ignore
+
+    @field_validator("ld_type", mode="before")
+    @classmethod
+    def _merge_ld_type(cls, value: str | list | None) -> list[str]:
         return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
 
-    @field_validator("ld_context", mode="after")
+    @field_validator("ld_context", mode="before")
     @classmethod
-    def _merge_ld_context(cls, value: dict[str, str | dict]) -> dict[str, str | dict]:
+    def _merge_ld_context(cls, value: dict | list | str | None) -> dict[str, str | dict]:
         return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
     {% for attr in object.attributes -%}
     {%- if attr.multiple is true and attr.dtypes[0] in object_names %}

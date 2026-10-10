@@ -1479,7 +1479,9 @@ mod tests {
             r#"alias="@id","#,
             r#"alias="@type","#,
             r#"alias="@context","#,
-            r#"@field_validator("ld_context", mode="after")"#,
+            r#"@field_validator("ld_context", mode="before")"#,
+            r#"@field_validator("ld_type", mode="before")"#,
+            r#"@field_validator("ld_id", mode="before")"#,
         ] {
             assert!(
                 rendered.contains(expected),
