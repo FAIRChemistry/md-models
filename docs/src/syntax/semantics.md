@@ -66,3 +66,26 @@ Once these annotations are defined, they are automatically added to the generate
 - `typescript` (JSON-LD)
 - `shacl` (Shapes Constraint Language)
 - `shex` (Shape Expressions)
+
+## Identifiers, IRIs and JSON-LD
+
+An `Identifier` is a **local key**: it names an object within the document (for example
+`id: "ManNAc"`) and is used by other fields to point at it (`species_id: "ManNAc"`). In
+JSON-LD it is always a literal, never an IRI.
+
+Database identity (ChEBI, UniProt, ...) is expressed either as an `@type` of the object or
+with a field of type `IRI`, which JSON-LD treats as a link:
+
+```markdown
+### SmallMolecule
+
+- **id**
+  - Type: Identifier
+- references
+  - Type: IRI[]
+  - Term: schema:citation
+```
+
+Fields without a `Term` are still part of the JSON-LD graph: they map to
+`<prefix>:<Object>/<field>` (for example `ex:SmallMolecule/vessel_id`), the same IRI the
+OWL and SHACL exports use.
