@@ -164,8 +164,8 @@ class UnitTest(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         alias="@context",
         default_factory = lambda: {
-            "@vocab": "http://mdmodel.net",
-            "md": {"@id": "http://mdmodel.net", "@prefix": True},
+            "@vocab": "http://mdmodel.net/",
+            "md": "http://mdmodel.net/",
             "om": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
             "qudt": "http://qudt.org/schema/qudt#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",

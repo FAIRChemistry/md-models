@@ -89,12 +89,13 @@ fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext
     };
 
     // Add the model prefix
+    let namespace = model_namespace(&config.repo);
     context
         .terms
-        .insert(model_id.clone(), prefix_term(&config.repo));
+        .insert(model_id.clone(), prefix_term(&namespace));
 
     // Fallback IRI for keys that are not part of the model
-    context.vocab = Some(Some(config.repo.clone()));
+    context.vocab = Some(Some(namespace));
 
     // Add prefixes from DataModel config
     if let Some(prefixes) = &config.prefixes {
@@ -179,6 +180,16 @@ fn build_object_context(
 /// JSON-LD 1.1 only uses a simple term as a prefix if its IRI ends in a gen-delim.
 pub(crate) fn ends_with_gen_delim(iri: &str) -> bool {
     iri.ends_with([':', '/', '?', '#', '[', ']', '@'])
+}
+
+/// The model namespace: `repo` itself if it ends in a gen-delim, else `repo#`,
+/// so `prefix:Class/attr` never glues onto the repo (`.../repoClass/attr`).
+pub(crate) fn model_namespace(repo: &str) -> String {
+    if ends_with_gen_delim(repo) {
+        repo.to_string()
+    } else {
+        format!("{repo}#")
+    }
 }
 
 /// A prefix definition JSON-LD 1.1 accepts: a plain IRI, or `{"@id": iri, "@prefix": true}`
@@ -311,6 +322,32 @@ mod tests {
         assert!(!ends_with_gen_delim(
             "http://purl.obolibrary.org/obo/CHEBI_"
         ));
+    }
+
+    #[test]
+    fn test_model_namespace() {
+        assert_eq!(
+            model_namespace("https://example.org/"),
+            "https://example.org/"
+        );
+        assert_eq!(
+            model_namespace("https://example.org/x#"),
+            "https://example.org/x#"
+        );
+        assert_eq!(
+            model_namespace("https://example.org/repo"),
+            "https://example.org/repo#"
+        );
+    }
+
+    #[test]
+    fn test_slashless_repo_gets_hash_namespace() {
+        let content = "---\nrepo: \"https://example.org/repo\"\nprefix: ex\n---\n\n### Doc\n\n- id\n  - Type: string\n";
+        let model = parse_markdown(content, None).expect("Could not parse markdown");
+        let header = to_json_ld(&model, Some("Doc")).expect("Could not build JSON-LD");
+        let ctx = serde_json::to_value(header).unwrap()["@context"].clone();
+        assert_eq!(ctx["@vocab"], json!("https://example.org/repo#"));
+        assert_eq!(ctx["ex"], json!("https://example.org/repo#"));
     }
 
     #[test]

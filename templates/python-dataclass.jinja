@@ -83,16 +83,16 @@ class {{ object.name }}:
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
-            "@vocab": "{{ repo }}",
-            "{{ prefix }}": {{ utils.ld_prefix(repo) }},
+            "@vocab": "{{ repo_ns }}",
+            "{{ prefix }}": {{ utils.ld_prefix(repo_ns) }},
             {%- for prefix, address in prefixes %}
             "{{ prefix }}": {{ utils.ld_prefix(address) }},
             {%- endfor %}
             {%- for obj in objects %}
-            "{{ obj.name }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ obj.name }}/",
+            "{{ obj.name }}": "{{ repo_ns }}{{ obj.name }}/",
             {%- endfor %}
             {%- for enum in enums %}
-            "{{ enum.name }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/",
+            "{{ enum.name }}": "{{ repo_ns }}{{ enum.name }}/",
             {%- endfor %}
             {%- for attribute in object.attributes %}
             {#- Identifiers are local keys (literals); only IRI fields are coerced to @id #}

@@ -364,6 +364,7 @@ pub fn render_jinja_template(
         title => model.name,
         prefixes => prefixes,
         repo => model.config.as_ref().unwrap().repo.clone(),
+        repo_ns => crate::jsonld::export::model_namespace(&model.config.as_ref().unwrap().repo),
         prefix => model.config.as_ref().unwrap().prefix.clone(),
         nsmap => model.config.as_ref().unwrap().nsmap.clone(),
         config => config,
@@ -1401,6 +1402,20 @@ mod tests {
             .expect("Could not render template")
             .to_string();
         assert!(py.contains(r#"default= "say \"hi\" C:\\tmp","#), "{py}");
+    }
+
+    #[test]
+    fn test_slashless_repo_gets_hash_namespace() {
+        let md = "---\nrepo: \"https://example.org/repo\"\nprefix: ex\n---\n\n### Doc\n\n- id\n  - Type: string\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains(r#""ex": "https://example.org/repo#","#), "{py}");
+        assert!(
+            py.contains(r#""@vocab": "https://example.org/repo#","#),
+            "{py}"
+        );
     }
 
     #[test]

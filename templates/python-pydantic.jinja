@@ -193,16 +193,16 @@ class {{ object.name }}(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         alias="@context",
         default_factory = lambda: {
-            "@vocab": "{{ repo }}",
-            "{{ prefix }}": {{ utils.ld_prefix(repo) }},
+            "@vocab": "{{ repo_ns }}",
+            "{{ prefix }}": {{ utils.ld_prefix(repo_ns) }},
             {%- for prefix, address in prefixes %}
             "{{ prefix }}": {{ utils.ld_prefix(address) }},
             {%- endfor %}
             {%- for attribute in object.attributes %}
             {%- if attribute.dtypes[0] in object_names %}
-            "{{ attribute.dtypes[0] }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ attribute.dtypes[0] }}/",
+            "{{ attribute.dtypes[0] }}": "{{ repo_ns }}{{ attribute.dtypes[0] }}/",
             {%- elif attribute.dtypes[0] in enum_names %}
-            "{{ attribute.dtypes[0] }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ attribute.dtypes[0] }}/",
+            "{{ attribute.dtypes[0] }}": "{{ repo_ns }}{{ attribute.dtypes[0] }}/",
             {%- endif %}
             {%- endfor %}
             {%- for attribute in object.attributes %}

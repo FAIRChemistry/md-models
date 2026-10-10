@@ -221,7 +221,7 @@ fn default_prefix() -> String {
 /// # Returns
 /// A string with the default value `"http://mdmodel.net/"`.
 fn default_repo() -> String {
-    "http://mdmodel.net".to_string()
+    "http://mdmodel.net/".to_string()
 }
 
 /// Provides the default value for the `allow_empty`.
