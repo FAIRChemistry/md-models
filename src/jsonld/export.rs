@@ -91,14 +91,12 @@ fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext
     // Add the model prefix
     context
         .terms
-        .insert(model_id.clone(), TermDef::Simple(config.repo.clone()));
+        .insert(model_id.clone(), prefix_term(&config.repo));
 
     // Add prefixes from DataModel config
     if let Some(prefixes) = &config.prefixes {
         for (prefix, uri) in prefixes {
-            context
-                .terms
-                .insert(prefix.clone(), TermDef::Simple(uri.clone()));
+            context.terms.insert(prefix.clone(), prefix_term(uri));
         }
     }
 
@@ -173,6 +171,25 @@ fn build_object_context(
 
     cache.insert(object.name.clone(), context.clone());
     context
+}
+
+/// JSON-LD 1.1 only uses a simple term as a prefix if its IRI ends in a gen-delim.
+pub(crate) fn ends_with_gen_delim(iri: &str) -> bool {
+    iri.ends_with([':', '/', '?', '#', '[', ']', '@'])
+}
+
+/// A prefix definition JSON-LD 1.1 accepts: a plain IRI, or `{"@id": iri, "@prefix": true}`
+/// when the IRI does not end in a gen-delim (e.g. OBO's `.../CHEBI_`).
+fn prefix_term(iri: &str) -> TermDef {
+    if ends_with_gen_delim(iri) {
+        TermDef::Simple(iri.to_string())
+    } else {
+        TermDef::Detailed(TermDetail {
+            id: Some(iri.to_string()),
+            prefix: Some(true),
+            ..Default::default()
+        })
+    }
 }
 
 /// Build a [`TermDef`] in detailed form, for array or nested attributes.
@@ -279,4 +296,39 @@ fn build_nested_for_attr(
     }
 
     context
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::markdown::parser::parse_markdown;
+    use pretty_assertions::assert_eq;
+    use serde_json::{json, Value};
+
+    fn context() -> Value {
+        let content = std::fs::read_to_string("tests/data/model_jsonld.md").unwrap();
+        let model = parse_markdown(&content, None).expect("Could not parse markdown");
+        let header = to_json_ld(&model, Some("Document")).expect("Could not build JSON-LD");
+        serde_json::to_value(header).unwrap()["@context"].clone()
+    }
+
+    #[test]
+    fn test_ends_with_gen_delim() {
+        assert!(ends_with_gen_delim("https://schema.org/"));
+        assert!(ends_with_gen_delim("http://www.w3.org/2000/01/rdf-schema#"));
+        assert!(!ends_with_gen_delim(
+            "http://purl.obolibrary.org/obo/CHEBI_"
+        ));
+    }
+
+    #[test]
+    fn test_prefixes_without_gen_delim_opt_in() {
+        let ctx = context();
+        assert_eq!(
+            ctx["CHEBI"],
+            json!({"@id": "http://purl.obolibrary.org/obo/CHEBI_", "@prefix": true})
+        );
+        assert_eq!(ctx["rdfs"], json!("http://www.w3.org/2000/01/rdf-schema#"));
+        assert_eq!(ctx["ex"], json!("https://example.org/jsonld/"));
+    }
 }

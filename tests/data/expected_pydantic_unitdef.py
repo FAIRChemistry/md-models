@@ -66,6 +66,11 @@ class FilterWrapper(Generic[Cls]):
 
 
 # JSON-LD Helper Functions
+
+# JSON-LD 1.1 only uses a plain string term as a prefix if its IRI ends in one of these
+GEN_DELIMS = (":", "/", "?", "#", "[", "]", "@")
+
+
 def add_namespace(obj, prefix: str | None, iri: str | None):
     """Adds a namespace to the JSON-LD context
 
@@ -80,7 +85,10 @@ def add_namespace(obj, prefix: str | None, iri: str | None):
     elif iri and prefix is None:
         raise ValueError("If iri is provided, prefix must also be provided")
 
-    obj.ld_context[prefix] = iri # type: ignore
+    if iri.endswith(GEN_DELIMS): # type: ignore
+        obj.ld_context[prefix] = iri # type: ignore
+    else:
+        obj.ld_context[prefix] = {"@id": iri, "@prefix": True} # type: ignore
 
 def validate_prefix(term: str | dict, prefix: str):
     """Validates that a term is prefixed with a given prefix
@@ -134,13 +142,13 @@ class UnitTest(BaseModel):
     ld_context: dict[str, str | dict] = Field(
         serialization_alias="@context",
         default_factory = lambda: {
-            "md": "http://mdmodel.net",
+            "md": {"@id": "http://mdmodel.net", "@prefix": True},
             "om": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
-            "qudt": "http://qudt.org/schema/qudt#/",
-            "rdfs": "http://www.w3.org/2000/01/rdf-schema#/",
+            "qudt": "http://qudt.org/schema/qudt#",
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "schema": "http://schema.org/",
-            "unit": "http://qudt.org/vocab/unit#/",
-            "xsd": "http://www.w3.org/2001/XMLSchema#/",
+            "unit": "http://qudt.org/vocab/unit#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
         }
     )
 

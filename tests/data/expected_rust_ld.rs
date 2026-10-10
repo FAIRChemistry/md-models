@@ -136,6 +136,7 @@ pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
         type_: Some("@id".to_string()),
         container: None,
         context: None,
+        prefix: None,
     }));
     context.terms.insert("number".to_string(), TermDef::Simple("schema:one".to_string()));
     context.terms.insert("test2".to_string(), TermDef::Detailed(TermDetail {
@@ -143,6 +144,7 @@ pub fn default_test_jsonld_header() -> Option<JsonLdHeader> {
         type_: None,
         container: Some("@list".to_string()),
         context: None,
+        prefix: None,
     }));
 
     Some(JsonLdHeader {
@@ -176,6 +178,7 @@ pub fn default_test2_jsonld_header() -> Option<JsonLdHeader> {
         type_: None,
         container: Some("@list".to_string()),
         context: None,
+        prefix: None,
     }));
     context.terms.insert("number".to_string(), TermDef::Simple("schema:one".to_string()));
 
@@ -400,4 +403,8 @@ pub struct TermDetail {
     /// Optional nested (scoped) context.
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<Box<JsonLdContext>>,
+
+    /// Allows the term to be used as a prefix although its IRI does not end in a gen-delim.
+    #[serde(rename = "@prefix", skip_serializing_if = "Option::is_none")]
+    pub prefix: Option<bool>,
 }

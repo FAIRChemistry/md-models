@@ -87,7 +87,7 @@ impl FrontMatter {
         self.id_field
     }
 
-    /// Returns the prefixes as an optional vector of key-value pairs.
+    /// Returns the prefixes as declared (IRIs are not modified).
     ///
     /// # Returns
     /// An optional vector of tuples containing the prefixes.
@@ -95,14 +95,7 @@ impl FrontMatter {
         self.prefixes.as_ref().map(|prefixes| {
             prefixes
                 .iter()
-                .map(|(k, v)| {
-                    let with_slash = if v.ends_with('/') {
-                        v.clone()
-                    } else {
-                        format!("{}/", v)
-                    };
-                    (k.clone(), with_slash)
-                })
+                .map(|(k, v)| (k.clone(), v.clone()))
                 .collect()
         })
     }
@@ -279,5 +272,16 @@ mod tests {
             frontmatter.nsmap.unwrap().get("tst").unwrap(),
             "http://example.com/test/"
         );
+    }
+
+    #[test]
+    fn test_prefixes_are_kept_verbatim() {
+        let content = std::fs::read_to_string("tests/data/model_jsonld.md").unwrap();
+        let frontmatter = parse_frontmatter(&content).expect("Could not parse frontmatter");
+        let prefixes: HashMap<String, String> =
+            frontmatter.prefixes().unwrap().into_iter().collect();
+        assert_eq!(prefixes["rdfs"], "http://www.w3.org/2000/01/rdf-schema#");
+        assert_eq!(prefixes["CHEBI"], "http://purl.obolibrary.org/obo/CHEBI_");
+        assert_eq!(prefixes["schema"], "https://schema.org/");
     }
 }

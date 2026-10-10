@@ -308,6 +308,9 @@ pub fn render_jinja_template(
     env.add_function("default_value", default_value);
     env.add_function("json_string", json_string);
     env.add_function("xml_escape", xml_escape);
+    env.add_test("gen_delim_iri", |iri: String| {
+        crate::jsonld::export::ends_with_gen_delim(&iri)
+    });
     env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
     env.add_filter("split_path_pairs", split_path_pairs);
@@ -1398,5 +1401,32 @@ mod tests {
             .expect("Could not render template")
             .to_string();
         assert!(py.contains(r#"default= "say \"hi\" C:\\tmp","#), "{py}");
+    }
+
+    #[test]
+    fn test_jsonld_prefixes_without_gen_delim_opt_in() {
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
+            assert!(
+                rendered.contains(
+                    r#""CHEBI": {"@id": "http://purl.obolibrary.org/obo/CHEBI_", "@prefix": True},"#
+                ),
+                "{rendered}"
+            );
+            assert!(
+                rendered.contains(r#""rdfs": "http://www.w3.org/2000/01/rdf-schema#","#),
+                "{rendered}"
+            );
+        }
+
+        let rust = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+        assert!(
+            rust.contains(r#"context.terms.insert("CHEBI".to_string(), TermDef::Detailed(TermDetail { id: Some("http://purl.obolibrary.org/obo/CHEBI_".to_string()), prefix: Some(true), ..Default::default() }));"#),
+            "{rust}"
+        );
     }
 }

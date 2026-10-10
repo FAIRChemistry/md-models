@@ -178,3 +178,15 @@ for cls in [
         pattern={{ json_string(option.value) }},
 {%- endfor %}
 {%- endmacro %}
+
+{#
+    Renders a JSON-LD prefix definition as a Python value. JSON-LD 1.1 only uses a
+    plain string as a prefix if the IRI ends in a gen-delim (: / ? # [ ] @).
+#}
+{% macro ld_prefix(iri) -%}
+{%- if iri is gen_delim_iri -%}
+"{{ iri }}"
+{%- else -%}
+{"@id": "{{ iri }}", "@prefix": True}
+{%- endif -%}
+{%- endmacro %}
