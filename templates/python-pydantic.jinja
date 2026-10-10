@@ -125,6 +125,7 @@ class {{ object.name }}(BaseModel):
         alias="{{ attribute.name }}",
         {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+        {{- utils.field_constraints(attribute) }}
     )
     {%- elif attribute.required is true %}
     {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
@@ -133,6 +134,7 @@ class {{ object.name }}(BaseModel):
         alias="{{ attribute.name }}",
         {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+        {{- utils.field_constraints(attribute) }}
     )
     {%- else %}
     {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
@@ -141,6 +143,7 @@ class {{ object.name }}(BaseModel):
         alias="{{ attribute.name }}",
         {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+        {{- utils.field_constraints(attribute) }}
     )
     {%- endif %}
     {%- endfor %}

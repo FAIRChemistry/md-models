@@ -28,7 +28,7 @@ dict(
     term = "{{ term }}",
     {%- endif -%}
     {%- for option in options -%}
-    {{ option.key }} = "{{ option.value }}",
+    {{ option.key }} = {{ json_string(option.value) }},
     {%- endfor -%}
 )
 {%- endmacro -%}
@@ -169,3 +169,12 @@ for cls in [
     {{ wrap(object.docstring, 80, "", "    ", None) }}
     """
 {%- endmacro -%}
+
+{#
+    Validation keywords that Pydantic's Field() understands (single-valued fields only).
+#}
+{% macro field_constraints(attribute) -%}
+{%- for option in attribute.options if option.key == "pattern" %}
+        pattern={{ json_string(option.value) }},
+{%- endfor %}
+{%- endmacro %}

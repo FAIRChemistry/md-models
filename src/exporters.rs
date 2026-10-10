@@ -306,6 +306,7 @@ pub fn render_jinja_template(
     env.add_function("replace", replace);
     env.add_function("trim", trim);
     env.add_function("default_value", default_value);
+    env.add_function("json_string", json_string);
     env.add_function("xml_escape", xml_escape);
     env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
@@ -858,6 +859,11 @@ fn cap_first(s: String) -> String {
     }
 }
 
+/// Renders a string as a JSON string literal, which is also a valid Python literal.
+fn json_string(value: String) -> String {
+    serde_json::to_string(&value).expect("a string always serializes")
+}
+
 /// Formats the default value of an attribute.
 ///
 /// # Arguments
@@ -959,6 +965,19 @@ mod tests {
         render_jinja_template(&template, &mut model, config)
             .expect("Could not render template")
             .to_string()
+    }
+
+    #[test]
+    fn test_pydantic_emits_unquoted_pattern() {
+        let rendered = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::PythonPydantic,
+            None,
+        );
+        assert!(
+            rendered.contains(r#"pattern="^(\\d+)\\.\\d+$","#),
+            "pattern missing in:\n{rendered}"
+        );
     }
 
     #[test]
