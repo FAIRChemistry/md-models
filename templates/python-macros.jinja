@@ -174,9 +174,12 @@ for cls in [
     Validation keywords that Pydantic's Field() understands (single-valued fields only).
 #}
 {% macro field_constraints(attribute) -%}
+{#- Pydantic only accepts `pattern` on plain `str` fields; dtypes are already Python names here #}
+{%- if attribute.multiple is not true and attribute.dtypes | length == 1 and attribute.dtypes[0] == "str" %}
 {%- for option in attribute.options if option.key == "pattern" %}
         pattern={{ json_string(option.value) }},
 {%- endfor %}
+{%- endif %}
 {%- endmacro %}
 
 {#

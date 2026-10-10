@@ -1405,6 +1405,18 @@ mod tests {
     }
 
     #[test]
+    fn test_pydantic_pattern_only_on_string_fields() {
+        let md = "---\nprefix: ex\n---\n\n### Doc\n\n- name\n  - Type: string\n  - Pattern: ^a\n- count\n  - Type: integer\n  - Pattern: ^b\n- value\n  - Type: float, string\n  - Pattern: ^c\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains(r#"pattern="^a","#), "{py}");
+        assert!(!py.contains(r#"pattern="^b""#), "{py}");
+        assert!(!py.contains(r#"pattern="^c""#), "{py}");
+    }
+
+    #[test]
     fn test_slashless_repo_gets_hash_namespace() {
         let md = "---\nrepo: \"https://example.org/repo\"\nprefix: ex\n---\n\n### Doc\n\n- id\n  - Type: string\n";
         let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
