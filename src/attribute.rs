@@ -389,9 +389,10 @@ impl FromStr for DataType {
         } else if let Some(f) = s
             .parse::<f64>()
             .ok()
-            .filter(|_| s.bytes().any(|b| b.is_ascii_digit()))
+            .filter(|f| f.is_finite() && s.bytes().any(|b| b.is_ascii_digit()))
         {
-            // The digit check keeps words such as "nan" or "inf" as strings
+            // The digit check keeps words such as "nan" or "inf" as strings, and the
+            // finiteness check keeps overflowing literals such as "1e999" as strings
             Ok(DataType::Float(f))
         } else if !s.is_empty() {
             Ok(DataType::String(s.to_string()))
@@ -767,6 +768,19 @@ mod tests {
                 "{raw}"
             );
         }
+    }
+
+    #[test]
+    fn from_str_keeps_non_finite_floats_as_strings() {
+        assert_eq!(
+            DataType::from_str("1e999").unwrap(),
+            DataType::String("1e999".to_string())
+        );
+        assert_eq!(
+            DataType::from_str("-1e999").unwrap(),
+            DataType::String("-1e999".to_string())
+        );
+        assert_eq!(DataType::from_str("1e10").unwrap(), DataType::Float(1e10));
     }
 
     #[test]
