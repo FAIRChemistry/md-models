@@ -1,7 +1,15 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix tst: <https://www.github.com/my/repo/> .
 @prefix schema: <http://schema.org/> .
+
+#########################################################
+# Class-scoped prefixes
+#########################################################
+@prefix Test: <https://www.github.com/my/repo/Test/> .
+@prefix Test2: <https://www.github.com/my/repo/Test2/> .
+@prefix Ontology: <https://www.github.com/my/repo/Ontology/> .
 
 #########################################################
 # SHACL Shapes
@@ -11,35 +19,26 @@ tst:TestShape
     a sh:NodeShape ;
     sh:targetClass tst:Test ;
     sh:property [
-        sh:or (
-            [ sh:path Test:name ]
-            [ sh:path schema:hello ]
-        ) ;
+        sh:path schema:hello ;
         sh:datatype xsd:string ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:description "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions." ;
     ] ;
     sh:property [
-        sh:or (
-            [ sh:path Test:number ]
-            [ sh:path schema:one ]
-        ) ;
-        sh:datatype xsd:decimal ;
+        sh:path schema:one ;
+        sh:or ( [ sh:datatype xsd:double ] [ sh:datatype xsd:string ] ) ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
     ] ;
     sh:property [
-        sh:or (
-            [ sh:path Test:test2 ]
-            [ sh:path schema:something ]
-        ) ;
+        sh:path ( schema:something [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;
         sh:node tst:Test2Shape ;
         sh:minCount 0 ;
     ] ;
     sh:property [
         sh:path Test:ontology ;
-        sh:class tst:Ontology ;
+        sh:in ( "https://www.evidenceontology.org/term/" "https://amigo.geneontology.org/amigo/term/" "http://semanticscience.org/resource/" ) ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
     ] ;
@@ -49,19 +48,13 @@ tst:Test2Shape
     a sh:NodeShape ;
     sh:targetClass tst:Test2 ;
     sh:property [
-        sh:or (
-            [ sh:path Test2:names ]
-            [ sh:path schema:hello ]
-        ) ;
+        sh:path ( schema:hello [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;
         sh:datatype xsd:string ;
         sh:minCount 0 ;
     ] ;
     sh:property [
-        sh:or (
-            [ sh:path Test2:number ]
-            [ sh:path schema:one ]
-        ) ;
-        sh:datatype xsd:decimal ;
+        sh:path schema:one ;
+        sh:datatype xsd:double ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
     ] ;

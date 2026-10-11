@@ -102,6 +102,11 @@ jobs:
             -o tests/envs/python/gen_pydantic_jsonld.py \
             -t python-pydantic
 
+          cargo run convert \
+            -i tests/data/model_jsonld.md \
+            -o tests/envs/python/gen_shapes.ttl \
+            -t shacl
+
       - name: Build Docker image
         run: docker build -t pythontests -f tests/envs/python/Dockerfile .
       - name: Run tests

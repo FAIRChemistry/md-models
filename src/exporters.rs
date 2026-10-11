@@ -106,6 +106,19 @@ lazy_static! {
         m
     };
 
+    /// Maps MD-Models type names to the XSD datatypes JSON-LD produces, for SHACL.
+    /// `number` stays unmapped: the template accepts xsd:integer or xsd:double for it.
+    static ref SHACL_TYPE_MAPS: std::collections::HashMap<String, String> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("integer".to_string(), "xsd:integer".to_string());
+        m.insert("float".to_string(), "xsd:double".to_string());
+        m.insert("boolean".to_string(), "xsd:boolean".to_string());
+        m.insert("string".to_string(), "xsd:string".to_string());
+        m.insert("bytes".to_string(), "xsd:base64Binary".to_string());
+        m.insert("date".to_string(), "xsd:date".to_string());
+        m
+    };
+
     /// Forbidden enum variants for Rust (mainly for windows compatibility)
     static ref FORBIDDEN_RUST_ENUM_VARIANTS: Vec<String> = {
         vec![
@@ -285,7 +298,12 @@ pub fn render_jinja_template(
         Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
         Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
         Templates::Shacl | Templates::Shex => {
-            convert_model_types(model, &OWL_TYPE_MAPS);
+            let type_map = if matches!(template, Templates::Shacl) {
+                &*SHACL_TYPE_MAPS
+            } else {
+                &*OWL_TYPE_MAPS
+            };
+            convert_model_types(model, type_map);
             if let Err(e) = filter_objects_wo_terms(model) {
                 println!(
                     " [{}] {}",
@@ -1036,6 +1054,50 @@ mod tests {
         let expected = fs::read_to_string("tests/data/expected_shacl.ttl")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_shacl_matches_jsonld() {
+        let rendered = build_and_convert("tests/data/model_jsonld.md", Templates::Shacl, None);
+        for expected in [
+            "@prefix ex: <https://example.org/jsonld/> .",
+            "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .",
+            "@prefix Document: <https://example.org/jsonld/Document/> .",
+            "@prefix Molecule: <https://example.org/jsonld/Molecule/> .",
+            "@prefix Kind: <https://example.org/jsonld/Kind/> .",
+            "sh:path schema:identifier ;",
+            "sh:path ( Molecule:values [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:path ( schema:citation [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:path ( Document:molecules [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:nodeKind sh:IRI ;",
+            r#"sh:in ( "assay" "simulation" ) ;"#,
+            "sh:datatype xsd:double ;",
+            "sh:datatype xsd:date ;",
+            "sh:node ex:MoleculeShape ;",
+        ] {
+            assert!(
+                rendered.contains(expected),
+                "missing {expected:?} in:\n{rendered}"
+            );
+        }
+        // The IRI-valued homepage carries no datatype, only a node kind
+        let homepage = rendered
+            .split("sh:property [")
+            .find(|p| p.contains("sh:path schema:url ;"))
+            .expect("homepage shape");
+        assert!(homepage.contains("sh:nodeKind sh:IRI ;") && !homepage.contains("sh:datatype"));
+        // Lists have no upper bound
+        let values = rendered
+            .split("sh:property [")
+            .find(|p| p.contains("Molecule:values"))
+            .expect("values shape");
+        assert!(!values.contains("sh:maxCount"));
+        // One path per property shape, no path alternatives
+        assert!(
+            !rendered.contains("[ sh:path"),
+            "path alternatives in:\n{rendered}"
+        );
+        assert!(!rendered.contains("decimal"));
     }
 
     #[test]

@@ -6,4 +6,4 @@ COPY tests/envs/python/ /app/
 
 RUN pip install -r requirements.txt
 
-CMD sh -c "python test_pydantic.py && python test_pydantic_xml.py && python test_dataclasses.py && python test_pydantic_jsonld.py"
+CMD sh -c "python test_pydantic.py && python test_pydantic_xml.py && python test_dataclasses.py && python test_pydantic_jsonld.py && python test_shacl.py"

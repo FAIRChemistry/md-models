@@ -1,8 +1,35 @@
+{#- Value constraint for one dtype, matching the RDF the JSON-LD context produces #}
+{%- macro constraint(attribute, dtype) -%}
+{%- if dtype in object_names -%}
+sh:node {{ prefix }}:{{ dtype }}Shape
+{%- elif attribute.is_iri -%}
+sh:nodeKind sh:IRI
+{%- elif dtype in enum_names -%}
+{%- for enum in enums if enum.name == dtype -%}
+sh:in ( {% for key, value in enum.mappings | dictsort %}{{ json_string(value) }} {% endfor %})
+{%- endfor -%}
+{%- elif dtype == "number" -%}
+sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] )
+{%- else -%}
+sh:datatype {{ dtype }}
+{%- endif -%}
+{%- endmacro -%}
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix {{ prefix }}: <{{ repo_ns }}> .
 {%- for pfx, value in prefixes %}
 @prefix {{ pfx }}: <{{ value }}> .
+{%- endfor %}
+
+#########################################################
+# Class-scoped prefixes
+#########################################################
+{%- for object in objects %}
+@prefix {{ object.name }}: <{{ repo_ns }}{{ object.name }}/> .
+{%- endfor %}
+{%- for enum in enums %}
+@prefix {{ enum.name }}: <{{ repo_ns }}{{ enum.name }}/> .
 {%- endfor %}
 
 #########################################################
@@ -15,21 +42,18 @@
     a sh:NodeShape ;
     sh:targetClass {{ prefix }}:{{ object.name }} ;
     {%- for attribute in object.attributes %}
+    {#- The IRI the JSON-LD context maps this key to #}
+    {%- set iri = attribute.term if attribute.term else object.name ~ ":" ~ attribute.name %}
     sh:property [
-        {%- if attribute.term %}
-        sh:or (
-            [ sh:path {{ object.name }}:{{ attribute.name }} ]
-            [ sh:path {{ attribute.term }} ]
-        ) ;
+        {%- if attribute.multiple %}
+        sh:path ( {{ iri }} [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;
         {%- else %}
-        sh:path {{ object.name }}:{{ attribute.name }} ;
+        sh:path {{ iri }} ;
         {%- endif %}
-        {%- if attribute.dtypes[0] in object_names %}
-        sh:node {{ prefix }}:{{ attribute.dtypes[0] }}Shape ;
-        {%- elif attribute.dtypes[0] in enum_names %}
-        sh:class {{ prefix }}:{{ attribute.dtypes[0] }} ;
+        {%- if attribute.dtypes | length > 1 %}
+        sh:or ( {% for dtype in attribute.dtypes %}[ {{ constraint(attribute, dtype) }} ] {% endfor %}) ;
         {%- else %}
-        sh:datatype {{ attribute.dtypes[0] }} ;
+        {{ constraint(attribute, attribute.dtypes[0]) }} ;
         {%- endif %}
         {%- if attribute.required %}
         sh:minCount 1 ;
@@ -40,7 +64,7 @@
         sh:maxCount 1 ;
         {%- endif %}
         {%- if attribute.docstring %}
-        sh:description "{{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}" ;
+        sh:description {{ json_string(attribute.docstring | replace('\n',' ')) }} ;
         {%- endif %}
     ] ;
 

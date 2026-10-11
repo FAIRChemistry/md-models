@@ -3,3 +3,4 @@ pydantic-xml==2.14.3
 pydantic==2.10.6
 lxml
 rdflib==7.6.0
+pyshacl==0.30.1
