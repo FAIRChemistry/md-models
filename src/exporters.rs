@@ -1065,17 +1065,17 @@ mod tests {
             "@prefix ex: <https://example.org/jsonld/> .",
             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .",
             "@prefix Document: <https://example.org/jsonld/Document/> .",
-            "@prefix Molecule: <https://example.org/jsonld/Molecule/> .",
+            "@prefix Item: <https://example.org/jsonld/Item/> .",
             "@prefix Kind: <https://example.org/jsonld/Kind/> .",
             "sh:path schema:identifier ;",
-            "sh:path ( Molecule:values [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:path ( Item:values [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
             "sh:path ( schema:citation [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
-            "sh:path ( Document:molecules [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:path ( Document:items [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
             "sh:nodeKind sh:IRI ;",
-            r#"sh:in ( "assay" "simulation" ) ;"#,
+            r#"sh:in ( "draft" "final" ) ;"#,
             "sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] ) ;",
             "sh:datatype xsd:date ;",
-            "sh:node ex:MoleculeShape ;",
+            "sh:node ex:ItemShape ;",
         ] {
             assert!(
                 rendered.contains(expected),
@@ -1091,7 +1091,7 @@ mod tests {
         // Lists have no upper bound
         let values = rendered
             .split("sh:property [")
-            .find(|p| p.contains("Molecule:values"))
+            .find(|p| p.contains("Item:values"))
             .expect("values shape");
         assert!(!values.contains("sh:maxCount"));
         // One path per property shape, no path alternatives
@@ -1160,7 +1160,7 @@ mod tests {
     #[test]
     fn test_shacl_shared_term_has_no_max_count() {
         let rendered = render_inline(
-            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- id\n  - Type: string\n  - Term: schema:identifier\n- vessel_id\n  - Type: string\n  - Term: schema:identifier\n- name\n  - Type: string\n",
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- id\n  - Type: string\n  - Term: schema:identifier\n- owner_id\n  - Type: string\n  - Term: schema:identifier\n- name\n  - Type: string\n",
             Templates::Shacl,
         );
         let shapes: Vec<&str> = rendered.split("sh:property [").skip(1).collect();
@@ -1186,7 +1186,7 @@ mod tests {
     fn test_owl_lists_and_iris_are_object_properties_without_range() {
         let rendered = build_and_convert("tests/data/model_jsonld.md", Templates::Owl, None);
 
-        let values = owl_block(&rendered, "Molecule:values");
+        let values = owl_block(&rendered, "Item:values");
         assert!(values.contains("a owl:ObjectProperty"), "{values}");
         assert!(!values.contains("rdfs:range"), "{values}");
         assert!(
@@ -1194,12 +1194,12 @@ mod tests {
             "{values}"
         );
 
-        let molecules = owl_block(&rendered, "Document:molecules");
-        assert!(molecules.contains("a owl:ObjectProperty"), "{molecules}");
-        assert!(!molecules.contains("rdfs:range"), "{molecules}");
+        let items = owl_block(&rendered, "Document:items");
+        assert!(items.contains("a owl:ObjectProperty"), "{items}");
+        assert!(!items.contains("rdfs:range"), "{items}");
         assert!(
-            molecules.contains("Ordered list (rdf:List) of ex:Molecule."),
-            "{molecules}"
+            items.contains("Ordered list (rdf:List) of ex:Item."),
+            "{items}"
         );
 
         let homepage = owl_block(&rendered, "Document:homepage");
@@ -1669,26 +1669,20 @@ mod tests {
 
     #[test]
     fn test_acronym_type_names_are_kept() {
-        let md = "---\nprefix: ex\n---\n\n### EnzymeMLDocument\n\n- measurements\n  - Type: SBML measurement[]\n- role\n  - Type: ModifierRoleML\n\n### SBML measurement\n\n- id\n  - Type: string\n\n## Enumerations\n\n### ModifierRoleML\n\n```\nACTIVATOR = \"activator\"\n```\n";
+        let md = "---\nprefix: ex\n---\n\n### XMLDocument\n\n- requests\n  - Type: HTTP request[]\n- method\n  - Type: HTTPMethod\n\n### HTTP request\n\n- id\n  - Type: string\n\n## Enumerations\n\n### HTTPMethod\n\n```\nGET = \"get\"\n```\n";
         let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
 
         let names: Vec<&str> = model.objects.iter().map(|o| o.name.as_str()).collect();
-        assert_eq!(names, vec!["EnzymeMLDocument", "SBMLMeasurement"]);
-        assert_eq!(model.enums[0].name, "ModifierRoleML");
-        assert_eq!(
-            model.objects[0].attributes[0].dtypes,
-            vec!["SBMLMeasurement"]
-        );
-        assert_eq!(
-            model.objects[0].attributes[1].dtypes,
-            vec!["ModifierRoleML"]
-        );
+        assert_eq!(names, vec!["XMLDocument", "HTTPRequest"]);
+        assert_eq!(model.enums[0].name, "HTTPMethod");
+        assert_eq!(model.objects[0].attributes[0].dtypes, vec!["HTTPRequest"]);
+        assert_eq!(model.objects[0].attributes[1].dtypes, vec!["HTTPMethod"]);
 
         let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
             .expect("Could not render template")
             .to_string();
-        assert!(py.contains("class EnzymeMLDocument(BaseModel):"), "{py}");
-        assert!(py.contains("class ModifierRoleML(Enum):"), "{py}");
+        assert!(py.contains("class XMLDocument(BaseModel):"), "{py}");
+        assert!(py.contains("class HTTPMethod(Enum):"), "{py}");
     }
 
     #[test]
@@ -1711,7 +1705,7 @@ mod tests {
             let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
             assert!(
                 rendered.contains(
-                    r#""CHEBI": {"@id": "http://purl.obolibrary.org/obo/CHEBI_", "@prefix": True},"#
+                    r#""cat": {"@id": "https://example.org/category_", "@prefix": True},"#
                 ),
                 "{rendered}"
             );
@@ -1727,7 +1721,7 @@ mod tests {
             Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
         );
         assert!(
-            rust.contains(r#"context.terms.insert("CHEBI".to_string(), TermDef::Detailed(TermDetail { id: Some("http://purl.obolibrary.org/obo/CHEBI_".to_string()), prefix: Some(true), ..Default::default() }));"#),
+            rust.contains(r#"context.terms.insert("cat".to_string(), TermDef::Detailed(TermDetail { id: Some("https://example.org/category_".to_string()), prefix: Some(true), ..Default::default() }));"#),
             "{rust}"
         );
     }
@@ -1739,8 +1733,8 @@ mod tests {
             for expected in [
                 r#""@vocab": "https://example.org/jsonld/","#,
                 r#""id": "schema:identifier","#,
-                r#""vessel_id": "ex:Molecule/vessel_id","#,
-                r#""@id": "ex:Document/molecules","#,
+                r#""owner_id": "ex:Item/owner_id","#,
+                r#""@id": "ex:Document/items","#,
                 r#""@id": "schema:url","#,
                 r#""@id": "schema:citation","#,
             ] {
@@ -1763,7 +1757,7 @@ mod tests {
         for expected in [
             r#"context.vocab = Some("https://example.org/jsonld/".to_string());"#,
             r#"context.terms.insert("id".to_string(), TermDef::Simple("schema:identifier".to_string()));"#,
-            r#"context.terms.insert("vessel_id".to_string(), TermDef::Simple("ex:Molecule/vessel_id".to_string()));"#,
+            r#"context.terms.insert("owner_id".to_string(), TermDef::Simple("ex:Item/owner_id".to_string()));"#,
             r#"id: Some("schema:url".to_string()),"#,
         ] {
             assert!(rust.contains(expected), "missing `{expected}` in:\n{rust}");
@@ -1798,7 +1792,7 @@ mod tests {
         for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
             let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
             for expected in [
-                "\"values\": {\n                \"@id\": \"ex:Molecule/values\",\n                \"@container\": \"@list\",\n            },",
+                "\"values\": {\n                \"@id\": \"ex:Item/values\",\n                \"@container\": \"@list\",\n            },",
                 "\"created\": {\n                \"@id\": \"ex:Document/created\",\n                \"@type\": \"http://www.w3.org/2001/XMLSchema#date\",\n            },",
             ] {
                 assert!(

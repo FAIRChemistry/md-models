@@ -34,7 +34,7 @@ use std::{
 ///
 /// # Example
 /// ```rust,ignore
-/// let header = to_json_ld(&model, Some("EnzymeMLDocument")).unwrap();
+/// let header = to_json_ld(&model, Some("Document")).unwrap();
 /// ```
 pub fn to_json_ld(model: &DataModel, root: Option<&str>) -> Result<JsonLdHeader, Box<dyn Error>> {
     let context = create_context(model, root)?;
@@ -76,7 +76,7 @@ pub fn to_json_ld(model: &DataModel, root: Option<&str>) -> Result<JsonLdHeader,
 /// # Example
 ///
 /// ```rust,ignore
-/// let context = create_context(&model, Some("EnzymeMLDocument")).unwrap();
+/// let context = create_context(&model, Some("Document")).unwrap();
 /// ```
 fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext, String> {
     let mut context = SimpleContext::default();
@@ -194,7 +194,7 @@ pub(crate) fn model_namespace(repo: &str) -> String {
 }
 
 /// A prefix definition JSON-LD 1.1 accepts: a plain IRI, or `{"@id": iri, "@prefix": true}`
-/// when the IRI does not end in a gen-delim (e.g. OBO's `.../CHEBI_`).
+/// when the IRI does not end in a gen-delim (e.g. `https://example.org/item_`).
 fn prefix_term(iri: &str) -> TermDef {
     if ends_with_gen_delim(iri) {
         TermDef::Simple(iri.to_string())
@@ -339,9 +339,7 @@ mod tests {
     fn test_ends_with_gen_delim() {
         assert!(ends_with_gen_delim("https://schema.org/"));
         assert!(ends_with_gen_delim("http://www.w3.org/2000/01/rdf-schema#"));
-        assert!(!ends_with_gen_delim(
-            "http://purl.obolibrary.org/obo/CHEBI_"
-        ));
+        assert!(!ends_with_gen_delim("https://example.org/category_"));
     }
 
     #[test]
@@ -374,8 +372,8 @@ mod tests {
     fn test_prefixes_without_gen_delim_opt_in() {
         let ctx = context();
         assert_eq!(
-            ctx["CHEBI"],
-            json!({"@id": "http://purl.obolibrary.org/obo/CHEBI_", "@prefix": true})
+            ctx["cat"],
+            json!({"@id": "https://example.org/category_", "@prefix": true})
         );
         assert_eq!(ctx["rdfs"], json!("http://www.w3.org/2000/01/rdf-schema#"));
         assert_eq!(ctx["ex"], json!("https://example.org/jsonld/"));
@@ -386,9 +384,9 @@ mod tests {
         let ctx = context();
         assert_eq!(ctx["@vocab"], json!("https://example.org/jsonld/"));
         assert_eq!(ctx["version"], json!("ex:Document/version"));
-        assert_eq!(ctx["molecules"]["@id"], json!("ex:Document/molecules"));
+        assert_eq!(ctx["items"]["@id"], json!("ex:Document/items"));
         assert_eq!(
-            ctx["molecules"]["@context"]["references"]["@id"],
+            ctx["items"]["@context"]["references"]["@id"],
             json!("schema:citation")
         );
     }
@@ -398,31 +396,31 @@ mod tests {
         let ctx = context();
         assert_eq!(ctx["id"], json!("schema:identifier"));
         assert_eq!(
-            ctx["molecules"]["@context"]["vessel_id"],
-            json!("ex:Molecule/vessel_id")
+            ctx["items"]["@context"]["owner_id"],
+            json!("ex:Item/owner_id")
         );
         assert_eq!(
             ctx["homepage"],
             json!({"@id": "schema:url", "@type": "@id"})
         );
         assert_eq!(
-            ctx["molecules"]["@context"]["references"]["@type"],
+            ctx["items"]["@context"]["references"]["@type"],
             json!("@id")
         );
     }
 
     #[test]
     fn test_scoped_contexts_have_no_type_entry() {
-        assert_eq!(context()["molecules"]["@context"].get("@type"), None);
+        assert_eq!(context()["items"]["@context"].get("@type"), None);
     }
 
     #[test]
     fn test_arrays_are_lists_and_dates_are_typed() {
         let ctx = context();
-        assert_eq!(ctx["molecules"]["@container"], json!("@list"));
-        let molecule = &ctx["molecules"]["@context"];
-        assert_eq!(molecule["references"]["@container"], json!("@list"));
-        assert_eq!(molecule["values"]["@container"], json!("@list"));
+        assert_eq!(ctx["items"]["@container"], json!("@list"));
+        let item = &ctx["items"]["@context"];
+        assert_eq!(item["references"]["@container"], json!("@list"));
+        assert_eq!(item["values"]["@container"], json!("@list"));
         assert_eq!(
             ctx["created"],
             json!({"@id": "ex:Document/created", "@type": "http://www.w3.org/2001/XMLSchema#date"})

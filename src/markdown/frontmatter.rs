@@ -333,13 +333,13 @@ mod tests {
         let prefixes: HashMap<String, String> =
             frontmatter.prefixes().unwrap().into_iter().collect();
         assert_eq!(prefixes["rdfs"], "http://www.w3.org/2000/01/rdf-schema#");
-        assert_eq!(prefixes["CHEBI"], "http://purl.obolibrary.org/obo/CHEBI_");
+        assert_eq!(prefixes["cat"], "https://example.org/category_");
         assert_eq!(prefixes["schema"], "https://schema.org/");
     }
 
     #[test]
     fn test_prefixes_missing_delimiter() {
-        let content = "---\nprefix: ex\nprefixes:\n  schema: https://schema.org\n  ok: https://schema.org/\n  rdfs: http://www.w3.org/2000/01/rdf-schema#\n  CHEBI: http://purl.obolibrary.org/obo/CHEBI_\n  foaf: http://xmlns.com/foaf/0.1\n---\n";
+        let content = "---\nprefix: ex\nprefixes:\n  schema: https://schema.org\n  ok: https://schema.org/\n  rdfs: http://www.w3.org/2000/01/rdf-schema#\n  cat: https://example.org/category_\n  foaf: http://xmlns.com/foaf/0.1\n---\n";
         let frontmatter = parse_frontmatter(content).expect("Could not parse frontmatter");
         assert_eq!(
             frontmatter.prefixes_missing_delimiter(),

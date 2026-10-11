@@ -5,7 +5,7 @@ import json
 import pyshacl
 import rdflib
 
-from gen_pydantic_jsonld import Molecule  # type: ignore
+from gen_pydantic_jsonld import Item  # type: ignore
 from test_pydantic_jsonld import BASE, build_document, to_graph
 
 SHAPES = rdflib.Graph().parse("gen_shapes.ttl", format="turtle")
@@ -27,32 +27,32 @@ def test_valid_document_conforms():
 
 def test_empty_optional_lists_conform():
     document = build_document()
-    document.molecules.append(Molecule(id="bare", name="Bare molecule"))
+    document.items.append(Item(id="bare", name="Bare item"))
     assert_conforms(to_graph(document))
 
 
 def test_whole_numbers_in_float_list_conform():
     # A JSON-LD processor types 1 and 2 as xsd:integer; they are still valid floats
     document = build_document()
-    document.molecules[0].values = [1, 2]
+    document.items[0].values = [1, 2]
     assert_conforms(to_graph(document))
     data = json.loads(document.model_dump_json(by_alias=True, exclude_none=True))
-    data["molecules"][0]["values"] = [1, 2.5]
+    data["items"][0]["values"] = [1, 2.5]
     assert_conforms(rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE))
 
 
 def test_missing_required_name_fails():
     data = json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
-    del data["molecules"][0]["name"]
+    del data["items"][0]["name"]
     graph = rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE)
     conforms, report = validate(graph)
-    assert not conforms, "a molecule without name must not conform"
+    assert not conforms, "a item without name must not conform"
     assert "MinCountConstraintComponent" in report and "schema:name" in report, report
 
 
 def test_wrong_list_item_datatype_fails():
     data = json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
-    data["molecules"][0]["values"].append("not a number")
+    data["items"][0]["values"].append("not a number")
     graph = rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE)
     conforms, report = validate(graph)
     assert not conforms, "a string inside values must not conform"

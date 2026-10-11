@@ -37,7 +37,7 @@ use tsify_next::Tsify;
 ///
 /// The name is split on spaces, `_` and `-`, and each part gets an upper-case first
 /// letter while the rest is kept as written, so acronyms survive:
-/// `small molecule` → `SmallMolecule`, `EnzymeMLDocument` stays `EnzymeMLDocument`.
+/// `research publication` → `ResearchPublication`, `HTTPRequest` stays `HTTPRequest`.
 pub(crate) fn type_name(name: &str) -> String {
     name.split(|c: char| c.is_whitespace() || c == '_' || c == '-')
         .flat_map(|part| {
@@ -294,13 +294,14 @@ mod tests {
     #[test]
     fn test_type_name_keeps_existing_capitals() {
         for (raw, expected) in [
-            ("EnzymeMLDocument", "EnzymeMLDocument"),
-            ("SBMLUnit", "SBMLUnit"),
-            ("enzymeMLDocument", "EnzymeMLDocument"),
-            ("small molecule", "SmallMolecule"),
-            ("small_molecule", "SmallMolecule"),
-            ("small-molecule", "SmallMolecule"),
-            ("SBML unit", "SBMLUnit"),
+            ("HTTPRequest", "HTTPRequest"),
+            ("XMLDocument", "XMLDocument"),
+            ("httpRequest", "HttpRequest"),
+            ("myXMLDocument", "MyXMLDocument"),
+            ("research publication", "ResearchPublication"),
+            ("research_publication", "ResearchPublication"),
+            ("research-publication", "ResearchPublication"),
+            ("XML document", "XMLDocument"),
             ("Test2", "Test2"),
         ] {
             assert_eq!(type_name(raw), expected, "{raw}");
@@ -309,8 +310,8 @@ mod tests {
 
     #[test]
     fn test_create_new_object_keeps_acronyms() {
-        let object = Object::new("EnzymeMLDocument".to_string(), None);
-        assert_eq!(object.name, "EnzymeMLDocument");
+        let object = Object::new("HTTPRequest".to_string(), None);
+        assert_eq!(object.name, "HTTPRequest");
     }
 
     #[test]

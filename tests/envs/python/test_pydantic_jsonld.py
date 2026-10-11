@@ -8,11 +8,11 @@ from pydantic import ValidationError
 from rdflib.collection import Collection
 from rdflib.namespace import RDF, RDFS, XSD
 
-from gen_pydantic_jsonld import Document, Kind, Molecule  # type: ignore
+from gen_pydantic_jsonld import Document, Kind, Item  # type: ignore
 
 EX = rdflib.Namespace("https://example.org/jsonld/")
 SCHEMA = rdflib.Namespace("https://schema.org/")
-OBO = rdflib.Namespace("http://purl.obolibrary.org/obo/")
+EXT = rdflib.Namespace("https://example.org/")
 # Resolve relative IRIs against a file location, as a JSON-LD processor reading a file would
 BASE = "file:///data/document.json"
 
@@ -23,10 +23,10 @@ def to_graph(model) -> rdflib.Graph:
 
 
 def build_document() -> Document:
-    molecule = Molecule(
-        id="ManNAc",
-        name="N-Acetylmannosamine",
-        vessel_id="v0",
+    item = Item(
+        id="i1",
+        name="First item",
+        owner_id="v0",
         references=["https://doi.org/10.1000/xyz"],
         values=[1.0, 0.5, 0.5, 0.25],
     )
@@ -34,9 +34,9 @@ def build_document() -> Document:
         id="doc1",
         label="Test",
         homepage="https://example.org/home",
-        molecules=[molecule],
+        items=[item],
         created=datetime.date(2024, 5, 17),
-        kind=Kind.ASSAY,
+        kind=Kind.DRAFT,
     )
 
 
@@ -60,29 +60,29 @@ def test_hash_prefix_expands():
 
 
 def test_frontmatter_underscore_prefix_expands():
-    molecule = Molecule(id="w", name="water")
-    molecule.add_type_term("CHEBI:15377")
-    assert (None, RDF.type, OBO["CHEBI_15377"]) in to_graph(molecule)
+    item = Item(id="w", name="sample")
+    item.add_type_term("cat:42")
+    assert (None, RDF.type, EXT["category_42"]) in to_graph(item)
 
 
 def test_add_namespace_underscore_prefix_expands():
-    molecule = Molecule(id="w", name="water")
-    molecule.add_type_term("GO:0008150", "GO", "http://purl.obolibrary.org/obo/GO_")
-    assert (None, RDF.type, OBO["GO_0008150"]) in to_graph(molecule)
+    item = Item(id="w", name="sample")
+    item.add_type_term("tag:7", "tag", "https://example.org/tag_")
+    assert (None, RDF.type, EXT["tag_7"]) in to_graph(item)
 
 
 def test_fields_without_term_are_in_graph():
     g = to_graph(build_document())
-    assert (None, EX["Document/molecules"], None) in g
-    assert (None, RDF.type, EX["Molecule"]) in g
+    assert (None, EX["Document/items"], None) in g
+    assert (None, RDF.type, EX["Item"]) in g
     assert (None, EX["Document/version"], rdflib.Literal("2.0")) in g
-    assert (None, EX["Molecule/id"], rdflib.Literal("ManNAc")) in g
+    assert (None, EX["Item/id"], rdflib.Literal("i1")) in g
 
 
 def test_identifiers_are_literals():
     g = to_graph(build_document())
     assert (None, SCHEMA.identifier, rdflib.Literal("doc1")) in g
-    assert (None, EX["Molecule/vessel_id"], rdflib.Literal("v0")) in g
+    assert (None, EX["Item/owner_id"], rdflib.Literal("v0")) in g
     assert not [t for t in g if any(str(term).startswith("file:") for term in t)]
 
 
@@ -93,7 +93,7 @@ def test_iri_fields_are_iris():
 
 
 def test_arrays_are_ordered_lists_keeping_duplicates():
-    items = list_items(to_graph(build_document()), EX["Molecule/values"])
+    items = list_items(to_graph(build_document()), EX["Item/values"])
     assert [float(x) for x in items] == [1.0, 0.5, 0.5, 0.25]
 
 
@@ -111,14 +111,14 @@ def roundtrip(document: Document) -> tuple[dict, dict]:
 def test_roundtrip_keeps_ids():
     written, rewritten = roundtrip(build_document())
     assert rewritten["@id"] == written["@id"]
-    assert rewritten["molecules"][0]["@id"] == written["molecules"][0]["@id"]
+    assert rewritten["items"][0]["@id"] == written["items"][0]["@id"]
 
 
 def test_roundtrip_keeps_extra_types():
     document = build_document()
-    document.molecules[0].add_type_term("CHEBI:15377")
+    document.items[0].add_type_term("cat:42")
     _, rewritten = roundtrip(document)
-    assert rewritten["molecules"][0]["@type"] == ["ex:Molecule", "CHEBI:15377"]
+    assert rewritten["items"][0]["@type"] == ["ex:Item", "cat:42"]
     _, rewritten_twice = roundtrip(Document.model_validate(rewritten))
     assert rewritten_twice == rewritten
 
