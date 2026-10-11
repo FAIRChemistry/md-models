@@ -247,19 +247,24 @@ impl FromStr for Templates {
     }
 }
 
-/// Warns on stderr when `config` still uses the placeholder `repo`, because
-/// IRIs generated for `target` would point into a namespace the user does not own.
-pub(crate) fn warn_placeholder_repo(config: &FrontMatter, target: &str) {
+/// Warns on stderr about namespaces that would make the IRIs generated for `target`
+/// wrong: the placeholder `repo` (a namespace the user does not own) and prefixes
+/// whose IRI lacks its trailing separator.
+pub(crate) fn warn_namespace_issues(config: &FrontMatter, target: &str) {
+    let mut warnings = Vec::new();
     if config.has_placeholder_repo() {
-        eprintln!(
-            " [{}] {}",
-            target.yellow().bold(),
-            format!(
-                "No `repo` set in the front matter; using placeholder {} for IRIs. Set `repo` to a namespace you control.",
-                config.repo
-            )
-            .bold(),
-        );
+        warnings.push(format!(
+            "No `repo` set in the front matter; using placeholder {} for IRIs. Set `repo` to a namespace you control.",
+            config.repo
+        ));
+    }
+    for (prefix, iri) in config.prefixes_missing_delimiter() {
+        warnings.push(format!(
+            "Prefix `{prefix}` = {iri} does not end in `/` or `#`; `{prefix}:name` expands to {iri}name. Add the separator if that is not intended."
+        ));
+    }
+    for warning in warnings {
+        eprintln!(" [{}] {}", target.yellow().bold(), warning.bold());
     }
 }
 
@@ -397,7 +402,7 @@ pub fn render_jinja_template(
     }
 
     if semantic {
-        warn_placeholder_repo(model.config.as_ref().unwrap(), &template_name);
+        warn_namespace_issues(model.config.as_ref().unwrap(), &template_name);
     }
 
     // Render the template

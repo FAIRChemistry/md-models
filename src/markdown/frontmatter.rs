@@ -85,6 +85,20 @@ impl FrontMatter {
         self.repo == placeholder_repo(&self.prefix)
     }
 
+    /// Prefixes whose IRI ends in a letter or digit (sorted by prefix), which usually
+    /// means a missing separator: with `schema: https://schema.org`, `schema:name`
+    /// expands to `https://schema.orgname`. IRIs ending in `/`, `#`, `_` etc. are fine.
+    pub fn prefixes_missing_delimiter(&self) -> Vec<(String, String)> {
+        let mut found: Vec<(String, String)> = self
+            .prefixes()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(_, iri)| iri.ends_with(|c: char| c.is_ascii_alphanumeric()))
+            .collect();
+        found.sort();
+        found
+    }
+
     /// Returns the value of the `id_field`.
     ///
     /// # Returns
@@ -321,5 +335,18 @@ mod tests {
         assert_eq!(prefixes["rdfs"], "http://www.w3.org/2000/01/rdf-schema#");
         assert_eq!(prefixes["CHEBI"], "http://purl.obolibrary.org/obo/CHEBI_");
         assert_eq!(prefixes["schema"], "https://schema.org/");
+    }
+
+    #[test]
+    fn test_prefixes_missing_delimiter() {
+        let content = "---\nprefix: ex\nprefixes:\n  schema: https://schema.org\n  ok: https://schema.org/\n  rdfs: http://www.w3.org/2000/01/rdf-schema#\n  CHEBI: http://purl.obolibrary.org/obo/CHEBI_\n  foaf: http://xmlns.com/foaf/0.1\n---\n";
+        let frontmatter = parse_frontmatter(content).expect("Could not parse frontmatter");
+        assert_eq!(
+            frontmatter.prefixes_missing_delimiter(),
+            vec![
+                ("foaf".to_string(), "http://xmlns.com/foaf/0.1".to_string()),
+                ("schema".to_string(), "https://schema.org".to_string()),
+            ]
+        );
     }
 }
