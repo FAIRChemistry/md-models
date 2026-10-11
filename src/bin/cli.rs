@@ -46,7 +46,7 @@ use std::{
 
 /// Command-line interface for MD-Models CLI.
 #[derive(Parser)]
-#[command(name = "MD-Models CLI", version = "0.1.0")]
+#[command(name = "MD-Models CLI", version)]
 #[command(about = "Validate and convert Markdown Data Models", long_about = None)]
 struct Cli {
     /// Subcommands for the CLI.
