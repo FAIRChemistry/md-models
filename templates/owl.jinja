@@ -61,24 +61,21 @@
       [
         a owl:Restriction ;
         owl:onProperty {{ object.name }}:{{ attribute.name }}
-        {%- if is_obj %}
-        {%- if attribute.required and not attribute.multiple %}
+        {%- if attribute.required and attribute.multiple %}
+        {#- a list is one rdf:List node: require a value, but no filler (it would type the list node) #}
+        ; owl:minCardinality "1"^^xsd:nonNegativeInteger
+        {%- elif is_obj %}
+        {%- if attribute.required %}
         ; owl:onClass {{ prefix }}:{{ attribute.dtypes[0] }}
         ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
-        {%- elif not attribute.required and not attribute.multiple %}
+        {%- else %}
         ; owl:onClass {{ prefix }}:{{ attribute.dtypes[0] }}
         ; owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger
-        {%- elif attribute.required and attribute.multiple %}
-        ; owl:someValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
         {%- endif %}
-        {%- else %}
-        {%- if attribute.required and not attribute.multiple %}
+        {%- elif attribute.required %}
         ; owl:cardinality "1"^^xsd:nonNegativeInteger
-        {%- elif not attribute.required and not attribute.multiple %}
+        {%- else %}
         ; owl:maxCardinality "1"^^xsd:nonNegativeInteger
-        {%- elif attribute.required and attribute.multiple %}
-        ; owl:someValuesFrom rdfs:Literal
-        {%- endif %}
         {%- endif %}
       ]
       {%- set first = false -%}

@@ -1157,7 +1157,10 @@ mod tests {
         let molecules = owl_block(&rendered, "Document:molecules");
         assert!(molecules.contains("a owl:ObjectProperty"), "{molecules}");
         assert!(!molecules.contains("rdfs:range"), "{molecules}");
-        assert!(molecules.contains("Ordered list (rdf:List) of ex:Molecule."));
+        assert!(
+            molecules.contains("Ordered list (rdf:List) of ex:Molecule."),
+            "{molecules}"
+        );
 
         let homepage = owl_block(&rendered, "Document:homepage");
         assert!(homepage.contains("a owl:ObjectProperty"), "{homepage}");
@@ -1166,6 +1169,21 @@ mod tests {
         let label = owl_block(&rendered, "Document:label");
         assert!(label.contains("a owl:DatatypeProperty"), "{label}");
         assert!(label.contains("rdfs:range xsd:string"), "{label}");
+    }
+
+    #[test]
+    fn test_owl_required_arrays_use_min_cardinality_without_filler() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- **xs**\n  - Type: string[]\n- **bs**\n  - Type: B[]\n\n### B\n\n- x\n  - Type: string\n",
+            Templates::Owl,
+        );
+        for prop in ["A:xs", "A:bs"] {
+            let restriction = format!(
+                "owl:onProperty {prop}\n        ; owl:minCardinality \"1\"^^xsd:nonNegativeInteger"
+            );
+            assert!(rendered.contains(&restriction), "{prop} in:\n{rendered}");
+        }
+        assert!(!rendered.contains("owl:someValuesFrom"), "{rendered}");
     }
 
     #[test]
