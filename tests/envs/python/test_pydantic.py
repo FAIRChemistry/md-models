@@ -33,7 +33,7 @@ if __name__ == "__main__":
         "Ontology": "https://www.github.com/my/repo/Ontology/",
         "name": "schema:hello",
         "number": "schema:one",
-        "test2": "schema:something",
+        "test2": {"@id": "schema:something", "@container": "@list"},
         "ontology": "tst:Test/ontology",
     }
     assert result["name"] == "test", "expected name to be test"

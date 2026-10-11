@@ -97,10 +97,18 @@ class {{ object.name }}:
             {%- for attribute in object.attributes %}
             {#- Identifiers are local keys (literals); only IRI fields are coerced to @id #}
             {%- set iri = attribute.term if attribute.term else prefix ~ ":" ~ object.name ~ "/" ~ attribute.name %}
-            {%- if attribute.is_iri %}
+            {%- set is_date = attribute.dtypes[0] == "date" %}
+            {%- if attribute.is_iri or attribute.multiple or is_date %}
             "{{ attribute.name }}": {
                 "@id": "{{ iri }}",
+                {%- if attribute.is_iri %}
                 "@type": "@id",
+                {%- elif is_date %}
+                "@type": "http://www.w3.org/2001/XMLSchema#date",
+                {%- endif %}
+                {%- if attribute.multiple %}
+                "@container": "@list",
+                {%- endif %}
             },
             {%- else %}
             "{{ attribute.name }}": "{{ iri }}",

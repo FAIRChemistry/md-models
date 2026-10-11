@@ -164,7 +164,7 @@ fn build_object_context(
 
     for attr in &object.attributes {
         let has_nested = attr.dtypes.iter().any(|dt| object_names.contains(dt));
-        let term_def = if has_nested || attr.is_array || attr.is_iri {
+        let term_def = if has_nested || attr.is_array || attr.is_iri || is_date(attr) {
             build_detailed_term_def(graph, node_idx, attr, model_id, has_nested, cache)
         } else {
             let term_id = get_attr_term_id(attr, object, model_id);
@@ -207,6 +207,12 @@ fn prefix_term(iri: &str) -> TermDef {
     }
 }
 
+const XSD_DATE: &str = "http://www.w3.org/2001/XMLSchema#date";
+
+fn is_date(attr: &crate::attribute::Attribute) -> bool {
+    attr.dtypes.first().is_some_and(|dt| dt == "date")
+}
+
 /// Build a [`TermDef`] in detailed form, for array or nested attributes.
 fn build_detailed_term_def(
     graph: &petgraph::graph::DiGraph<Object, ()>,
@@ -226,9 +232,11 @@ fn build_detailed_term_def(
     // Build term detail, setting @container and nested @context as needed
     let mut detail = TermDetail {
         id: Some(get_attr_term_id(attr, &graph[node_idx], model_id)),
-        type_: object_type.or_else(|| attr.is_iri.then(|| "@id".to_string())),
+        type_: object_type
+            .or_else(|| attr.is_iri.then(|| "@id".to_string()))
+            .or_else(|| is_date(attr).then(|| XSD_DATE.to_string())),
         container: if attr.is_array {
-            Some(OneOrMany::One("@set".to_string()))
+            Some(OneOrMany::One("@list".to_string()))
         } else {
             None
         },
@@ -395,5 +403,18 @@ mod tests {
     #[test]
     fn test_scoped_contexts_have_no_type_entry() {
         assert_eq!(context()["molecules"]["@context"].get("@type"), None);
+    }
+
+    #[test]
+    fn test_arrays_are_lists_and_dates_are_typed() {
+        let ctx = context();
+        assert_eq!(ctx["molecules"]["@container"], json!("@list"));
+        let molecule = &ctx["molecules"]["@context"];
+        assert_eq!(molecule["references"]["@container"], json!("@list"));
+        assert_eq!(molecule["values"]["@container"], json!("@list"));
+        assert_eq!(
+            ctx["created"],
+            json!({"@id": "ex:Document/created", "@type": "http://www.w3.org/2001/XMLSchema#date"})
+        );
     }
 }

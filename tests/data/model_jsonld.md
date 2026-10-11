@@ -26,6 +26,10 @@ prefixes:
   - Term: schema:url
 - molecules
   - Type: Molecule[]
+- created
+  - Type: date
+- kind
+  - Type: Kind
 
 ### Molecule
 
@@ -39,3 +43,14 @@ prefixes:
 - references
   - Type: IRI[]
   - Term: schema:citation
+- values
+  - Type: float[]
+
+## Enumerations
+
+### Kind
+
+```
+ASSAY = "assay"
+SIMULATION = "simulation"
+```

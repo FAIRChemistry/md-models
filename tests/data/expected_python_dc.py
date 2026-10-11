@@ -64,7 +64,10 @@ class Test:
             "Ontology": "https://www.github.com/my/repo/Ontology/",
             "name": "schema:hello",
             "number": "schema:one",
-            "test2": "schema:something",
+            "test2": {
+                "@id": "schema:something",
+                "@container": "@list",
+            },
             "ontology": "tst:Test/ontology",
         }
     )
@@ -117,7 +120,10 @@ class Test2:
             "Test": "https://www.github.com/my/repo/Test/",
             "Test2": "https://www.github.com/my/repo/Test2/",
             "Ontology": "https://www.github.com/my/repo/Ontology/",
-            "names": "schema:hello",
+            "names": {
+                "@id": "schema:hello",
+                "@container": "@list",
+            },
             "number": "schema:one",
         }
     )

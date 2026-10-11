@@ -1496,7 +1496,7 @@ mod tests {
                 r#""@vocab": "https://example.org/jsonld/","#,
                 r#""id": "schema:identifier","#,
                 r#""vessel_id": "ex:Molecule/vessel_id","#,
-                r#""molecules": "ex:Document/molecules","#,
+                r#""@id": "ex:Document/molecules","#,
                 r#""@id": "schema:url","#,
                 r#""@id": "schema:citation","#,
             ] {
@@ -1547,5 +1547,31 @@ mod tests {
             );
         }
         assert!(!rendered.contains("serialization_alias=\"@"), "{rendered}");
+    }
+
+    #[test]
+    fn test_jsonld_contexts_use_lists_and_typed_dates() {
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
+            for expected in [
+                "\"values\": {\n                \"@id\": \"ex:Molecule/values\",\n                \"@container\": \"@list\",\n            },",
+                "\"created\": {\n                \"@id\": \"ex:Document/created\",\n                \"@type\": \"http://www.w3.org/2001/XMLSchema#date\",\n            },",
+            ] {
+                assert!(
+                    rendered.contains(expected),
+                    "missing `{expected}` in:\n{rendered}"
+                );
+            }
+        }
+
+        let rust = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+        assert!(
+            rust.contains(r#"type_: Some("http://www.w3.org/2001/XMLSchema#date".to_string()),"#),
+            "{rust}"
+        );
     }
 }

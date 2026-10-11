@@ -172,7 +172,10 @@ class UnitTest(BaseModel):
             "schema": "http://schema.org/",
             "unit": "http://qudt.org/vocab/unit#",
             "xsd": "http://www.w3.org/2001/XMLSchema#",
-            "units": "md:UnitTest/units",
+            "units": {
+                "@id": "md:UnitTest/units",
+                "@container": "@list",
+            },
             "optional_unit": "md:UnitTest/optional_unit",
             "unit": "md:UnitTest/unit",
         }

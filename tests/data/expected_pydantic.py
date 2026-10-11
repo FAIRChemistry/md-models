@@ -178,7 +178,10 @@ class Test(BaseModel):
             "Ontology": "https://www.github.com/my/repo/Ontology/",
             "name": "schema:hello",
             "number": "schema:one",
-            "test2": "schema:something",
+            "test2": {
+                "@id": "schema:something",
+                "@container": "@list",
+            },
             "ontology": "tst:Test/ontology",
         }
     )
@@ -332,7 +335,10 @@ class Test2(BaseModel):
             "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
-            "names": "schema:hello",
+            "names": {
+                "@id": "schema:hello",
+                "@container": "@list",
+            },
             "number": "schema:one",
         }
     )

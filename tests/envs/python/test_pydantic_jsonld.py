@@ -1,12 +1,14 @@
 """End-to-end JSON-LD checks for pydantic models generated from tests/data/model_jsonld.md."""
 
+import datetime
 import json
 
 import rdflib
 from pydantic import ValidationError
-from rdflib.namespace import RDF, RDFS
+from rdflib.collection import Collection
+from rdflib.namespace import RDF, RDFS, XSD
 
-from gen_pydantic_jsonld import Document, Molecule  # type: ignore
+from gen_pydantic_jsonld import Document, Kind, Molecule  # type: ignore
 
 EX = rdflib.Namespace("https://example.org/jsonld/")
 SCHEMA = rdflib.Namespace("https://schema.org/")
@@ -26,13 +28,22 @@ def build_document() -> Document:
         name="N-Acetylmannosamine",
         vessel_id="v0",
         references=["https://doi.org/10.1000/xyz"],
+        values=[1.0, 0.5, 0.5, 0.25],
     )
     return Document(
         id="doc1",
         label="Test",
         homepage="https://example.org/home",
         molecules=[molecule],
+        created=datetime.date(2024, 5, 17),
+        kind=Kind.ASSAY,
     )
+
+
+def list_items(g: rdflib.Graph, predicate: rdflib.URIRef) -> list:
+    """Items of the single rdf:List that is the object of `predicate`."""
+    (head,) = list(g.objects(None, predicate))
+    return list(Collection(g, head))
 
 
 def test_version_default_and_pattern():
@@ -78,7 +89,17 @@ def test_identifiers_are_literals():
 def test_iri_fields_are_iris():
     g = to_graph(build_document())
     assert (None, SCHEMA.url, rdflib.URIRef("https://example.org/home")) in g
-    assert (None, SCHEMA.citation, rdflib.URIRef("https://doi.org/10.1000/xyz")) in g
+    assert list_items(g, SCHEMA.citation) == [rdflib.URIRef("https://doi.org/10.1000/xyz")]
+
+
+def test_arrays_are_ordered_lists_keeping_duplicates():
+    items = list_items(to_graph(build_document()), EX["Molecule/values"])
+    assert [float(x) for x in items] == [1.0, 0.5, 0.5, 0.25]
+
+
+def test_date_is_typed_literal():
+    g = to_graph(build_document())
+    assert (None, EX["Document/created"], rdflib.Literal("2024-05-17", datatype=XSD.date)) in g
 
 
 def roundtrip(document: Document) -> tuple[dict, dict]:
