@@ -1133,6 +1133,73 @@ mod tests {
         assert!(shapes[2].contains("sh:maxCount 1 ;"), "{rendered}");
     }
 
+    /// Block of the OWL property `name` (up to its terminating " .").
+    fn owl_block<'a>(rendered: &'a str, name: &str) -> &'a str {
+        let start = rendered
+            .find(&format!("\n{name}\n"))
+            .unwrap_or_else(|| panic!("no {name} in:\n{rendered}"));
+        let rest = &rendered[start + 1..];
+        &rest[..rest.find(" .\n").expect("unterminated block")]
+    }
+
+    #[test]
+    fn test_owl_lists_and_iris_are_object_properties_without_range() {
+        let rendered = build_and_convert("tests/data/model_jsonld.md", Templates::Owl, None);
+
+        let values = owl_block(&rendered, "Molecule:values");
+        assert!(values.contains("a owl:ObjectProperty"), "{values}");
+        assert!(!values.contains("rdfs:range"), "{values}");
+        assert!(
+            values.contains(r#"rdfs:comment "Ordered list (rdf:List) of xsd:decimal.""#),
+            "{values}"
+        );
+
+        let molecules = owl_block(&rendered, "Document:molecules");
+        assert!(molecules.contains("a owl:ObjectProperty"), "{molecules}");
+        assert!(!molecules.contains("rdfs:range"), "{molecules}");
+        assert!(molecules.contains("Ordered list (rdf:List) of ex:Molecule."));
+
+        let homepage = owl_block(&rendered, "Document:homepage");
+        assert!(homepage.contains("a owl:ObjectProperty"), "{homepage}");
+        assert!(!homepage.contains("rdfs:range"), "{homepage}");
+
+        let label = owl_block(&rendered, "Document:label");
+        assert!(label.contains("a owl:DatatypeProperty"), "{label}");
+        assert!(label.contains("rdfs:range xsd:string"), "{label}");
+    }
+
+    #[test]
+    fn test_owl_list_comment_keeps_docstring() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- xs\n  - Type: string[]\n  - Description: Some values.\n",
+            Templates::Owl,
+        );
+        let xs = owl_block(&rendered, "A:xs");
+        assert!(
+            xs.contains(r#"rdfs:comment "Ordered list (rdf:List) of xsd:string. Some values.""#),
+            "{xs}"
+        );
+    }
+
+    #[test]
+    fn test_hash_terminated_repo_has_single_hash_in_owl_and_shex() {
+        for template in [Templates::Owl, Templates::Shex] {
+            let rendered = render_inline(
+                "---\nrepo: \"https://example.org/x#\"\nprefix: ex\n---\n\n### A\n\n- b\n  - Type: string\n  - Term: schema:b\n",
+                template,
+            );
+            assert!(
+                rendered.contains("ex: <https://example.org/x#>"),
+                "{rendered}"
+            );
+            assert!(
+                rendered.contains("<https://example.org/x#A/>"),
+                "{rendered}"
+            );
+            assert!(!rendered.contains("x##"), "{rendered}");
+        }
+    }
+
     #[test]
     fn test_convert_to_owl() {
         // Arrange

@@ -89,3 +89,16 @@ with a field of type `IRI`, which JSON-LD treats as a link:
 Fields without a `Term` are still part of the JSON-LD graph: they map to
 `<prefix>:<Object>/<field>` (for example `ex:SmallMolecule/vessel_id`), the same IRI the
 OWL and SHACL exports use.
+
+### Arrays
+
+Every array (`string[]`, `Molecule[]`, `IRI[]`, ...) is an ordered RDF list: the JSON-LD
+context declares `"@container": "@list"`, so order and duplicates survive a round trip.
+In SPARQL, reach the items with the property path `?s <prop>/rdf:rest*/rdf:first ?item`.
+Dates are typed `xsd:date`.
+
+- **SHACL** validates the list items through the same path.
+- **OWL** declares array properties as `owl:ObjectProperty` without an `rdfs:range`
+  (a range would type the list node, not its items); the item type is named in the comment.
+  `IRI` fields are links and are object properties as well.
+- **ShEx** shapes do not understand lists yet.
