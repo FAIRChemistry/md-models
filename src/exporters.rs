@@ -297,13 +297,10 @@ pub fn render_jinja_template(
         Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
         Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
         Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
-        Templates::Shacl | Templates::Shex => {
-            let type_map = if matches!(template, Templates::Shacl) {
-                &*SHACL_TYPE_MAPS
-            } else {
-                &*OWL_TYPE_MAPS
-            };
-            convert_model_types(model, type_map);
+        // Every field is in the JSON-LD graph (unmapped ones as Object:attr), so SHACL keeps all objects
+        Templates::Shacl => convert_model_types(model, &SHACL_TYPE_MAPS),
+        Templates::Shex => {
+            convert_model_types(model, &OWL_TYPE_MAPS);
             if let Err(e) = filter_objects_wo_terms(model) {
                 println!(
                     " [{}] {}",
@@ -786,7 +783,7 @@ fn filter_objects_wo_terms(model: &mut DataModel) -> Result<(), Box<dyn Error>> 
     if model.objects.is_empty() {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            "No objects with terms found in the model. Unable to build SHACL or ShEx.",
+            "No objects with terms found in the model. Unable to build ShEx.",
         )));
     }
     Ok(())
@@ -1098,6 +1095,42 @@ mod tests {
             "path alternatives in:\n{rendered}"
         );
         assert!(!rendered.contains("decimal"));
+    }
+
+    fn render_inline(content: &str, template: Templates) -> String {
+        let mut model = parse_markdown(content, None).expect("Failed to parse markdown");
+        render_jinja_template(&template, &mut model, None).expect("Could not render template")
+    }
+
+    #[test]
+    fn test_shacl_keeps_objects_without_terms() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- b\n  - Type: B\n  - Term: schema:b\n\n### B\n\n- x\n  - Type: string\n",
+            Templates::Shacl,
+        );
+        assert!(
+            rendered.contains("ex:BShape\n"),
+            "no BShape in:\n{rendered}"
+        );
+        assert!(rendered.contains("sh:node ex:BShape ;"), "{rendered}");
+        assert!(rendered.contains("sh:path B:x ;"), "{rendered}");
+        assert!(!rendered.contains("sh:datatype B"), "{rendered}");
+    }
+
+    #[test]
+    fn test_shacl_shared_term_has_no_max_count() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- id\n  - Type: string\n  - Term: schema:identifier\n- vessel_id\n  - Type: string\n  - Term: schema:identifier\n- name\n  - Type: string\n",
+            Templates::Shacl,
+        );
+        let shapes: Vec<&str> = rendered.split("sh:property [").skip(1).collect();
+        assert_eq!(shapes.len(), 3, "{rendered}");
+        for shape in &shapes[..2] {
+            assert!(shape.contains("sh:path schema:identifier ;"), "{shape}");
+            assert!(!shape.contains("sh:maxCount"), "{shape}");
+        }
+        assert!(shapes[2].contains("sh:path A:name ;"), "{rendered}");
+        assert!(shapes[2].contains("sh:maxCount 1 ;"), "{rendered}");
     }
 
     #[test]

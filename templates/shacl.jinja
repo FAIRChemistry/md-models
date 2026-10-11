@@ -44,6 +44,13 @@ sh:datatype {{ dtype }}
     {%- for attribute in object.attributes %}
     {#- The IRI the JSON-LD context maps this key to #}
     {%- set iri = attribute.term if attribute.term else object.name ~ ":" ~ attribute.name %}
+    {#- Attributes sharing a path put all their values on it, so none of them can cap it at one #}
+    {%- set paths = namespace(count=0) %}
+    {%- for other in object.attributes %}
+    {%- if (other.term if other.term else object.name ~ ":" ~ other.name) == iri %}
+    {%- set paths.count = paths.count + 1 %}
+    {%- endif %}
+    {%- endfor %}
     sh:property [
         {%- if attribute.multiple %}
         sh:path ( {{ iri }} [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;
@@ -60,7 +67,7 @@ sh:datatype {{ dtype }}
         {%- else %}
         sh:minCount 0 ;
         {%- endif %}
-        {%- if not attribute.multiple %}
+        {%- if not attribute.multiple and paths.count == 1 %}
         sh:maxCount 1 ;
         {%- endif %}
         {%- if attribute.docstring %}

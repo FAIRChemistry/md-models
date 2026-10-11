@@ -44,14 +44,18 @@ def test_wrong_list_item_datatype_fails():
     data = json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
     data["molecules"][0]["values"].append("not a number")
     graph = rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE)
-    assert not validate(graph)[0], "a string inside values must not conform"
+    conforms, report = validate(graph)
+    assert not conforms, "a string inside values must not conform"
+    assert "DatatypeConstraintComponent" in report and "xsd:double" in report, report
 
 
 def test_unknown_enum_value_fails():
     data = json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
     data["kind"] = "unknown"
     graph = rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE)
-    assert not validate(graph)[0], "an unknown enum value must not conform"
+    conforms, report = validate(graph)
+    assert not conforms, "an unknown enum value must not conform"
+    assert "InConstraintComponent" in report, report
 
 
 if __name__ == "__main__":
