@@ -13,3 +13,6 @@ tarpaulin-report.html
 
 # Ignore wasm-pack output
 pkg
+# Review correspondence, kept locally
+docs/reviewer-response-analysis.md
+Response_reviewers*

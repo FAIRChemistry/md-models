@@ -17,6 +17,7 @@
   - [Validation](./cli/schema_validation.md)
   - [Large Language Models](./cli/llm.md)
 - [Export specifications](./exporters/exporters.md)
+  - [Support matrix](./exporters/support_matrix.md)
   - [Programming languages](./exporters/languages.md)
   - [Schema languages](./exporters/schemas.md)
   - [API specifications](./exporters/apis.md)
