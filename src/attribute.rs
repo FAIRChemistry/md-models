@@ -23,11 +23,11 @@
 
 use crate::{
     markdown::{parser::OptionKey, position::Position},
-    option::{AttrOption, RawOption},
+    object::type_name,
+    option::{strip_quotes, AttrOption, RawOption},
     validation::BASIC_TYPES,
     xmltype::XMLType,
 };
-use convert_case::{Case, Casing};
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
@@ -50,6 +50,9 @@ pub struct Attribute {
     pub is_array: bool,
     /// Is an identifier or not
     pub is_id: bool,
+    /// Holds an IRI; JSON-LD contexts coerce it with `"@type": "@id"`
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_iri: bool,
     /// Data types associated with the attribute.
     pub dtypes: Vec<String>,
     /// Documentation string for the attribute.
@@ -90,6 +93,7 @@ impl Attribute {
             options: Vec::new(),
             is_array: false,
             is_id: false,
+            is_iri: false,
             term: None,
             required,
             xml: Some(XMLType::from_str(name.as_str()).unwrap()),
@@ -128,7 +132,7 @@ impl Attribute {
             OptionKey::Type => self.set_dtype(option.value)?,
             OptionKey::Term => self.term = Some(option.value),
             OptionKey::Description => self.docstring = option.value,
-            OptionKey::Default => self.default = Some(DataType::from_str(&option.value)?),
+            OptionKey::Default => self.default = Some(self.parse_default(&option.value)?),
             OptionKey::Multiple => self.is_array = option.value.to_lowercase() == "true",
             OptionKey::Other => self.options.push(option.try_into()?),
             OptionKey::Xml => {
@@ -137,6 +141,18 @@ impl Attribute {
         }
 
         Ok(())
+    }
+
+    /// Parses a default value, honouring the declared type: an unquoted literal on a
+    /// string-only attribute (e.g. `Default: 2.0` with `Type: string`) stays a string.
+    // ponytail: relies on `Type` being declared before `Default`; otherwise literal parsing applies
+    fn parse_default(&self, value: &str) -> Result<DataType, String> {
+        let parsed = DataType::from_str(value)?;
+        let string_only = !self.dtypes.is_empty() && self.dtypes.iter().all(|d| d == "string");
+        if string_only && !parsed.is_string() {
+            return Ok(DataType::String(value.trim().to_string()));
+        }
+        Ok(parsed)
     }
 
     /// Sets the data type for the attribute.
@@ -155,6 +171,10 @@ impl Attribute {
             dtype = dtype.trim().to_string();
             if self.is_identifier(&dtype) {
                 dtype = self.process_identifier(&dtype).to_string();
+            } else if dtype.trim_end_matches("[]").eq_ignore_ascii_case("iri") {
+                // IRI-valued field: generated as a string, coerced to an IRI in JSON-LD
+                self.is_iri = true;
+                dtype = format!("string{}", &dtype[3..]);
             }
 
             if let Some((prefix, name)) = dtype.split_once('.') {
@@ -168,7 +188,7 @@ impl Attribute {
             }
 
             if !BASIC_TYPES.contains(&dtype.as_str()) {
-                dtype = dtype.replace(" ", "_").to_case(Case::Pascal);
+                dtype = type_name(&dtype);
             }
 
             new_dtypes.push(dtype);
@@ -350,19 +370,32 @@ impl PartialEq for DataType {
 impl FromStr for DataType {
     type Err = String;
 
-    /// Converts a string to a DataType (Boolean, Integer, Float, or String).
+    /// Parses a default value literal. A quoted value is always a string and is kept
+    /// verbatim (without the quotes); unquoted values are parsed as boolean, integer,
+    /// float or string, in that order.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lower_s = s.to_lowercase();
-        let lower_s = lower_s.trim_matches('"');
+        let s = s.trim();
 
-        if let Ok(b) = lower_s.parse::<bool>() {
-            Ok(DataType::Boolean(b))
-        } else if let Ok(i) = lower_s.parse::<i64>() {
+        if let Some(inner) = strip_quotes(s) {
+            return Ok(DataType::String(inner.to_string()));
+        }
+
+        if s.eq_ignore_ascii_case("true") {
+            Ok(DataType::Boolean(true))
+        } else if s.eq_ignore_ascii_case("false") {
+            Ok(DataType::Boolean(false))
+        } else if let Ok(i) = s.parse::<i64>() {
             Ok(DataType::Integer(i))
-        } else if let Ok(f) = lower_s.parse::<f64>() {
+        } else if let Some(f) = s
+            .parse::<f64>()
+            .ok()
+            .filter(|f| f.is_finite() && s.bytes().any(|b| b.is_ascii_digit()))
+        {
+            // The digit check keeps words such as "nan" or "inf" as strings, and the
+            // finiteness check keeps overflowing literals such as "1e999" as strings
             Ok(DataType::Float(f))
-        } else if !lower_s.is_empty() {
-            Ok(DataType::String(format!("\"{s}\"")))
+        } else if !s.is_empty() {
+            Ok(DataType::String(s.to_string()))
         } else {
             Err("Invalid data type".to_string())
         }
@@ -717,12 +750,113 @@ mod tests {
     #[test]
     fn from_str_parses_string() {
         let dt = DataType::from_str("hello").unwrap();
-        assert_eq!(dt, DataType::String("\"hello\"".to_string()));
+        assert_eq!(dt, DataType::String("hello".to_string()));
+    }
+
+    #[test]
+    fn from_str_keeps_quoted_values_verbatim() {
+        for (raw, expected) in [
+            ("\"2.0\"", "2.0"),
+            ("\"1.10\"", "1.10"),
+            ("\"007\"", "007"),
+            ("\"true\"", "true"),
+            ("\"\"", ""),
+        ] {
+            assert_eq!(
+                DataType::from_str(raw).unwrap(),
+                DataType::String(expected.to_string()),
+                "{raw}"
+            );
+        }
+    }
+
+    #[test]
+    fn from_str_keeps_non_finite_floats_as_strings() {
+        assert_eq!(
+            DataType::from_str("1e999").unwrap(),
+            DataType::String("1e999".to_string())
+        );
+        assert_eq!(
+            DataType::from_str("-1e999").unwrap(),
+            DataType::String("-1e999".to_string())
+        );
+        assert_eq!(DataType::from_str("1e10").unwrap(), DataType::Float(1e10));
+    }
+
+    #[test]
+    fn from_str_parses_unquoted_literals() {
+        assert_eq!(DataType::from_str("True").unwrap(), DataType::Boolean(true));
+        assert_eq!(
+            DataType::from_str("FALSE").unwrap(),
+            DataType::Boolean(false)
+        );
+        assert_eq!(
+            DataType::from_str("Hello").unwrap(),
+            DataType::String("Hello".to_string())
+        );
+        assert_eq!(
+            DataType::from_str("nan").unwrap(),
+            DataType::String("nan".to_string())
+        );
+        assert_eq!(
+            DataType::from_str("inf").unwrap(),
+            DataType::String("inf".to_string())
+        );
+    }
+
+    #[test]
+    fn default_follows_declared_string_type() {
+        let mut attr = Attribute::new("version".to_string(), false);
+        attr.add_option(RawOption::new("type".to_string(), "string".to_string()))
+            .unwrap();
+        attr.add_option(RawOption::new("default".to_string(), "2.0".to_string()))
+            .unwrap();
+        assert_eq!(attr.default, Some(DataType::String("2.0".to_string())));
+    }
+
+    #[test]
+    fn default_on_numeric_type_stays_numeric() {
+        let mut attr = Attribute::new("volume".to_string(), false);
+        attr.add_option(RawOption::new("type".to_string(), "float".to_string()))
+            .unwrap();
+        attr.add_option(RawOption::new("default".to_string(), "2.0".to_string()))
+            .unwrap();
+        assert_eq!(attr.default, Some(DataType::Float(2.0)));
     }
 
     #[test]
     fn from_str_returns_error_for_invalid_data_type() {
         let dt = DataType::from_str("");
         assert!(dt.is_err());
+    }
+
+    #[test]
+    fn test_iri_type_is_a_flagged_string() {
+        let mut attr = Attribute::new("homepage".to_string(), false);
+        attr.add_option(RawOption::new("type".to_string(), "IRI".to_string()))
+            .expect("Failed to add option");
+        assert_eq!(attr.dtypes, vec!["string".to_string()]);
+        assert!(attr.is_iri);
+        assert!(!attr.is_id);
+        assert!(!attr.is_array);
+    }
+
+    #[test]
+    fn test_iri_array_type() {
+        let mut attr = Attribute::new("references".to_string(), false);
+        attr.add_option(RawOption::new("type".to_string(), "IRI[]".to_string()))
+            .expect("Failed to add option");
+        assert_eq!(attr.dtypes, vec!["string".to_string()]);
+        assert!(attr.is_iri);
+        assert!(attr.is_array);
+    }
+
+    #[test]
+    fn test_identifier_is_not_an_iri() {
+        let mut attr = Attribute::new("id".to_string(), true);
+        attr.add_option(RawOption::new("type".to_string(), "Identifier".to_string()))
+            .expect("Failed to add option");
+        assert!(attr.is_id);
+        assert!(!attr.is_iri);
     }
 }

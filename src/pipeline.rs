@@ -42,7 +42,7 @@ struct GenTemplate {
 
 impl GenTemplate {
     pub fn prepend_root(&mut self, path: &Path) {
-        for (_, specs) in self.generate.iter_mut() {
+        for specs in self.generate.values_mut() {
             specs.prepend_root(path);
         }
 

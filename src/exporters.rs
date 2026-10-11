@@ -106,6 +106,19 @@ lazy_static! {
         m
     };
 
+    /// Maps MD-Models type names to the XSD datatypes JSON-LD produces, for SHACL.
+    /// `number` and `float` stay unmapped: the template accepts xsd:integer or xsd:double,
+    /// because JSON-LD types whole numbers such as `2.0` as xsd:integer.
+    static ref SHACL_TYPE_MAPS: std::collections::HashMap<String, String> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("integer".to_string(), "xsd:integer".to_string());
+        m.insert("boolean".to_string(), "xsd:boolean".to_string());
+        m.insert("string".to_string(), "xsd:string".to_string());
+        m.insert("bytes".to_string(), "xsd:string".to_string());
+        m.insert("date".to_string(), "xsd:date".to_string());
+        m
+    };
+
     /// Forbidden enum variants for Rust (mainly for windows compatibility)
     static ref FORBIDDEN_RUST_ENUM_VARIANTS: Vec<String> = {
         vec![
@@ -234,6 +247,27 @@ impl FromStr for Templates {
     }
 }
 
+/// Warns on stderr about namespaces that would make the IRIs generated for `target`
+/// wrong: the placeholder `repo` (a namespace the user does not own) and prefixes
+/// whose IRI lacks its trailing separator.
+pub(crate) fn warn_namespace_issues(config: &FrontMatter, target: &str) {
+    let mut warnings = Vec::new();
+    if config.has_placeholder_repo() {
+        warnings.push(format!(
+            "No `repo` set in the front matter; using placeholder {} for IRIs. Set `repo` to a namespace you control.",
+            config.repo
+        ));
+    }
+    for (prefix, iri) in config.prefixes_missing_delimiter() {
+        warnings.push(format!(
+            "Prefix `{prefix}` = {iri} does not end in `/` or `#`; `{prefix}:name` expands to {iri}name. Add the separator if that is not intended."
+        ));
+    }
+    for warning in warnings {
+        eprintln!(" [{}] {}", target.yellow().bold(), warning.bold());
+    }
+}
+
 /// Renders a Jinja template based on the provided template type and data model.
 ///
 /// # Arguments
@@ -268,10 +302,12 @@ pub fn render_jinja_template(
         Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
         Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
         Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
-        Templates::Shacl | Templates::Shex => {
+        // Every field is in the JSON-LD graph (unmapped ones as Object:attr), so SHACL keeps all objects
+        Templates::Shacl => convert_model_types(model, &SHACL_TYPE_MAPS),
+        Templates::Shex => {
             convert_model_types(model, &OWL_TYPE_MAPS);
             if let Err(e) = filter_objects_wo_terms(model) {
-                println!(
+                eprintln!(
                     " [{}] {}",
                     template.to_string().yellow().bold(),
                     e.to_string().bold(),
@@ -306,7 +342,11 @@ pub fn render_jinja_template(
     env.add_function("replace", replace);
     env.add_function("trim", trim);
     env.add_function("default_value", default_value);
+    env.add_function("json_string", json_string);
     env.add_function("xml_escape", xml_escape);
+    env.add_test("gen_delim_iri", |iri: String| {
+        crate::jsonld::export::ends_with_gen_delim(&iri)
+    });
     env.add_filter("enumerate", enumerate);
     env.add_filter("cap_first", cap_first);
     env.add_filter("split_path_pairs", split_path_pairs);
@@ -315,6 +355,17 @@ pub fn render_jinja_template(
     env.add_filter("snake_case", snake_case);
     env.add_filter("to_identifier", to_identifier);
     env.add_filter("replace_lower", replace_lower);
+
+    // Semantic formats mint IRIs from `repo`, so warn when it is the placeholder
+    let template_name = template.to_string();
+    let semantic = matches!(
+        template,
+        Templates::Owl
+            | Templates::Shacl
+            | Templates::Shex
+            | Templates::PythonPydantic
+            | Templates::PythonDataclass
+    ) || (matches!(template, Templates::Rust) && config.contains_key("jsonld"));
 
     // Get the appropriate template
     let template = match template {
@@ -350,6 +401,10 @@ pub fn render_jinja_template(
         model.config = Some(FrontMatter::default());
     }
 
+    if semantic {
+        warn_namespace_issues(model.config.as_ref().unwrap(), &template_name);
+    }
+
     // Render the template
     let prefixes = get_prefixes(model);
     let rendered = template.render(context! {
@@ -360,6 +415,7 @@ pub fn render_jinja_template(
         title => model.name,
         prefixes => prefixes,
         repo => model.config.as_ref().unwrap().repo.clone(),
+        repo_ns => crate::jsonld::export::model_namespace(&model.config.as_ref().unwrap().repo),
         prefix => model.config.as_ref().unwrap().prefix.clone(),
         nsmap => model.config.as_ref().unwrap().nsmap.clone(),
         config => config,
@@ -732,7 +788,7 @@ fn filter_objects_wo_terms(model: &mut DataModel) -> Result<(), Box<dyn Error>> 
     if model.objects.is_empty() {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            "No objects with terms found in the model. Unable to build SHACL or ShEx.",
+            "No objects with terms found in the model. Unable to build ShEx.",
         )));
     }
     Ok(())
@@ -858,6 +914,11 @@ fn cap_first(s: String) -> String {
     }
 }
 
+/// Renders a string as a JSON string literal, which is also a valid Python literal.
+fn json_string(value: String) -> String {
+    serde_json::to_string(&value).expect("a string always serializes")
+}
+
 /// Formats the default value of an attribute.
 ///
 /// # Arguments
@@ -867,7 +928,7 @@ fn cap_first(s: String) -> String {
 /// # Returns
 fn default_value(attribute: ViaDeserialize<Attribute>) -> String {
     match &attribute.default {
-        Some(DataType::String(s)) => format!("\"{s}\""),
+        Some(DataType::String(s)) => serde_json::to_string(s).expect("a string always serializes"),
         Some(DataType::Integer(i)) => {
             if contains_numeric_type(&attribute) {
                 i.to_string()
@@ -876,10 +937,11 @@ fn default_value(attribute: ViaDeserialize<Attribute>) -> String {
             }
         }
         Some(DataType::Float(f)) => {
+            // `{:?}` keeps the decimal point: 2.0 renders as "2.0", not "2"
             if contains_numeric_type(&attribute) {
-                f.to_string()
+                format!("{f:?}")
             } else {
-                format!("\"{f}\"")
+                format!("\"{f:?}\"")
             }
         }
         _ => "".to_string(),
@@ -962,6 +1024,19 @@ mod tests {
     }
 
     #[test]
+    fn test_pydantic_emits_unquoted_pattern() {
+        let rendered = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::PythonPydantic,
+            None,
+        );
+        assert!(
+            rendered.contains(r#"pattern="^(\\d+)\\.\\d+$","#),
+            "pattern missing in:\n{rendered}"
+        );
+    }
+
+    #[test]
     fn test_convert_to_shex() {
         // Arrange
         let rendered = build_and_convert("tests/data/model.md", Templates::Shex, None);
@@ -981,6 +1056,206 @@ mod tests {
         let expected = fs::read_to_string("tests/data/expected_shacl.ttl")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_shacl_matches_jsonld() {
+        let rendered = build_and_convert("tests/data/model_jsonld.md", Templates::Shacl, None);
+        for expected in [
+            "@prefix ex: <https://example.org/jsonld/> .",
+            "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .",
+            "@prefix Document: <https://example.org/jsonld/Document/> .",
+            "@prefix Item: <https://example.org/jsonld/Item/> .",
+            "@prefix Kind: <https://example.org/jsonld/Kind/> .",
+            "sh:path schema:identifier ;",
+            "sh:path ( Item:values [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:path ( schema:citation [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:path ( Document:items [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
+            "sh:nodeKind sh:IRI ;",
+            r#"sh:in ( "draft" "final" ) ;"#,
+            "sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] ) ;",
+            "sh:datatype xsd:date ;",
+            "sh:node ex:ItemShape ;",
+        ] {
+            assert!(
+                rendered.contains(expected),
+                "missing {expected:?} in:\n{rendered}"
+            );
+        }
+        // The IRI-valued homepage carries no datatype, only a node kind
+        let homepage = rendered
+            .split("sh:property [")
+            .find(|p| p.contains("sh:path schema:url ;"))
+            .expect("homepage shape");
+        assert!(homepage.contains("sh:nodeKind sh:IRI ;") && !homepage.contains("sh:datatype"));
+        // Lists have no upper bound
+        let values = rendered
+            .split("sh:property [")
+            .find(|p| p.contains("Item:values"))
+            .expect("values shape");
+        assert!(!values.contains("sh:maxCount"));
+        // One path per property shape, no path alternatives
+        assert!(
+            !rendered.contains("[ sh:path"),
+            "path alternatives in:\n{rendered}"
+        );
+        assert!(!rendered.contains("decimal"));
+        // Whole-number floats are integers to a JSON-LD processor
+        assert!(!rendered.contains("sh:datatype xsd:double ;"), "{rendered}");
+    }
+
+    #[test]
+    fn test_shacl_bytes_are_plain_strings() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- blob\n  - Type: bytes\n",
+            Templates::Shacl,
+        );
+        assert!(rendered.contains("sh:datatype xsd:string ;"), "{rendered}");
+        assert!(!rendered.contains("base64Binary"), "{rendered}");
+    }
+
+    #[test]
+    fn test_date_coercion_only_for_pure_date_fields() {
+        let md = "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- both\n  - Type: date, string\n- only\n  - Type: date\n";
+        let date = "http://www.w3.org/2001/XMLSchema#date";
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = render_inline(md, template);
+            assert_eq!(rendered.matches(date).count(), 1, "{rendered}");
+            assert!(
+                rendered.contains("\"only\": {\n                \"@id\": \"ex:A/only\",\n                \"@type\""),
+                "{rendered}"
+            );
+            assert!(rendered.contains("\"both\": \"ex:A/both\","), "{rendered}");
+        }
+        let mut model = parse_markdown(md, None).expect("parse");
+        let rust = render_jinja_template(
+            &Templates::Rust,
+            &mut model,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        )
+        .expect("render");
+        assert_eq!(rust.matches(date).count(), 1, "{rust}");
+    }
+
+    fn render_inline(content: &str, template: Templates) -> String {
+        let mut model = parse_markdown(content, None).expect("Failed to parse markdown");
+        render_jinja_template(&template, &mut model, None).expect("Could not render template")
+    }
+
+    #[test]
+    fn test_shacl_keeps_objects_without_terms() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- b\n  - Type: B\n  - Term: schema:b\n\n### B\n\n- x\n  - Type: string\n",
+            Templates::Shacl,
+        );
+        assert!(
+            rendered.contains("ex:BShape\n"),
+            "no BShape in:\n{rendered}"
+        );
+        assert!(rendered.contains("sh:node ex:BShape ;"), "{rendered}");
+        assert!(rendered.contains("sh:path B:x ;"), "{rendered}");
+        assert!(!rendered.contains("sh:datatype B"), "{rendered}");
+    }
+
+    #[test]
+    fn test_shacl_shared_term_has_no_max_count() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- id\n  - Type: string\n  - Term: schema:identifier\n- owner_id\n  - Type: string\n  - Term: schema:identifier\n- name\n  - Type: string\n",
+            Templates::Shacl,
+        );
+        let shapes: Vec<&str> = rendered.split("sh:property [").skip(1).collect();
+        assert_eq!(shapes.len(), 3, "{rendered}");
+        for shape in &shapes[..2] {
+            assert!(shape.contains("sh:path schema:identifier ;"), "{shape}");
+            assert!(!shape.contains("sh:maxCount"), "{shape}");
+        }
+        assert!(shapes[2].contains("sh:path A:name ;"), "{rendered}");
+        assert!(shapes[2].contains("sh:maxCount 1 ;"), "{rendered}");
+    }
+
+    /// Block of the OWL property `name` (up to its terminating " .").
+    fn owl_block<'a>(rendered: &'a str, name: &str) -> &'a str {
+        let start = rendered
+            .find(&format!("\n{name}\n"))
+            .unwrap_or_else(|| panic!("no {name} in:\n{rendered}"));
+        let rest = &rendered[start + 1..];
+        &rest[..rest.find(" .\n").expect("unterminated block")]
+    }
+
+    #[test]
+    fn test_owl_lists_and_iris_are_object_properties_without_range() {
+        let rendered = build_and_convert("tests/data/model_jsonld.md", Templates::Owl, None);
+
+        let values = owl_block(&rendered, "Item:values");
+        assert!(values.contains("a owl:ObjectProperty"), "{values}");
+        assert!(!values.contains("rdfs:range"), "{values}");
+        assert!(
+            values.contains(r#"rdfs:comment "Ordered list (rdf:List) of xsd:decimal.""#),
+            "{values}"
+        );
+
+        let items = owl_block(&rendered, "Document:items");
+        assert!(items.contains("a owl:ObjectProperty"), "{items}");
+        assert!(!items.contains("rdfs:range"), "{items}");
+        assert!(
+            items.contains("Ordered list (rdf:List) of ex:Item."),
+            "{items}"
+        );
+
+        let homepage = owl_block(&rendered, "Document:homepage");
+        assert!(homepage.contains("a owl:ObjectProperty"), "{homepage}");
+        assert!(!homepage.contains("rdfs:range"), "{homepage}");
+
+        let label = owl_block(&rendered, "Document:label");
+        assert!(label.contains("a owl:DatatypeProperty"), "{label}");
+        assert!(label.contains("rdfs:range xsd:string"), "{label}");
+    }
+
+    #[test]
+    fn test_owl_required_arrays_use_min_cardinality_without_filler() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- **xs**\n  - Type: string[]\n- **bs**\n  - Type: B[]\n\n### B\n\n- x\n  - Type: string\n",
+            Templates::Owl,
+        );
+        for prop in ["A:xs", "A:bs"] {
+            let restriction = format!(
+                "owl:onProperty {prop}\n        ; owl:minCardinality \"1\"^^xsd:nonNegativeInteger"
+            );
+            assert!(rendered.contains(&restriction), "{prop} in:\n{rendered}");
+        }
+        assert!(!rendered.contains("owl:someValuesFrom"), "{rendered}");
+    }
+
+    #[test]
+    fn test_owl_list_comment_keeps_docstring() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- xs\n  - Type: string[]\n  - Description: Some values.\n",
+            Templates::Owl,
+        );
+        let xs = owl_block(&rendered, "A:xs");
+        assert!(
+            xs.contains(r#"rdfs:comment "Ordered list (rdf:List) of xsd:string. Some values.""#),
+            "{xs}"
+        );
+    }
+
+    #[test]
+    fn test_hash_terminated_repo_has_single_hash_in_owl_and_shex() {
+        for template in [Templates::Owl, Templates::Shex] {
+            let rendered = render_inline(
+                "---\nrepo: \"https://example.org/x#\"\nprefix: ex\n---\n\n### A\n\n- b\n  - Type: string\n  - Term: schema:b\n",
+                template,
+            );
+            assert!(
+                rendered.contains("ex: <https://example.org/x#>"),
+                "{rendered}"
+            );
+            assert!(
+                rendered.contains("<https://example.org/x#A/>"),
+                "{rendered}"
+            );
+            assert!(!rendered.contains("x##"), "{rendered}");
+        }
     }
 
     #[test]
@@ -1334,5 +1609,207 @@ mod tests {
         let expected = fs::read_to_string("tests/data/expected_mermaid.md")
             .expect("Could not read expected file");
         assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn test_string_defaults_keep_their_text() {
+        let pydantic = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::PythonPydantic,
+            None,
+        );
+        assert!(pydantic.contains(r#"default= "2.0","#), "{pydantic}");
+
+        let rust = build_and_convert("tests/data/model.md", Templates::Rust, None);
+        assert!(
+            rust.contains(r#"#[builder(default = "\"2.0\".to_string().into()", setter(into))]"#),
+            "{rust}"
+        );
+    }
+
+    #[test]
+    fn test_string_defaults_are_escaped_in_rust_and_python() {
+        let md = "### Doc\n\n- path\n  - Type: string\n  - Default: \"say \"hi\" C:\\tmp\"\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let rust = render_jinja_template(&Templates::Rust, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        // The Rust string literal is escaped once, the attribute argument a second time
+        assert!(
+            rust.contains(
+                r#"#[builder(default = "\"say \\\"hi\\\" C:\\\\tmp\".to_string().into()", setter(into))]"#
+            ),
+            "{rust}"
+        );
+        assert!(
+            rust.contains(
+                r#"#[derivative(Default(value = "\"say \\\"hi\\\" C:\\\\tmp\".to_string()"))]"#
+            ),
+            "{rust}"
+        );
+
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains(r#"default= "say \"hi\" C:\\tmp","#), "{py}");
+    }
+
+    #[test]
+    fn test_pydantic_pattern_only_on_string_fields() {
+        let md = "---\nprefix: ex\n---\n\n### Doc\n\n- name\n  - Type: string\n  - Pattern: ^a\n- count\n  - Type: integer\n  - Pattern: ^b\n- value\n  - Type: float, string\n  - Pattern: ^c\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains(r#"pattern="^a","#), "{py}");
+        assert!(!py.contains(r#"pattern="^b""#), "{py}");
+        assert!(!py.contains(r#"pattern="^c""#), "{py}");
+    }
+
+    #[test]
+    fn test_acronym_type_names_are_kept() {
+        let md = "---\nprefix: ex\n---\n\n### XMLDocument\n\n- requests\n  - Type: HTTP request[]\n- method\n  - Type: HTTPMethod\n\n### HTTP request\n\n- id\n  - Type: string\n\n## Enumerations\n\n### HTTPMethod\n\n```\nGET = \"get\"\n```\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+
+        let names: Vec<&str> = model.objects.iter().map(|o| o.name.as_str()).collect();
+        assert_eq!(names, vec!["XMLDocument", "HTTPRequest"]);
+        assert_eq!(model.enums[0].name, "HTTPMethod");
+        assert_eq!(model.objects[0].attributes[0].dtypes, vec!["HTTPRequest"]);
+        assert_eq!(model.objects[0].attributes[1].dtypes, vec!["HTTPMethod"]);
+
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains("class XMLDocument(BaseModel):"), "{py}");
+        assert!(py.contains("class HTTPMethod(Enum):"), "{py}");
+    }
+
+    #[test]
+    fn test_slashless_repo_gets_hash_namespace() {
+        let md = "---\nrepo: \"https://example.org/repo\"\nprefix: ex\n---\n\n### Doc\n\n- id\n  - Type: string\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains(r#""ex": "https://example.org/repo#","#), "{py}");
+        assert!(
+            py.contains(r#""@vocab": "https://example.org/repo#","#),
+            "{py}"
+        );
+    }
+
+    #[test]
+    fn test_jsonld_prefixes_without_gen_delim_opt_in() {
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
+            assert!(
+                rendered.contains(
+                    r#""cat": {"@id": "https://example.org/category_", "@prefix": True},"#
+                ),
+                "{rendered}"
+            );
+            assert!(
+                rendered.contains(r#""rdfs": "http://www.w3.org/2000/01/rdf-schema#","#),
+                "{rendered}"
+            );
+        }
+
+        let rust = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+        assert!(
+            rust.contains(r#"context.terms.insert("cat".to_string(), TermDef::Detailed(TermDetail { id: Some("https://example.org/category_".to_string()), prefix: Some(true), ..Default::default() }));"#),
+            "{rust}"
+        );
+    }
+
+    #[test]
+    fn test_jsonld_contexts_map_every_field() {
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
+            for expected in [
+                r#""@vocab": "https://example.org/jsonld/","#,
+                r#""id": "schema:identifier","#,
+                r#""owner_id": "ex:Item/owner_id","#,
+                r#""@id": "ex:Document/items","#,
+                r#""@id": "schema:url","#,
+                r#""@id": "schema:citation","#,
+            ] {
+                assert!(
+                    rendered.contains(expected),
+                    "missing `{expected}` in:\n{rendered}"
+                );
+            }
+            assert!(
+                !rendered.contains(r#""@id": "schema:identifier","#),
+                "identifier coerced to @id:\n{rendered}"
+            );
+        }
+
+        let rust = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+        for expected in [
+            r#"context.vocab = Some("https://example.org/jsonld/".to_string());"#,
+            r#"context.terms.insert("id".to_string(), TermDef::Simple("schema:identifier".to_string()));"#,
+            r#"context.terms.insert("owner_id".to_string(), TermDef::Simple("ex:Item/owner_id".to_string()));"#,
+            r#"id: Some("schema:url".to_string()),"#,
+        ] {
+            assert!(rust.contains(expected), "missing `{expected}` in:\n{rust}");
+        }
+    }
+
+    #[test]
+    fn test_pydantic_reads_jsonld_keywords() {
+        let rendered = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::PythonPydantic,
+            None,
+        );
+        for expected in [
+            r#"alias="@id","#,
+            r#"alias="@type","#,
+            r#"alias="@context","#,
+            r#"@field_validator("ld_context", mode="before")"#,
+            r#"@field_validator("ld_type", mode="before")"#,
+            r#"@field_validator("ld_id", mode="before")"#,
+        ] {
+            assert!(
+                rendered.contains(expected),
+                "missing `{expected}` in:\n{rendered}"
+            );
+        }
+        assert!(!rendered.contains("serialization_alias=\"@"), "{rendered}");
+    }
+
+    #[test]
+    fn test_jsonld_contexts_use_lists_and_typed_dates() {
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = build_and_convert("tests/data/model_jsonld.md", template, None);
+            for expected in [
+                "\"values\": {\n                \"@id\": \"ex:Item/values\",\n                \"@container\": \"@list\",\n            },",
+                "\"created\": {\n                \"@id\": \"ex:Document/created\",\n                \"@type\": \"http://www.w3.org/2001/XMLSchema#date\",\n            },",
+            ] {
+                assert!(
+                    rendered.contains(expected),
+                    "missing `{expected}` in:\n{rendered}"
+                );
+            }
+        }
+
+        let rust = build_and_convert(
+            "tests/data/model_jsonld.md",
+            Templates::Rust,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        );
+        assert!(
+            rust.contains(r#"type_: Some("http://www.w3.org/2001/XMLSchema#date".to_string()),"#),
+            "{rust}"
+        );
     }
 }

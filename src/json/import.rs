@@ -243,6 +243,7 @@ fn property_to_attribute(
             is_array: false,
             dtypes: vec![type_name],
             is_id: false,
+            is_iri: false,
             docstring,
             options,
             term,
@@ -361,6 +362,7 @@ fn property_to_attribute(
             .filter(|dtype| !IGNORE_TYPES.contains(&dtype.as_str()))
             .collect::<Vec<String>>(),
         is_id: false,
+        is_iri: false,
         docstring: property.description.unwrap_or_default(),
         options: parse_options(&property.options)?,
         term: property.term,
@@ -460,11 +462,11 @@ fn make_inline_enum(
 
 /// Converts a JSON Schema primitive default value into the model's `DataType`.
 ///
-/// String defaults are stored quoted to match the representation produced by the
-/// markdown parser, so both import paths agree.
+/// `DataType::String` holds the unquoted text, matching the markdown parser, so
+/// both import paths agree.
 fn primitive_to_datatype(value: &PrimitiveType) -> attribute::DataType {
     match value {
-        PrimitiveType::String(s) => attribute::DataType::String(format!("\"{s}\"")),
+        PrimitiveType::String(s) => attribute::DataType::String(s.clone()),
         PrimitiveType::Number(n) if n.fract() == 0.0 && n.is_finite() => {
             attribute::DataType::Integer(*n as i64)
         }
@@ -1354,7 +1356,7 @@ mod tests {
         // Default values are captured from the schema.
         assert_eq!(
             coupling.default,
-            Some(attribute::DataType::String("\"parallel\"".to_string()))
+            Some(attribute::DataType::String("parallel".to_string()))
         );
         let max_iter = coupling_scheme
             .attributes

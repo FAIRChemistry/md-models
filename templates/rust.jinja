@@ -70,6 +70,8 @@
     {%- else -%}
         {%- if attr.dtypes | length > 1 -%}
             #[builder(default, setter(into))]
+        {%- elif attr.default is string -%}
+            #[builder(default = {{ json_string(json_string(attr.default) ~ ".to_string().into()") }}, setter(into))]
         {%- elif attr.default -%}
             #[builder(default = "{{ attr.default }}{{- to_string(attr) -}}.into()", setter(into))]
         {%- elif attr.required is false -%}
@@ -116,7 +118,7 @@
 {% macro get_derivative_attribute(attr) %}
     {%- if attr.default and attr.dtypes | length == 1 -%}
         {%- if attr.dtypes[0] == "string" -%}
-        #[derivative(Default(value = "\"{{ attr.default }}\".to_string()"))]
+        #[derivative(Default(value = {{ json_string(json_string(attr.default) ~ ".to_string()") }}))]
         {%- else -%}
         #[derivative(Default(value = "{{ attr.default }}{{- to_string(attr) -}}{{- into(attr) -}}"))]
         {%- endif -%}
@@ -125,55 +127,56 @@
     {%- endif -%}
 {% endmacro %}
 
+{# JSON-LD 1.1 only uses a simple term as a prefix if its IRI ends in a gen-delim #}
+{% macro prefix_term(iri) -%}
+{%- if iri is gen_delim_iri -%}
+TermDef::Simple("{{ iri }}".to_string())
+{%- else -%}
+TermDef::Detailed(TermDetail { id: Some("{{ iri }}".to_string()), prefix: Some(true), ..Default::default() })
+{%- endif -%}
+{%- endmacro %}
+
 {# Defines a default JSON-LD header for an object #}
 {% macro get_jsonld_header(object) %}
 pub fn default_{{ object.name | lower }}_jsonld_header() -> Option<JsonLdHeader> {
     let mut context = SimpleContext::default();
+    context.vocab = Some("{{ repo_ns }}".to_string());
 
     // Add main prefix and repository URL
-    context.terms.insert("{{ prefix }}".to_string(), TermDef::Simple("{{ repo }}".to_string()));
+    context.terms.insert("{{ prefix }}".to_string(), {{ prefix_term(repo_ns) }});
 
     // Add configured prefixes
     {%- for prefix, address in prefixes %}
-    context.terms.insert("{{ prefix }}".to_string(), TermDef::Simple("{{ address }}".to_string()));
+    context.terms.insert("{{ prefix }}".to_string(), {{ prefix_term(address) }});
     {%- endfor %}
 
     // Add class-scoped prefixes
     {%- for obj in objects %}
-    context.terms.insert("{{ obj.name }}".to_string(), TermDef::Simple("{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ obj.name }}/".to_string()));
+    context.terms.insert("{{ obj.name }}".to_string(), TermDef::Simple("{{ repo_ns }}{{ obj.name }}/".to_string()));
     {%- endfor %}
     {%- for enum in enums %}
-    context.terms.insert("{{ enum.name }}".to_string(), TermDef::Simple("{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/".to_string()));
+    context.terms.insert("{{ enum.name }}".to_string(), TermDef::Simple("{{ repo_ns }}{{ enum.name }}/".to_string()));
     {%- endfor %}
 
-    // Add attribute terms
+    // Add attribute terms: identifiers are literals, only IRI fields are coerced to @id
     {%- for attr in object.attributes %}
-    {%- if attr.is_id %}
+    {%- set iri = attr.term if attr.term else prefix ~ ":" ~ object.name ~ "/" ~ attr.name %}
+    {%- set is_date = attr.dtypes == ["date"] %}
+    {%- if attr.is_iri or attr.multiple or is_date %}
     context.terms.insert("{{ attr.name }}".to_string(), TermDef::Detailed(TermDetail {
-        {%- if attr.term %}
-        id: Some("{{ attr.term }}".to_string()),
-        {%- else %}
-        id: None,
-        {%- endif %}
+        id: Some("{{ iri }}".to_string()),
+        {%- if attr.is_iri %}
         type_: Some("@id".to_string()),
+        {%- elif is_date %}
+        type_: Some("http://www.w3.org/2001/XMLSchema#date".to_string()),
+        {%- endif %}
         {%- if attr.multiple %}
         container: Some("@list".to_string()),
-        {%- else %}
-        container: None,
         {%- endif %}
-        context: None,
-    }));
-    {%- elif attr.term %}
-    {%- if attr.multiple %}
-    context.terms.insert("{{ attr.name }}".to_string(), TermDef::Detailed(TermDetail {
-        id: Some("{{ attr.term }}".to_string()),
-        type_: None,
-        container: Some("@list".to_string()),
-        context: None,
+        ..Default::default()
     }));
     {%- else %}
-    context.terms.insert("{{ attr.name }}".to_string(), TermDef::Simple("{{ attr.term }}".to_string()));
-    {%- endif %}
+    context.terms.insert("{{ attr.name }}".to_string(), TermDef::Simple("{{ iri }}".to_string()));
     {%- endif %}
     {%- endfor %}
 
@@ -574,5 +577,9 @@ pub struct TermDetail {
     /// Optional nested (scoped) context.
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<Box<JsonLdContext>>,
+
+    /// Allows the term to be used as a prefix although its IRI does not end in a gen-delim.
+    #[serde(rename = "@prefix", skip_serializing_if = "Option::is_none")]
+    pub prefix: Option<bool>,
 }
 {%- endif %}

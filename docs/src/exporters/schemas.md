@@ -120,17 +120,17 @@ md-models convert -i model.md -t shacl -o shapes.ttl
 
 **Features:**
 
-- Generates SHACL NodeShapes for each object type
-- Property shapes with cardinality constraints (sh:minCount, sh:maxCount)
-- Datatype constraints (sh:datatype)
+- Generates a SHACL NodeShape for every object type
+- One property shape and one path per property, using the property's term or `<Object>:<field>`
+- Arrays are validated as ordered RDF lists (list paths ending in `rdf:first`); a required array needs at least one item
+- Cardinality constraints (sh:minCount, sh:maxCount; no maximum on lists or shared terms)
+- Datatype constraints matching what the JSON-LD context produces (`float` and `number` accept `xsd:integer` or `xsd:double`, since JSON-LD types whole numbers as integers; `bytes` is a plain `xsd:string`)
+- `IRI` fields require `sh:nodeKind sh:IRI`
 - Enumeration constraints (sh:in)
-- Class constraints (sh:class)
-- Term-based property paths (supports semantic annotations)
 - Class-scoped prefixes for semantic web integration
 
 **Requirements:**
 
-- Objects must have semantic terms defined (via `@term` annotations)
 - The model must include ontology prefixes for proper RDF namespace handling
 
 **Use Cases:**
@@ -206,7 +206,7 @@ md-models convert -i model.md -t owl -o ontology.ttl
 
 - Generates OWL 2 ontology definitions
 - Class definitions with rdfs:comment descriptions
-- Object properties for relationships between classes
+- Object properties for relationships between classes, for arrays and for `IRI` fields (without `rdfs:range`)
 - Datatype properties for primitive attributes
 - Enumeration classes for enum types
 - Subclass relationships (rdfs:subClassOf)

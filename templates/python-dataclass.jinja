@@ -83,26 +83,35 @@ class {{ object.name }}:
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
-            "{{ prefix }}": "{{ repo }}",
+            "@vocab": "{{ repo_ns }}",
+            "{{ prefix }}": {{ utils.ld_prefix(repo_ns) }},
             {%- for prefix, address in prefixes %}
-            "{{ prefix }}": "{{ address }}",
+            "{{ prefix }}": {{ utils.ld_prefix(address) }},
             {%- endfor %}
             {%- for obj in objects %}
-            "{{ obj.name }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ obj.name }}/",
+            "{{ obj.name }}": "{{ repo_ns }}{{ obj.name }}/",
             {%- endfor %}
             {%- for enum in enums %}
-            "{{ enum.name }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/",
+            "{{ enum.name }}": "{{ repo_ns }}{{ enum.name }}/",
             {%- endfor %}
             {%- for attribute in object.attributes %}
-            {%- if attribute.is_id %}
+            {#- Identifiers are local keys (literals); only IRI fields are coerced to @id #}
+            {%- set iri = attribute.term if attribute.term else prefix ~ ":" ~ object.name ~ "/" ~ attribute.name %}
+            {%- set is_date = attribute.dtypes == ["date"] %}
+            {%- if attribute.is_iri or attribute.multiple or is_date %}
             "{{ attribute.name }}": {
-                {%- if attribute.term %}
-                "@id": "{{ attribute.term }}",
-                {%- endif %}
+                "@id": "{{ iri }}",
+                {%- if attribute.is_iri %}
                 "@type": "@id",
+                {%- elif is_date %}
+                "@type": "http://www.w3.org/2001/XMLSchema#date",
+                {%- endif %}
+                {%- if attribute.multiple %}
+                "@container": "@list",
+                {%- endif %}
             },
-            {%- elif attribute.term %}
-            "{{ attribute.name }}": "{{ attribute.term }}",
+            {%- else %}
+            "{{ attribute.name }}": "{{ iri }}",
             {%- endif -%}
             {%- endfor %}
         }

@@ -21,6 +21,9 @@
  *
  */
 
+// pyo3's `get_all` getters clone every field, which clippy flags for these `Copy` types.
+#![cfg_attr(feature = "python", allow(clippy::clone_on_copy))]
+
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "wasm")]

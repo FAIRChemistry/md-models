@@ -33,7 +33,7 @@ Do not edit directly - any changes will be overwritten.
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
@@ -66,6 +66,11 @@ class FilterWrapper(Generic[Cls]):
 
 
 # JSON-LD Helper Functions
+
+# JSON-LD 1.1 only uses a plain string term as a prefix if its IRI ends in one of these
+GEN_DELIMS = (":", "/", "?", "#", "[", "]", "@")
+
+
 def add_namespace(obj, prefix: str | None, iri: str | None):
     """Adds a namespace to the JSON-LD context
 
@@ -80,7 +85,10 @@ def add_namespace(obj, prefix: str | None, iri: str | None):
     elif iri and prefix is None:
         raise ValueError("If iri is provided, prefix must also be provided")
 
-    obj.ld_context[prefix] = iri # type: ignore
+    if iri.endswith(GEN_DELIMS): # type: ignore
+        obj.ld_context[prefix] = iri # type: ignore
+    else:
+        obj.ld_context[prefix] = {"@id": iri, "@prefix": True} # type: ignore
 
 def validate_prefix(term: str | dict, prefix: str):
     """Validates that a term is prefixed with a given prefix
@@ -97,6 +105,28 @@ def validate_prefix(term: str | dict, prefix: str):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
     elif isinstance(term, str) and not term.startswith(prefix + ":"):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
+
+
+def merge_ld_type(defaults: list[str], value: str | list | None) -> list[str]:
+    """Keeps the generated types and appends extra types read from a document;
+    a bare string (compacted JSON-LD) is treated as a single type"""
+    if value is None:
+        return defaults
+    if isinstance(value, str):
+        value = [value]
+    return defaults + [t for t in value if t not in defaults]
+
+
+def merge_ld_context(defaults: dict, value: dict | list | str | None) -> dict:
+    """Keeps extra prefixes and terms read from a document; generated mappings win,
+    so documents written with an older context get the current term definitions.
+    Lists are merged element-wise; remote context URLs are ignored"""
+    if isinstance(value, dict):
+        value = [value]
+    elif not isinstance(value, list):
+        return defaults
+    extras = {k: v for d in value if isinstance(d, dict) for k, v in d.items()}
+    return {**defaults, **{k: v for k, v in extras.items() if k not in defaults}}
 
 # Model Definitions
 
@@ -122,27 +152,49 @@ class UnitTest(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "md:UnitTest/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "md:UnitTest",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
-            "md": "http://mdmodel.net",
+            "@vocab": "https://example.org/md/",
+            "md": "https://example.org/md/",
             "om": "http://www.ontology-of-units-of-measure.org/resource/om-2/",
-            "qudt": "http://qudt.org/schema/qudt#/",
-            "rdfs": "http://www.w3.org/2000/01/rdf-schema#/",
+            "qudt": "http://qudt.org/schema/qudt#",
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "schema": "http://schema.org/",
-            "unit": "http://qudt.org/vocab/unit#/",
-            "xsd": "http://www.w3.org/2001/XMLSchema#/",
+            "unit": "http://qudt.org/vocab/unit#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "units": {
+                "@id": "md:UnitTest/units",
+                "@container": "@list",
+            },
+            "optional_unit": "md:UnitTest/optional_unit",
+            "unit": "md:UnitTest/unit",
         }
     )
+
+    @field_validator("ld_id", mode="before")
+    @classmethod
+    def _default_ld_id(cls, value):
+        return cls.model_fields["ld_id"].default_factory() if value is None else value # type: ignore
+
+    @field_validator("ld_type", mode="before")
+    @classmethod
+    def _merge_ld_type(cls, value: str | list | None) -> list[str]:
+        return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
+
+    @field_validator("ld_context", mode="before")
+    @classmethod
+    def _merge_ld_context(cls, value: dict | list | str | None) -> dict[str, str | dict]:
+        return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
 
 
     def set_attr_term(

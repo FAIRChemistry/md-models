@@ -133,15 +133,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_json_schema_no_objects() {
         // Arrange
         let model = mdmodels_core::datamodel::DataModel::new(None, None);
 
         // Act
-        model
+        let err = model
             .json_schema(Some("Test".to_string()), false)
-            .expect("Could not generate JSON schema");
+            .expect_err("A model without objects must be an error, not a panic");
+
+        // Assert
+        assert!(err.to_string().contains("No objects"), "{err}");
     }
 
     #[test]
@@ -180,16 +182,18 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_json_schema_object_not_found() {
         // Arrange
         let path = Path::new("tests/data/model.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
-        model
+        let err = model
             .json_schema(Some("Test3".to_string()), false)
-            .expect("Could not generate JSON schema");
+            .expect_err("An unknown root must be an error, not a panic");
+
+        // Assert
+        assert!(err.to_string().contains("'Test3'"), "{err}");
     }
 
     #[test]
@@ -540,5 +544,22 @@ mod tests {
         assert_eq!(overrides.dtypes.len(), 1);
         assert_eq!(overrides.dtypes[0], "string");
         assert_eq!(overrides.is_array, false, "Expected non-array, got array");
+    }
+
+    #[test]
+    fn test_json_schema_jsonld_model() {
+        let path = Path::new("tests/data/model_jsonld.md");
+        let model = DataModel::from_markdown(path).expect("Could not parse markdown");
+        let schema: Value = serde_json::from_str(
+            &model
+                .json_schema(None, false)
+                .expect("Could not generate JSON schema"),
+        )
+        .unwrap();
+
+        assert_eq!(schema["properties"]["homepage"]["format"], "iri");
+        assert_eq!(schema["properties"]["id"].get("format"), None);
+        assert_eq!(schema["properties"]["version"]["pattern"], r"^(\d+)\.\d+$");
+        assert_eq!(schema["properties"]["version"]["default"], "2.0");
     }
 }

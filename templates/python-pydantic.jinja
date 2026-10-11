@@ -33,7 +33,7 @@ Do not edit directly - any changes will be overwritten.
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
@@ -68,6 +68,11 @@ class FilterWrapper(Generic[Cls]):
 
 
 # JSON-LD Helper Functions
+
+# JSON-LD 1.1 only uses a plain string term as a prefix if its IRI ends in one of these
+GEN_DELIMS = (":", "/", "?", "#", "[", "]", "@")
+
+
 def add_namespace(obj, prefix: str | None, iri: str | None):
     """Adds a namespace to the JSON-LD context
 
@@ -82,7 +87,10 @@ def add_namespace(obj, prefix: str | None, iri: str | None):
     elif iri and prefix is None:
         raise ValueError("If iri is provided, prefix must also be provided")
 
-    obj.ld_context[prefix] = iri # type: ignore
+    if iri.endswith(GEN_DELIMS): # type: ignore
+        obj.ld_context[prefix] = iri # type: ignore
+    else:
+        obj.ld_context[prefix] = {"@id": iri, "@prefix": True} # type: ignore
 
 def validate_prefix(term: str | dict, prefix: str):
     """Validates that a term is prefixed with a given prefix
@@ -99,6 +107,28 @@ def validate_prefix(term: str | dict, prefix: str):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
     elif isinstance(term, str) and not term.startswith(prefix + ":"):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
+
+
+def merge_ld_type(defaults: list[str], value: str | list | None) -> list[str]:
+    """Keeps the generated types and appends extra types read from a document;
+    a bare string (compacted JSON-LD) is treated as a single type"""
+    if value is None:
+        return defaults
+    if isinstance(value, str):
+        value = [value]
+    return defaults + [t for t in value if t not in defaults]
+
+
+def merge_ld_context(defaults: dict, value: dict | list | str | None) -> dict:
+    """Keeps extra prefixes and terms read from a document; generated mappings win,
+    so documents written with an older context get the current term definitions.
+    Lists are merged element-wise; remote context URLs are ignored"""
+    if isinstance(value, dict):
+        value = [value]
+    elif not isinstance(value, list):
+        return defaults
+    extras = {k: v for d in value if isinstance(d, dict) for k, v in d.items()}
+    return {**defaults, **{k: v for k, v in extras.items() if k not in defaults}}
 
 # Model Definitions
 {% for object in objects %}
@@ -125,6 +155,7 @@ class {{ object.name }}(BaseModel):
         alias="{{ attribute.name }}",
         {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+        {{- utils.field_constraints(attribute) }}
     )
     {%- elif attribute.required is true %}
     {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
@@ -133,6 +164,7 @@ class {{ object.name }}(BaseModel):
         alias="{{ attribute.name }}",
         {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+        {{- utils.field_constraints(attribute) }}
     )
     {%- else %}
     {{ attribute.name | to_identifier }}: {{ utils.get_type(attribute) }} = Field(
@@ -141,50 +173,75 @@ class {{ object.name }}(BaseModel):
         alias="{{ attribute.name }}",
         {%- endif %}
         description="""{{ wrap(attribute.docstring, 50, "", "        ", None ) }}""",
+        {{- utils.field_constraints(attribute) }}
     )
     {%- endif %}
     {%- endfor %}
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "{{ prefix }}:{{ object.name }}/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "{{ prefix }}:{{ object.name }}",
             {%- if object.term -%}"{{ object.term }}"{%- endif %}
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
-            "{{ prefix }}": "{{ repo }}",
+            "@vocab": "{{ repo_ns }}",
+            "{{ prefix }}": {{ utils.ld_prefix(repo_ns) }},
             {%- for prefix, address in prefixes %}
-            "{{ prefix }}": "{{ address }}",
+            "{{ prefix }}": {{ utils.ld_prefix(address) }},
             {%- endfor %}
             {%- for attribute in object.attributes %}
             {%- if attribute.dtypes[0] in object_names %}
-            "{{ attribute.dtypes[0] }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ attribute.dtypes[0] }}/",
+            "{{ attribute.dtypes[0] }}": "{{ repo_ns }}{{ attribute.dtypes[0] }}/",
             {%- elif attribute.dtypes[0] in enum_names %}
-            "{{ attribute.dtypes[0] }}": "{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ attribute.dtypes[0] }}/",
+            "{{ attribute.dtypes[0] }}": "{{ repo_ns }}{{ attribute.dtypes[0] }}/",
             {%- endif %}
             {%- endfor %}
             {%- for attribute in object.attributes %}
-            {%- if attribute.is_id %}
+            {#- Identifiers are local keys (literals); only IRI fields are coerced to @id #}
+            {%- set iri = attribute.term if attribute.term else prefix ~ ":" ~ object.name ~ "/" ~ attribute.name %}
+            {%- set is_date = attribute.dtypes == ["date"] %}
+            {%- if attribute.is_iri or attribute.multiple or is_date %}
             "{{ attribute.name }}": {
-                {%- if attribute.term %}
-                "@id": "{{ attribute.term }}",
-                {%- endif %}
+                "@id": "{{ iri }}",
+                {%- if attribute.is_iri %}
                 "@type": "@id",
+                {%- elif is_date %}
+                "@type": "http://www.w3.org/2001/XMLSchema#date",
+                {%- endif %}
+                {%- if attribute.multiple %}
+                "@container": "@list",
+                {%- endif %}
             },
-            {%- elif attribute.term %}
-            "{{ attribute.name }}": "{{ attribute.term }}",
+            {%- else %}
+            "{{ attribute.name }}": "{{ iri }}",
             {%- endif -%}
             {%- endfor %}
         }
     )
+
+    @field_validator("ld_id", mode="before")
+    @classmethod
+    def _default_ld_id(cls, value):
+        return cls.model_fields["ld_id"].default_factory() if value is None else value # type: ignore
+
+    @field_validator("ld_type", mode="before")
+    @classmethod
+    def _merge_ld_type(cls, value: str | list | None) -> list[str]:
+        return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
+
+    @field_validator("ld_context", mode="before")
+    @classmethod
+    def _merge_ld_context(cls, value: dict | list | str | None) -> dict[str, str | dict]:
+        return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
     {% for attr in object.attributes -%}
     {%- if attr.multiple is true and attr.dtypes[0] in object_names %}
     def filter_{{ attr.name | to_identifier }}(self, **kwargs) -> list[{{ attr.dtypes[0] }}]:

@@ -1,7 +1,7 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}> .
+@prefix {{ prefix }}: <{{ repo_ns }}> .
 {%- for pfx, value in prefixes %}
 @prefix {{ pfx }}: <{{ value }}> .
 {%- endfor %}
@@ -10,10 +10,10 @@
 # Class-scoped prefixes
 #########################################################
 {%- for object in objects %}
-@prefix {{ object.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ object.name }}/> .
+@prefix {{ object.name }}: <{{ repo_ns }}{{ object.name }}/> .
 {%- endfor %}
 {%- for enum in enums %}
-@prefix {{ enum.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/> .
+@prefix {{ enum.name }}: <{{ repo_ns }}{{ enum.name }}/> .
 {%- endfor %}
 
 #########################################################
@@ -61,24 +61,21 @@
       [
         a owl:Restriction ;
         owl:onProperty {{ object.name }}:{{ attribute.name }}
-        {%- if is_obj %}
-        {%- if attribute.required and not attribute.multiple %}
+        {%- if attribute.required and attribute.multiple %}
+        {#- a list is one rdf:List node: require a value, but no filler (it would type the list node) #}
+        ; owl:minCardinality "1"^^xsd:nonNegativeInteger
+        {%- elif is_obj %}
+        {%- if attribute.required %}
         ; owl:onClass {{ prefix }}:{{ attribute.dtypes[0] }}
         ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
-        {%- elif not attribute.required and not attribute.multiple %}
+        {%- else %}
         ; owl:onClass {{ prefix }}:{{ attribute.dtypes[0] }}
         ; owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger
-        {%- elif attribute.required and attribute.multiple %}
-        ; owl:someValuesFrom {{ prefix }}:{{ attribute.dtypes[0] }}
         {%- endif %}
-        {%- else %}
-        {%- if attribute.required and not attribute.multiple %}
+        {%- elif attribute.required %}
         ; owl:cardinality "1"^^xsd:nonNegativeInteger
-        {%- elif not attribute.required and not attribute.multiple %}
+        {%- else %}
         ; owl:maxCardinality "1"^^xsd:nonNegativeInteger
-        {%- elif attribute.required and attribute.multiple %}
-        ; owl:someValuesFrom rdfs:Literal
-        {%- endif %}
         {%- endif %}
       ]
       {%- set first = false -%}
@@ -92,23 +89,30 @@
 
 {%- for attribute in object.attributes %}
 
+{%- set item_is_obj = attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
+{%- set item = (prefix ~ ":" ~ attribute.dtypes[0]) if item_is_obj else attribute.dtypes[0] -%}
+{%- set as_link = item_is_obj or attribute.multiple or attribute.is_iri %}
+
 {{ object.name }}:{{ attribute.name }}
-  a {% if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
+  a {% if as_link -%}
     owl:ObjectProperty
   {%- else -%}
     owl:DatatypeProperty
   {%- endif -%} ;
   rdfs:domain {{ prefix }}:{{ object.name }} ;
-  {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names %}
-  rdfs:range {{ prefix }}:{{ attribute.dtypes[0] }} ;
+  {%- if attribute.multiple or attribute.is_iri %}
+  {#- arrays are rdf:List nodes and IRIs are links: an rdfs:range of the item type would mistype them #}
   {%- else %}
-  rdfs:range {{ attribute.dtypes[0] }} ;
+  rdfs:range {{ item }} ;
   {%- endif %}
   {%- if attribute.term %}
   rdfs:subPropertyOf {{ attribute.term }} ;
   {%- endif %}
   rdfs:label "{{ object.name }}/{{ attribute.name }}"
-  {%- if attribute.docstring %}
+  {%- if attribute.multiple %}
+  ; rdfs:comment "Ordered list (rdf:List) of {{ item }}.
+    {%- if attribute.docstring %} {{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}{% endif %}"
+  {%- elif attribute.docstring %}
   ; rdfs:comment "{{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}"
   {%- endif %} .
 

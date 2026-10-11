@@ -66,3 +66,43 @@ Once these annotations are defined, they are automatically added to the generate
 - `typescript` (JSON-LD)
 - `shacl` (Shapes Constraint Language)
 - `shex` (Shape Expressions)
+
+## Identifiers, IRIs and JSON-LD
+
+An `Identifier` is a **local key**: it names an object within the document (for example
+`id: "p1"` on a `Product`) and other fields use it to point at that object
+(`product_id: "p1"` on an `Order`). In JSON-LD it is always a literal, never an IRI.
+
+Global identity (an entry in an external database, an ontology term, a DOI) is expressed
+either as an `@type` of the object or with a field of type `IRI`, which JSON-LD treats as
+a link:
+
+```markdown
+### Product
+
+- **id**
+  - Type: Identifier
+- homepage
+  - Type: IRI
+  - Term: schema:url
+- references
+  - Type: IRI[]
+  - Term: schema:citation
+```
+
+Fields without a `Term` are still part of the JSON-LD graph: they map to
+`<prefix>:<Object>/<field>` (for example `ex:Product/id`), the same IRI the OWL and
+SHACL exports use.
+
+### Arrays
+
+Every array (`string[]`, `Product[]`, `IRI[]`, ...) is an ordered RDF list: the JSON-LD
+context declares `"@container": "@list"`, so order and duplicates survive a round trip.
+In SPARQL, reach the items with the property path `?s <prop>/rdf:rest*/rdf:first ?item`.
+Dates are typed `xsd:date`.
+
+- **SHACL** validates the list items through the same path; a required array means at least one item.
+- **OWL** declares array properties as `owl:ObjectProperty` without an `rdfs:range`
+  (a range would type the list node, not its items); the item type is named in the comment.
+  `IRI` fields are links and are object properties as well.
+- **ShEx** shapes do not understand lists yet.

@@ -370,9 +370,7 @@ impl Display for PrimitiveType {
 impl From<attribute::DataType> for PrimitiveType {
     fn from(dtype: attribute::DataType) -> Self {
         match dtype {
-            attribute::DataType::String(s) => {
-                PrimitiveType::String(s.trim_matches('"').to_string())
-            }
+            attribute::DataType::String(s) => PrimitiveType::String(s),
             attribute::DataType::Integer(i) => PrimitiveType::Integer(i),
             attribute::DataType::Float(f) => PrimitiveType::Number(f),
             attribute::DataType::Boolean(b) => PrimitiveType::Boolean(b),

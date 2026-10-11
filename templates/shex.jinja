@@ -25,7 +25,7 @@
 {%- endmacro %}
 
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX {{ prefix }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}>
+PREFIX {{ prefix }}: <{{ repo_ns }}>
 {%- for pre, address in prefixes %}
 PREFIX {{pre}}: <{{address}}>
 {%- endfor %}
@@ -34,10 +34,10 @@ PREFIX {{pre}}: <{{address}}>
 # Class-scoped prefixes
 #########################################################
 {%- for object in objects %}
-PREFIX {{ object.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ object.name }}/>
+PREFIX {{ object.name }}: <{{ repo_ns }}{{ object.name }}/>
 {%- endfor %}
 {%- for enum in enums %}
-PREFIX {{ enum.name }}: <{{ repo }}{%- if repo[-1] != "/" -%}#{%- endif -%}{{ enum.name }}/>
+PREFIX {{ enum.name }}: <{{ repo_ns }}{{ enum.name }}/>
 {%- endfor %}
 
 #########################################################

@@ -22,7 +22,6 @@
  */
 
 use colored::Colorize;
-use convert_case::{Case, Casing};
 use core::panic;
 use lazy_static::lazy_static;
 use log::error;
@@ -35,7 +34,7 @@ use regex::Regex;
 
 use crate::attribute;
 use crate::datamodel::DataModel;
-use crate::object::{self, Enumeration, Object};
+use crate::object::{self, type_name, Enumeration, Object};
 use crate::option::RawOption;
 use crate::validation::Validator;
 
@@ -816,7 +815,7 @@ pub fn process_enum_event(
         Event::Start(tag) if tag == H3 => {
             let enum_name = extract_name(iterator);
             let mut enum_obj = Enumeration {
-                name: enum_name.replace(" ", "_").to_case(Case::Pascal),
+                name: type_name(&enum_name),
                 mappings: BTreeMap::new(),
                 docstring: "".to_string(),
                 position: None,

@@ -24,7 +24,7 @@ pub struct Test {
     /// individual test cases across the system. It should be
     /// descriptive and follow the standard naming conventions.
 
-    #[builder(default = "2.0.to_string().into()", setter(into))]
+    #[builder(default = "\"2.0\".to_string().into()", setter(into))]
     #[derivative(Default(value = "\"2.0\".to_string()"))]
     pub name: String,
 

@@ -112,6 +112,14 @@ pub enum AttrOption {
     },
 }
 
+/// Returns the text between one pair of surrounding double quotes, if present.
+pub(crate) fn strip_quotes(value: &str) -> Option<&str> {
+    value
+        .trim()
+        .strip_prefix('"')
+        .and_then(|v| v.strip_suffix('"'))
+}
+
 impl AttrOption {
     /// Creates a new `AttrOption` from a key-value pair.
     ///
@@ -136,7 +144,9 @@ impl AttrOption {
                 AttrOption::MaxItems(_) => Ok(AttrOption::MaxItems(value.parse()?)),
                 AttrOption::MinLength(_) => Ok(AttrOption::MinLength(value.parse()?)),
                 AttrOption::MaxLength(_) => Ok(AttrOption::MaxLength(value.parse()?)),
-                AttrOption::Pattern(_) => Ok(AttrOption::Pattern(value.to_string())),
+                AttrOption::Pattern(_) => Ok(AttrOption::Pattern(
+                    strip_quotes(value).unwrap_or(value).to_string(),
+                )),
                 AttrOption::Unique(_) => Ok(AttrOption::Unique(value.parse()?)),
                 AttrOption::MultipleOf(_) => Ok(AttrOption::MultipleOf(value.parse()?)),
                 AttrOption::ExclusiveMinimum(_) => Ok(AttrOption::ExclusiveMinimum(value.parse()?)),
@@ -144,7 +154,9 @@ impl AttrOption {
                 AttrOption::PrimaryKey(_) => Ok(AttrOption::PrimaryKey(value.parse()?)),
                 AttrOption::ReadOnly(_) => Ok(AttrOption::ReadOnly(value.parse()?)),
                 AttrOption::Recommended(_) => Ok(AttrOption::Recommended(value.parse()?)),
-                AttrOption::Example(_) => Ok(AttrOption::Example(value.to_string())),
+                AttrOption::Example(_) => Ok(AttrOption::Example(
+                    strip_quotes(value).unwrap_or(value).to_string(),
+                )),
                 AttrOption::Other { .. } => unreachable!(),
             },
             Err(_) => Ok(AttrOption::Other {
@@ -278,6 +290,30 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
+
+    #[test]
+    fn test_pattern_and_example_strip_quotes() {
+        assert_eq!(
+            AttrOption::from_pair("pattern", "\"^(\\d+)\\.\\d+$\"").unwrap(),
+            AttrOption::Pattern("^(\\d+)\\.\\d+$".to_string())
+        );
+        assert_eq!(
+            AttrOption::from_pair("pattern", "^[a-z]+$").unwrap(),
+            AttrOption::Pattern("^[a-z]+$".to_string())
+        );
+        assert_eq!(
+            AttrOption::from_pair("Example", "\"foo\"").unwrap(),
+            AttrOption::Example("foo".to_string())
+        );
+    }
+
+    #[test]
+    fn test_strip_quotes() {
+        assert_eq!(strip_quotes("\"abc\""), Some("abc"));
+        assert_eq!(strip_quotes("  \"\"  "), Some(""));
+        assert_eq!(strip_quotes("abc"), None);
+        assert_eq!(strip_quotes("\""), None);
+    }
 
     #[test]
     fn test_from_pair_basic() {

@@ -37,8 +37,8 @@ from datetime import date, datetime
 @dataclass_json
 @dataclass
 class Test:
-    name: str = "2"
-    number: Union[None,float,str] = 1
+    name: str = "2.0"
+    number: Union[None,float,str] = 1.0
     test2: list[Test2] = field(default_factory=list)
     ontology: Optional[Ontology] = field(default=None, metadata=config(exclude=lambda x: x is None))
 
@@ -56,17 +56,19 @@ class Test:
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "Test": "https://www.github.com/my/repo/Test/",
             "Test2": "https://www.github.com/my/repo/Test2/",
             "Ontology": "https://www.github.com/my/repo/Ontology/",
-            "name": {
-                "@id": "schema:hello",
-                "@type": "@id",
-            },
+            "name": "schema:hello",
             "number": "schema:one",
-            "test2": "schema:something",
+            "test2": {
+                "@id": "schema:something",
+                "@container": "@list",
+            },
+            "ontology": "tst:Test/ontology",
         }
     )
 
@@ -112,12 +114,16 @@ class Test2:
     __context__: dict[str, str | dict] = field(
         metadata=config(field_name="@context"),
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "Test": "https://www.github.com/my/repo/Test/",
             "Test2": "https://www.github.com/my/repo/Test2/",
             "Ontology": "https://www.github.com/my/repo/Ontology/",
-            "names": "schema:hello",
+            "names": {
+                "@id": "schema:hello",
+                "@container": "@list",
+            },
             "number": "schema:one",
         }
     )

@@ -33,7 +33,7 @@ Do not edit directly - any changes will be overwritten.
 ## This is a generated file. Do not modify it manually!
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, Generic, TypeVar, Union
 from enum import Enum
 from uuid import uuid4
@@ -65,6 +65,11 @@ class FilterWrapper(Generic[Cls]):
 
 
 # JSON-LD Helper Functions
+
+# JSON-LD 1.1 only uses a plain string term as a prefix if its IRI ends in one of these
+GEN_DELIMS = (":", "/", "?", "#", "[", "]", "@")
+
+
 def add_namespace(obj, prefix: str | None, iri: str | None):
     """Adds a namespace to the JSON-LD context
 
@@ -79,7 +84,10 @@ def add_namespace(obj, prefix: str | None, iri: str | None):
     elif iri and prefix is None:
         raise ValueError("If iri is provided, prefix must also be provided")
 
-    obj.ld_context[prefix] = iri # type: ignore
+    if iri.endswith(GEN_DELIMS): # type: ignore
+        obj.ld_context[prefix] = iri # type: ignore
+    else:
+        obj.ld_context[prefix] = {"@id": iri, "@prefix": True} # type: ignore
 
 def validate_prefix(term: str | dict, prefix: str):
     """Validates that a term is prefixed with a given prefix
@@ -97,6 +105,28 @@ def validate_prefix(term: str | dict, prefix: str):
     elif isinstance(term, str) and not term.startswith(prefix + ":"):
         raise ValueError(f"Term {term} is not prefixed with {prefix}")
 
+
+def merge_ld_type(defaults: list[str], value: str | list | None) -> list[str]:
+    """Keeps the generated types and appends extra types read from a document;
+    a bare string (compacted JSON-LD) is treated as a single type"""
+    if value is None:
+        return defaults
+    if isinstance(value, str):
+        value = [value]
+    return defaults + [t for t in value if t not in defaults]
+
+
+def merge_ld_context(defaults: dict, value: dict | list | str | None) -> dict:
+    """Keeps extra prefixes and terms read from a document; generated mappings win,
+    so documents written with an older context get the current term definitions.
+    Lists are merged element-wise; remote context URLs are ignored"""
+    if isinstance(value, dict):
+        value = [value]
+    elif not isinstance(value, list):
+        return defaults
+    extras = {k: v for d in value if isinstance(d, dict) for k, v in d.items()}
+    return {**defaults, **{k: v for k, v in extras.items() if k not in defaults}}
+
 # Model Definitions
 
 class Test(BaseModel):
@@ -107,7 +137,7 @@ class Test(BaseModel):
     ) # type: ignore
 
     name: str = Field(
-        default= "2",
+        default= "2.0",
         description="""The name of the test. This is a unique identifier
         that helps track individual test
         cases across the system. It should be
@@ -115,7 +145,7 @@ class Test(BaseModel):
         conventions.""",
     )
     number: Union[None,float,str] = Field(
-        default= 1,
+        default= 1.0,
         description="""""",
     )
     test2: list[Test2] = Field(
@@ -129,30 +159,47 @@ class Test(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "tst:Test/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "tst:Test",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
             "Test2": "https://www.github.com/my/repo/Test2/",
             "Ontology": "https://www.github.com/my/repo/Ontology/",
-            "name": {
-                "@id": "schema:hello",
-                "@type": "@id",
-            },
+            "name": "schema:hello",
             "number": "schema:one",
-            "test2": "schema:something",
+            "test2": {
+                "@id": "schema:something",
+                "@container": "@list",
+            },
+            "ontology": "tst:Test/ontology",
         }
     )
+
+    @field_validator("ld_id", mode="before")
+    @classmethod
+    def _default_ld_id(cls, value):
+        return cls.model_fields["ld_id"].default_factory() if value is None else value # type: ignore
+
+    @field_validator("ld_type", mode="before")
+    @classmethod
+    def _merge_ld_type(cls, value: str | list | None) -> list[str]:
+        return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
+
+    @field_validator("ld_context", mode="before")
+    @classmethod
+    def _merge_ld_context(cls, value: dict | list | str | None) -> dict[str, str | dict]:
+        return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
 
     def filter_test2(self, **kwargs) -> list[Test2]:
         """Filters the test2 attribute based on the given kwargs
@@ -273,24 +320,43 @@ class Test2(BaseModel):
 
     # JSON-LD fields
     ld_id: str = Field(
-        serialization_alias="@id",
+        alias="@id",
         default_factory=lambda: "tst:Test2/" + str(uuid4())
     )
     ld_type: list[str] = Field(
-        serialization_alias="@type",
+        alias="@type",
         default_factory = lambda: [
             "tst:Test2",
         ],
     )
     ld_context: dict[str, str | dict] = Field(
-        serialization_alias="@context",
+        alias="@context",
         default_factory = lambda: {
+            "@vocab": "https://www.github.com/my/repo/",
             "tst": "https://www.github.com/my/repo/",
             "schema": "http://schema.org/",
-            "names": "schema:hello",
+            "names": {
+                "@id": "schema:hello",
+                "@container": "@list",
+            },
             "number": "schema:one",
         }
     )
+
+    @field_validator("ld_id", mode="before")
+    @classmethod
+    def _default_ld_id(cls, value):
+        return cls.model_fields["ld_id"].default_factory() if value is None else value # type: ignore
+
+    @field_validator("ld_type", mode="before")
+    @classmethod
+    def _merge_ld_type(cls, value: str | list | None) -> list[str]:
+        return merge_ld_type(cls.model_fields["ld_type"].default_factory(), value) # type: ignore
+
+    @field_validator("ld_context", mode="before")
+    @classmethod
+    def _merge_ld_context(cls, value: dict | list | str | None) -> dict[str, str | dict]:
+        return merge_ld_context(cls.model_fields["ld_context"].default_factory(), value) # type: ignore
 
 
     def set_attr_term(

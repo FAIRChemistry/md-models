@@ -55,6 +55,8 @@ The data type of a property is very important and generally communicates what ki
 - `float` - A floating point number
 - `number` - A numeric value (integer or float)
 - `boolean` - A true or false value
+- `Identifier` - A local key, unique within a document and used for cross-references. Generated as a string; serialized as a plain literal in JSON-LD.
+- `IRI` - A string that holds an IRI (e.g. a DOI or ontology URL). JSON-LD contexts coerce it to a node reference (`"@type": "@id"`), and JSON Schema adds `format: iri` to single-valued `IRI` fields.
 
 ### Arrays
 

@@ -26,16 +26,15 @@ if __name__ == "__main__":
     assert is_valid_uuid(result["@id"])
     assert result["@type"] == ["tst:Test"]
     assert result["@context"] == {
+        "@vocab": "https://www.github.com/my/repo/",
         "tst": "https://www.github.com/my/repo/",
         "schema": "http://schema.org/",
         "Test2": "https://www.github.com/my/repo/Test2/",
         "Ontology": "https://www.github.com/my/repo/Ontology/",
-        "name": {
-            "@id": "schema:hello",
-            "@type": "@id",
-        },
+        "name": "schema:hello",
         "number": "schema:one",
-        "test2": "schema:something",
+        "test2": {"@id": "schema:something", "@container": "@list"},
+        "ontology": "tst:Test/ontology",
     }
     assert result["name"] == "test", "expected name to be test"
     assert result["number"] == 1, "expected number to be 1"

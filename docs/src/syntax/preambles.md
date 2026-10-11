@@ -6,7 +6,7 @@ The preamble is the first section of your data model. It is used to provide meta
 ---
 id: my-data-model
 prefix: md
-repo: http://mdmodel.net/
+repo: https://github.com/myorg/myrepo/
 prefixes:
   schema: http://schema.org/
 nsmap:
@@ -36,6 +36,14 @@ The frontmatter section of your MD-Models document supports several configuratio
     schema: http://schema.org/
     foaf: http://xmlns.com/foaf/0.1/
   ```
+- **Note**: IRIs are used exactly as written. End each IRI with the character that should
+  precede the local name, e.g. `schema: https://schema.org/`, `rdfs: http://www.w3.org/2000/01/rdf-schema#`
+  or `item: https://example.org/item_` (so `item:42` expands to
+  `https://example.org/item_42`, a style some ontologies use). Prefixes whose IRI does not end in
+  `: / ? # [ ] @` are emitted with `"@prefix": true` in JSON-LD contexts. When a prefix
+  IRI ends in a letter or digit (e.g. `schema: https://schema.org`), md-models prints a
+  warning while generating JSON-LD, SHACL, OWL, ShEx and the Python/Rust models, because
+  `schema:name` would expand to `https://schema.orgname`.
 
 ### `nsmap`
 
@@ -51,7 +59,7 @@ The frontmatter section of your MD-Models document supports several configuratio
 ### `repo`
 
 - **Type**: String
-- **Default**: `http://mdmodel.net/`
+- **Default**: `https://example.org/<prefix>/` (a reserved placeholder domain; set your own namespace, a warning is printed when a semantic format is generated from the placeholder)
 - **Description**: Specifies the base repository URL for your model. This can be used to generate absolute URIs for your model elements.
 - **Example**: `repo: https://github.com/myorg/myrepo/`
 

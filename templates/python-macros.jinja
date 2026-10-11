@@ -5,7 +5,7 @@
 {% macro create_attribute(attr) %}
     {{ attr.name }}: {{ get_type(attr) }} = {{ xml_type(attr.xml) }}(
             {% if attr.required is false and attr.multiple is false -%}
-            default={%- if attr.default -%}{{ attr.default }}{%- else -%}None{%- endif -%},
+            default={{ default_value_only(attr) }},
             {% endif -%}
             {% if attr.multiple is true -%}
             default_factory=list,
@@ -28,7 +28,7 @@ dict(
     term = "{{ term }}",
     {%- endif -%}
     {%- for option in options -%}
-    {{ option.key }} = "{{ option.value }}",
+    {{ option.key }} = {{ json_string(option.value) }},
     {%- endfor -%}
 )
 {%- endmacro -%}
@@ -169,3 +169,27 @@ for cls in [
     {{ wrap(object.docstring, 80, "", "    ", None) }}
     """
 {%- endmacro -%}
+
+{#
+    Validation keywords that Pydantic's Field() understands (single-valued fields only).
+#}
+{% macro field_constraints(attribute) -%}
+{#- Pydantic only accepts `pattern` on plain `str` fields; dtypes are already Python names here #}
+{%- if attribute.multiple is not true and attribute.dtypes | length == 1 and attribute.dtypes[0] == "str" %}
+{%- for option in attribute.options if option.key == "pattern" %}
+        pattern={{ json_string(option.value) }},
+{%- endfor %}
+{%- endif %}
+{%- endmacro %}
+
+{#
+    Renders a JSON-LD prefix definition as a Python value. JSON-LD 1.1 only uses a
+    plain string as a prefix if the IRI ends in a gen-delim (: / ? # [ ] @).
+#}
+{% macro ld_prefix(iri) -%}
+{%- if iri is gen_delim_iri -%}
+"{{ iri }}"
+{%- else -%}
+{"@id": "{{ iri }}", "@prefix": True}
+{%- endif -%}
+{%- endmacro %}

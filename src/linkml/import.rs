@@ -204,6 +204,7 @@ impl From<AttributeDefinition> for Attribute {
             term: attr.slot_uri,
             is_array: attr.multivalued.unwrap_or(false),
             is_id: attr.identifier.unwrap_or(false),
+            is_iri: false,
             required: attr.required.unwrap_or(false),
             options: Vec::new(), // Patterns added later from slot_usage
             default: None,

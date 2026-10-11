@@ -77,9 +77,9 @@ Test:number
 Test:test2
   a owl:ObjectProperty;
   rdfs:domain tst:Test ;
-  rdfs:range tst:Test2 ;
   rdfs:subPropertyOf schema:something ;
-  rdfs:label "Test/test2" .
+  rdfs:label "Test/test2"
+  ; rdfs:comment "Ordered list (rdf:List) of tst:Test2." .
 
 Test:ontology
   a owl:ObjectProperty;
@@ -106,11 +106,11 @@ tst:Test2
 #########################################################
 
 Test2:names
-  a owl:DatatypeProperty;
+  a owl:ObjectProperty;
   rdfs:domain tst:Test2 ;
-  rdfs:range xsd:string ;
   rdfs:subPropertyOf schema:hello ;
-  rdfs:label "Test2/names" .
+  rdfs:label "Test2/names"
+  ; rdfs:comment "Ordered list (rdf:List) of xsd:string." .
 
 Test2:number
   a owl:DatatypeProperty;
