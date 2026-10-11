@@ -23,11 +23,11 @@
 
 use crate::{
     markdown::{parser::OptionKey, position::Position},
+    object::type_name,
     option::{strip_quotes, AttrOption, RawOption},
     validation::BASIC_TYPES,
     xmltype::XMLType,
 };
-use convert_case::{Case, Casing};
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{error::Error, fmt, str::FromStr};
 
@@ -188,7 +188,7 @@ impl Attribute {
             }
 
             if !BASIC_TYPES.contains(&dtype.as_str()) {
-                dtype = dtype.replace(" ", "_").to_case(Case::Pascal);
+                dtype = type_name(&dtype);
             }
 
             new_dtypes.push(dtype);

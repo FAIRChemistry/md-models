@@ -22,7 +22,6 @@
  */
 
 use crate::{attribute::Attribute, markdown::position::Position};
-use convert_case::{Case, Casing};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::collections::BTreeMap;
@@ -33,6 +32,24 @@ use pyo3::pyclass;
 
 #[cfg(feature = "wasm")]
 use tsify_next::Tsify;
+
+/// Normalizes an object, enum or type-reference name to PascalCase.
+///
+/// The name is split on spaces, `_` and `-`, and each part gets an upper-case first
+/// letter while the rest is kept as written, so acronyms survive:
+/// `small molecule` → `SmallMolecule`, `EnzymeMLDocument` stays `EnzymeMLDocument`.
+pub(crate) fn type_name(name: &str) -> String {
+    name.split(|c: char| c.is_whitespace() || c == '_' || c == '-')
+        .flat_map(|part| {
+            let mut chars = part.chars();
+            chars
+                .next()
+                .into_iter()
+                .flat_map(char::to_uppercase)
+                .chain(chars)
+        })
+        .collect()
+}
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
@@ -68,7 +85,7 @@ impl Object {
     ///
     /// * `Object` - A new instance of the `Object` struct.
     pub fn new(name: String, term: Option<String>) -> Self {
-        let name = name.replace(" ", "_").to_case(Case::Pascal);
+        let name = type_name(&name);
         Object {
             name,
             attributes: Vec::new(),
@@ -273,6 +290,28 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
+
+    #[test]
+    fn test_type_name_keeps_existing_capitals() {
+        for (raw, expected) in [
+            ("EnzymeMLDocument", "EnzymeMLDocument"),
+            ("SBMLUnit", "SBMLUnit"),
+            ("enzymeMLDocument", "EnzymeMLDocument"),
+            ("small molecule", "SmallMolecule"),
+            ("small_molecule", "SmallMolecule"),
+            ("small-molecule", "SmallMolecule"),
+            ("SBML unit", "SBMLUnit"),
+            ("Test2", "Test2"),
+        ] {
+            assert_eq!(type_name(raw), expected, "{raw}");
+        }
+    }
+
+    #[test]
+    fn test_create_new_object_keeps_acronyms() {
+        let object = Object::new("EnzymeMLDocument".to_string(), None);
+        assert_eq!(object.name, "EnzymeMLDocument");
+    }
 
     #[test]
     fn test_create_new_object() {

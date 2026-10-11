@@ -1663,6 +1663,30 @@ mod tests {
     }
 
     #[test]
+    fn test_acronym_type_names_are_kept() {
+        let md = "---\nprefix: ex\n---\n\n### EnzymeMLDocument\n\n- measurements\n  - Type: SBML measurement[]\n- role\n  - Type: ModifierRoleML\n\n### SBML measurement\n\n- id\n  - Type: string\n\n## Enumerations\n\n### ModifierRoleML\n\n```\nACTIVATOR = \"activator\"\n```\n";
+        let mut model = parse_markdown(md, None).expect("Failed to parse markdown");
+
+        let names: Vec<&str> = model.objects.iter().map(|o| o.name.as_str()).collect();
+        assert_eq!(names, vec!["EnzymeMLDocument", "SBMLMeasurement"]);
+        assert_eq!(model.enums[0].name, "ModifierRoleML");
+        assert_eq!(
+            model.objects[0].attributes[0].dtypes,
+            vec!["SBMLMeasurement"]
+        );
+        assert_eq!(
+            model.objects[0].attributes[1].dtypes,
+            vec!["ModifierRoleML"]
+        );
+
+        let py = render_jinja_template(&Templates::PythonPydantic, &mut model, None)
+            .expect("Could not render template")
+            .to_string();
+        assert!(py.contains("class EnzymeMLDocument(BaseModel):"), "{py}");
+        assert!(py.contains("class ModifierRoleML(Enum):"), "{py}");
+    }
+
+    #[test]
     fn test_slashless_repo_gets_hash_namespace() {
         let md = "---\nrepo: \"https://example.org/repo\"\nprefix: ex\n---\n\n### Doc\n\n- id\n  - Type: string\n";
         let mut model = parse_markdown(md, None).expect("Failed to parse markdown");

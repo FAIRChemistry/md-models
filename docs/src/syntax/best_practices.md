@@ -1,7 +1,7 @@
 # Best practices
 
 1. **Use Descriptive Names**
-   - Object names should be PascalCase (e.g., `ResearchPublication`)
+   - Object names should be PascalCase (e.g., `ResearchPublication`). Names with spaces, `_` or `-` are joined with each word capitalized (`small molecule` → `SmallMolecule`); existing capitals and acronyms are kept (`EnzymeMLDocument` stays `EnzymeMLDocument`)
    - Attribute names should be in snake_case (e.g., `publication_year`)
    - Use clear, domain-specific terminology
 
