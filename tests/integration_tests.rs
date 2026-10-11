@@ -133,15 +133,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_json_schema_no_objects() {
         // Arrange
         let model = mdmodels_core::datamodel::DataModel::new(None, None);
 
         // Act
-        model
+        let err = model
             .json_schema(Some("Test".to_string()), false)
-            .expect("Could not generate JSON schema");
+            .expect_err("A model without objects must be an error, not a panic");
+
+        // Assert
+        assert!(err.to_string().contains("No objects"), "{err}");
     }
 
     #[test]
@@ -180,16 +182,18 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_json_schema_object_not_found() {
         // Arrange
         let path = Path::new("tests/data/model.md");
         let model = DataModel::from_markdown(path).expect("Could not parse markdown");
 
         // Act
-        model
+        let err = model
             .json_schema(Some("Test3".to_string()), false)
-            .expect("Could not generate JSON schema");
+            .expect_err("An unknown root must be an error, not a panic");
+
+        // Assert
+        assert!(err.to_string().contains("'Test3'"), "{err}");
     }
 
     #[test]

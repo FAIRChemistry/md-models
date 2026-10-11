@@ -518,12 +518,12 @@ fn render_all_json_schemes(
 ) -> Result<(), Box<dyn Error>> {
     let outdir = match outdir {
         Some(outdir) => outdir,
-        None => panic!("Output directory is required for JSON Schema all"),
+        None => return Err("Output directory (-o) is required for json-schema-all".into()),
     };
 
     // Check if the output is a directory
     if !outdir.is_dir() && outdir.exists() {
-        panic!("Output must be a directory");
+        return Err(format!("Output {} must be a directory", outdir.display()).into());
     }
 
     // If the output directory does not exist, create it

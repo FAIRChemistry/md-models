@@ -146,13 +146,13 @@ impl DataModel {
         openai: bool,
     ) -> Result<String, Box<dyn Error>> {
         if self.objects.is_empty() {
-            panic!("No objects found in the markdown file");
+            return Err("No objects found in the markdown file".into());
         }
 
         match obj_name {
             Some(name) => {
                 if self.objects.iter().all(|o| o.name != name) {
-                    panic!("Object '{name}' not found in the markdown file");
+                    return Err(format!("Object '{name}' not found in the markdown file").into());
                 }
                 Ok(serde_json::to_string_pretty(&to_json_schema(
                     self, &name, openai,
@@ -185,7 +185,7 @@ impl DataModel {
     // ```
     pub fn json_schema_all(&self, path: PathBuf, openai: bool) -> Result<(), Box<dyn Error>> {
         if self.objects.is_empty() {
-            panic!("No objects found in the markdown file");
+            return Err("No objects found in the markdown file".into());
         }
 
         // Create the directory if it does not exist
