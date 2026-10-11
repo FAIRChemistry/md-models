@@ -210,7 +210,7 @@ fn prefix_term(iri: &str) -> TermDef {
 const XSD_DATE: &str = "http://www.w3.org/2001/XMLSchema#date";
 
 fn is_date(attr: &crate::attribute::Attribute) -> bool {
-    attr.dtypes.first().is_some_and(|dt| dt == "date")
+    attr.dtypes == ["date"]
 }
 
 /// Build a [`TermDef`] in detailed form, for array or nested attributes.
@@ -322,6 +322,17 @@ mod tests {
         let model = parse_markdown(&content, None).expect("Could not parse markdown");
         let header = to_json_ld(&model, Some("Document")).expect("Could not build JSON-LD");
         serde_json::to_value(header).unwrap()["@context"].clone()
+    }
+
+    #[test]
+    fn test_date_typed_only_for_pure_date_fields() {
+        let content = "---\nrepo: \"https://example.org/\"\nprefix: ex\n---\n\n### Doc\n\n- both\n  - Type: date, string\n- only\n  - Type: date\n- many\n  - Type: date[]\n";
+        let model = parse_markdown(content, None).expect("Could not parse markdown");
+        let header = to_json_ld(&model, Some("Doc")).expect("Could not build JSON-LD");
+        let ctx = serde_json::to_value(header).unwrap()["@context"].clone();
+        assert_eq!(ctx["only"]["@type"], json!(XSD_DATE));
+        assert_eq!(ctx["many"]["@type"], json!(XSD_DATE));
+        assert_eq!(ctx["both"], json!("ex:Doc/both"));
     }
 
     #[test]

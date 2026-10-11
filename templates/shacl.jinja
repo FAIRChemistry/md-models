@@ -8,7 +8,7 @@ sh:nodeKind sh:IRI
 {%- for enum in enums if enum.name == dtype -%}
 sh:in ( {% for key, value in enum.mappings | dictsort %}{{ json_string(value) }} {% endfor %})
 {%- endfor -%}
-{%- elif dtype == "number" -%}
+{%- elif dtype in ["number", "float"] -%}
 sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] )
 {%- else -%}
 sh:datatype {{ dtype }}

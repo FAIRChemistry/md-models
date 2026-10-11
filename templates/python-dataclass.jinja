@@ -97,7 +97,7 @@ class {{ object.name }}:
             {%- for attribute in object.attributes %}
             {#- Identifiers are local keys (literals); only IRI fields are coerced to @id #}
             {%- set iri = attribute.term if attribute.term else prefix ~ ":" ~ object.name ~ "/" ~ attribute.name %}
-            {%- set is_date = attribute.dtypes[0] == "date" %}
+            {%- set is_date = attribute.dtypes == ["date"] %}
             {%- if attribute.is_iri or attribute.multiple or is_date %}
             "{{ attribute.name }}": {
                 "@id": "{{ iri }}",

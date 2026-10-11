@@ -31,6 +31,16 @@ def test_empty_optional_lists_conform():
     assert_conforms(to_graph(document))
 
 
+def test_whole_numbers_in_float_list_conform():
+    # A JSON-LD processor types 1 and 2 as xsd:integer; they are still valid floats
+    document = build_document()
+    document.molecules[0].values = [1, 2]
+    assert_conforms(to_graph(document))
+    data = json.loads(document.model_dump_json(by_alias=True, exclude_none=True))
+    data["molecules"][0]["values"] = [1, 2.5]
+    assert_conforms(rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE))
+
+
 def test_missing_required_name_fails():
     data = json.loads(build_document().model_dump_json(by_alias=True, exclude_none=True))
     del data["molecules"][0]["name"]
@@ -46,7 +56,7 @@ def test_wrong_list_item_datatype_fails():
     graph = rdflib.Graph().parse(data=json.dumps(data), format="json-ld", base=BASE)
     conforms, report = validate(graph)
     assert not conforms, "a string inside values must not conform"
-    assert "DatatypeConstraintComponent" in report and "xsd:double" in report, report
+    assert "OrConstraintComponent" in report and "values" in report, report
 
 
 def test_unknown_enum_value_fails():

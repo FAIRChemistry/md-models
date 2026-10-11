@@ -97,7 +97,7 @@ context declares `"@container": "@list"`, so order and duplicates survive a roun
 In SPARQL, reach the items with the property path `?s <prop>/rdf:rest*/rdf:first ?item`.
 Dates are typed `xsd:date`.
 
-- **SHACL** validates the list items through the same path.
+- **SHACL** validates the list items through the same path; a required array means at least one item.
 - **OWL** declares array properties as `owl:ObjectProperty` without an `rdfs:range`
   (a range would type the list node, not its items); the item type is named in the comment.
   `IRI` fields are links and are object properties as well.

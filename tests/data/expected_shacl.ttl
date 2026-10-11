@@ -27,7 +27,7 @@ tst:TestShape
     ] ;
     sh:property [
         sh:path schema:one ;
-        sh:or ( [ sh:datatype xsd:double ] [ sh:datatype xsd:string ] ) ;
+        sh:or ( [ sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] ) ] [ sh:datatype xsd:string ] ) ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
     ] ;
@@ -54,7 +54,7 @@ tst:Test2Shape
     ] ;
     sh:property [
         sh:path schema:one ;
-        sh:datatype xsd:double ;
+        sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] ) ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
     ] ;

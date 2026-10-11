@@ -107,14 +107,14 @@ lazy_static! {
     };
 
     /// Maps MD-Models type names to the XSD datatypes JSON-LD produces, for SHACL.
-    /// `number` stays unmapped: the template accepts xsd:integer or xsd:double for it.
+    /// `number` and `float` stay unmapped: the template accepts xsd:integer or xsd:double,
+    /// because JSON-LD types whole numbers such as `2.0` as xsd:integer.
     static ref SHACL_TYPE_MAPS: std::collections::HashMap<String, String> = {
         let mut m = std::collections::HashMap::new();
         m.insert("integer".to_string(), "xsd:integer".to_string());
-        m.insert("float".to_string(), "xsd:double".to_string());
         m.insert("boolean".to_string(), "xsd:boolean".to_string());
         m.insert("string".to_string(), "xsd:string".to_string());
-        m.insert("bytes".to_string(), "xsd:base64Binary".to_string());
+        m.insert("bytes".to_string(), "xsd:string".to_string());
         m.insert("date".to_string(), "xsd:date".to_string());
         m
     };
@@ -302,7 +302,7 @@ pub fn render_jinja_template(
         Templates::Shex => {
             convert_model_types(model, &OWL_TYPE_MAPS);
             if let Err(e) = filter_objects_wo_terms(model) {
-                println!(
+                eprintln!(
                     " [{}] {}",
                     template.to_string().yellow().bold(),
                     e.to_string().bold(),
@@ -1068,7 +1068,7 @@ mod tests {
             "sh:path ( Document:molecules [ sh:zeroOrMorePath rdf:rest ] rdf:first ) ;",
             "sh:nodeKind sh:IRI ;",
             r#"sh:in ( "assay" "simulation" ) ;"#,
-            "sh:datatype xsd:double ;",
+            "sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:double ] ) ;",
             "sh:datatype xsd:date ;",
             "sh:node ex:MoleculeShape ;",
         ] {
@@ -1095,6 +1095,41 @@ mod tests {
             "path alternatives in:\n{rendered}"
         );
         assert!(!rendered.contains("decimal"));
+        // Whole-number floats are integers to a JSON-LD processor
+        assert!(!rendered.contains("sh:datatype xsd:double ;"), "{rendered}");
+    }
+
+    #[test]
+    fn test_shacl_bytes_are_plain_strings() {
+        let rendered = render_inline(
+            "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- blob\n  - Type: bytes\n",
+            Templates::Shacl,
+        );
+        assert!(rendered.contains("sh:datatype xsd:string ;"), "{rendered}");
+        assert!(!rendered.contains("base64Binary"), "{rendered}");
+    }
+
+    #[test]
+    fn test_date_coercion_only_for_pure_date_fields() {
+        let md = "---\nrepo: \"https://ex.org/\"\nprefix: ex\n---\n\n### A\n\n- both\n  - Type: date, string\n- only\n  - Type: date\n";
+        let date = "http://www.w3.org/2001/XMLSchema#date";
+        for template in [Templates::PythonPydantic, Templates::PythonDataclass] {
+            let rendered = render_inline(md, template);
+            assert_eq!(rendered.matches(date).count(), 1, "{rendered}");
+            assert!(
+                rendered.contains("\"only\": {\n                \"@id\": \"ex:A/only\",\n                \"@type\""),
+                "{rendered}"
+            );
+            assert!(rendered.contains("\"both\": \"ex:A/both\","), "{rendered}");
+        }
+        let mut model = parse_markdown(md, None).expect("parse");
+        let rust = render_jinja_template(
+            &Templates::Rust,
+            &mut model,
+            Some(&HashMap::from([("jsonld".to_string(), "true".to_string())])),
+        )
+        .expect("render");
+        assert_eq!(rust.matches(date).count(), 1, "{rust}");
     }
 
     fn render_inline(content: &str, template: Templates) -> String {
