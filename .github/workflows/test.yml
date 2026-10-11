@@ -43,6 +43,48 @@ jobs:
         run: cargo build --verbose
       - name: Run tests
         run: cargo test --verbose
+      # Property tests explore many more inputs than the default budget when
+      # given room; a nightly-sized run belongs in CI, not on every save.
+      - name: Run property tests with a larger case budget
+        env:
+          PROPTEST_CASES: "1024"
+        run: cargo test --verbose --test property_tests
+
+  # Exports one reference model to every target and validates each artefact with
+  # that ecosystem's own tool, rather than with md-models itself. This is what
+  # catches invalid Protobuf scalars, unbound Turtle prefixes, uncompilable XSDs
+  # and malformed JSON Schema before they reach a user.
+  conformance:
+    name: Cross-target conformance
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler libxml2-utils
+      - name: Install Python validators
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install rdflib jsonschema PyYAML graphql-core pyshacl linkml-runtime
+      - name: Build
+        run: cargo build --release
+      - name: Run conformance checks
+        run: |
+          for model in \
+            tests/data/model.md \
+            tests/data/model_recursive.md \
+            tests/data/model_xsd_facets.md \
+            tests/data/model_terms_wellknown.md \
+            tests/data/model_primitives.md
+          do
+            root=$(grep -m1 '^### ' "$model" | sed 's/^### //;s/ .*//')
+            echo "::group::$model (root=$root)"
+            python3 tests/conformance/validate_artifacts.py \
+              --model "$model" --root "$root" --strict
+            echo "::endgroup::"
+          done
 
   # Tests Go code generation and validates the output
   golang:

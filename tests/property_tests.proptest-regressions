@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 0f93c8903e49db1006e2f2c28f2878ebeb0e42292031e5dd15526bb2e7d925b6 # shrinks to text = "---\nprefix: tst\nrepo: \"https://example.org/m/\"\nprefixes:\n  schema: http://schema.org/\n---\n\n### AaA_A00\n\n- A\n  - Type: string\n\n"
+cc 43c9c42b1446bd59f54cae1a5b6ef28a53b3712468f4666c67ce1360e265c941 # shrinks to text = "---\nprefix: tst\nrepo: \"https://example.org/m/\"\nprefixes:\n  schema: http://schema.org/\n---\n\n### A0\n\n- A\n  - Type: string\n\n"
+cc 95e86c978b067156dbee584679765b7083872ea35c46f007fa2b76e65a59b684 # shrinks to text = "---\nprefix: tst\nrepo: \"https://example.org/m/\"\nprefixes:\n  schema: http://schema.org/\n---\n\n### A0aA_0\n\n- a\n  - Type: string\n- self\n  - Type: A0aA_0\n\n"

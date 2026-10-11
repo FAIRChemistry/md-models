@@ -1,4 +1,5 @@
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX tst: <https://www.github.com/my/repo/>
 PREFIX schema: <http://schema.org/>
 
@@ -15,67 +16,17 @@ PREFIX Ontology: <https://www.github.com/my/repo/Ontology/>
 
 
 tst:Test {
-
-    Test:name xsd:string {
-        shex:annotation [
-            shex:label "name"
-        ]
-    };
-    schema:hello xsd:string {
-        shex:annotation [
-            shex:label "name"
-        ]
-    };
-
-    Test:number xsd:decimal? {
-        shex:annotation [
-            shex:label "number"
-        ]
-    };
-    schema:one xsd:decimal? {
-        shex:annotation [
-            shex:label "number"
-        ]
-    };
-
-    Test:test2 @tst:Test2* {
-        shex:annotation [
-            shex:label "test2"
-        ]
-    };
-    schema:something @tst:Test2* {
-        shex:annotation [
-            shex:label "test2"
-        ]
-    };
-
-    Test:ontology Ontology? {
-        shex:annotation [
-            shex:label "ontology"
-        ]
-    };
+    Test:name xsd:string// rdfs:label "name" // rdfs:comment "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.";
+    schema:hello xsd:string// rdfs:label "name" // rdfs:comment "The name of the test. This is a unique identifier that helps track individual test cases across the system. It should be descriptive and follow the standard naming conventions.";
+    Test:number xsd:decimal?// rdfs:label "number";
+    schema:one xsd:decimal?// rdfs:label "number";
+    Test:test2 @tst:Test2*// rdfs:label "test2";
+    schema:something @tst:Test2*// rdfs:label "test2";
+    Test:ontology @tst:Ontology?// rdfs:label "ontology";
 }
 tst:Test2 {
-
-    Test2:names xsd:string* {
-        shex:annotation [
-            shex:label "names"
-        ]
-    };
-    schema:hello xsd:string* {
-        shex:annotation [
-            shex:label "names"
-        ]
-    };
-
-    Test2:number xsd:decimal? {
-        shex:annotation [
-            shex:label "number"
-        ]
-    };
-    schema:one xsd:decimal? {
-        shex:annotation [
-            shex:label "number"
-        ]
-    };
+    Test2:names xsd:string*// rdfs:label "names";
+    schema:hello xsd:string*// rdfs:label "names";
+    Test2:number xsd:decimal?// rdfs:label "number";
+    schema:one xsd:decimal?// rdfs:label "number";
 }

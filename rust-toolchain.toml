@@ -1,0 +1,5 @@
+# Pins the compiler so an archived source tree reproduces the released
+# artefacts. `Cargo.lock` pins the dependency graph.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]

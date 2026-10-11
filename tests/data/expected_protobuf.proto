@@ -11,6 +11,7 @@
 
 syntax = "proto3";
 
+
 package model;
 //
 // Model Enum definitions

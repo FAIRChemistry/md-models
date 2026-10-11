@@ -233,7 +233,9 @@ mod tests {
         let model2 = DataModel::from_markdown(path2).expect("Could not parse markdown");
 
         // Act
-        model.merge(&model2);
+        model
+            .merge(&model2)
+            .expect("models without a clash must merge");
 
         // Assert
         let obj_names: Vec<String> = model.objects.iter().map(|o| o.name.clone()).collect();
@@ -251,7 +253,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_model_merge_invalid() {
         // Arrange
         let path = Path::new("tests/data/model.md");
@@ -260,7 +261,14 @@ mod tests {
         let model2 = DataModel::from_markdown(path2).expect("Could not parse markdown");
 
         // Act
-        model.merge(&model2);
+        let result = model.merge(&model2);
+
+        // A name clash is reported rather than fatal.
+        let conflicts = result.expect_err("merging models with a clashing object must fail");
+        assert!(
+            !conflicts.is_empty(),
+            "the clashing names must be reported: {conflicts:?}"
+        );
     }
 
     #[test]

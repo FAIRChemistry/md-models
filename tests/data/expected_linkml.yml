@@ -1,22 +1,13 @@
 id: tst
-name: Unnamed Data Model
+name: Unnamed_Data_Model
 title: Unnamed Data Model
 prefixes:
   schema: http://schema.org/
 default_prefix: tst
 default_range: string
 imports:
-  - linkml:types
+- linkml:types
 classes:
-  Test2:
-    attributes:
-      names:
-        slot_uri: schema:hello
-        multivalued: true
-      number:
-        slot_uri: schema:one
-        range: float
-        minimum_value: 0
   Test:
     description: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
     tree_root: true
@@ -28,22 +19,38 @@ classes:
         required: true
       number:
         slot_uri: schema:one
-        range: float
+        range: Any
+        any_of:
+        - range: float
+        - range: string
       test2:
         slot_uri: schema:something
         range: Test2
         multivalued: true
       ontology:
         range: Ontology
+  Test2:
+    attributes:
+      names:
+        slot_uri: schema:hello
+        multivalued: true
+      number:
+        slot_uri: schema:one
+        range: float
+        minimum_value: 0
+  Any:
+    description: Placeholder range for slots that accept more than one type.
+    class_uri: linkml:Any
+    attributes: {}
 enums:
   Ontology:
     permissible_values:
-      SIO:
-        meaning: http://semanticscience.org/resource/
-        description: http://semanticscience.org/resource/
       ECO:
         meaning: https://www.evidenceontology.org/term/
         description: https://www.evidenceontology.org/term/
       GO:
         meaning: https://amigo.geneontology.org/amigo/term/
         description: https://amigo.geneontology.org/amigo/term/
+      SIO:
+        meaning: http://semanticscience.org/resource/
+        description: http://semanticscience.org/resource/
