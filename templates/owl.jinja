@@ -1,3 +1,13 @@
+{#
+    Non-empty iff any attribute of the object yields a cardinality restriction.
+    An optional multivalued attribute constrains nothing.
+#}
+{%- macro has_restrictions(object) -%}
+    {%- for attribute in object.attributes -%}
+        {%- if not attribute.multiple or attribute.required -%}x{%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
+
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -39,12 +49,19 @@
 
 {{ prefix }}:{{ object.name }} a owl:Class
 {%- if object.term %}
-  ; rdfs:subClassOf {{ object.term }}
+  ; rdfs:subClassOf {{ ttl_term(object.term) }}
 {%- endif %}
 {%- if object.docstring %}
-  ; rdfs:comment "{{ object.docstring | replace('\n',' ') | replace('"','\\"') }}"
+  ; rdfs:comment "{{ ttl_literal(object.docstring) }}"
 {%- endif %} .
 
+{#-
+    An attribute that is both optional and multivalued carries no cardinality
+    constraint, so it contributes no restriction. If *every* attribute is of
+    that shape the block below has an empty object list — `rdfs:subClassOf .` —
+    which is not valid Turtle, so the whole block is skipped instead.
+-#}
+{%- if has_restrictions(object) | trim %}
 {{ prefix }}:{{ object.name }}
   rdfs:subClassOf
   {%- set first = true -%}
@@ -82,6 +99,7 @@
     {%- endif %}
 
   {%- endfor %} .
+{%- endif %}
 
 #########################################################
 # Properties of {{ object.name }}
@@ -106,14 +124,14 @@
   rdfs:range {{ item }} ;
   {%- endif %}
   {%- if attribute.term %}
-  rdfs:subPropertyOf {{ attribute.term }} ;
+  rdfs:subPropertyOf {{ ttl_term(attribute.term) }} ;
   {%- endif %}
   rdfs:label "{{ object.name }}/{{ attribute.name }}"
   {%- if attribute.multiple %}
   ; rdfs:comment "Ordered list (rdf:List) of {{ item }}.
-    {%- if attribute.docstring %} {{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}{% endif %}"
+    {%- if attribute.docstring %} {{ ttl_literal(attribute.docstring) }}{% endif %}"
   {%- elif attribute.docstring %}
-  ; rdfs:comment "{{ attribute.docstring | replace('\n',' ') | replace('"','\\"') }}"
+  ; rdfs:comment "{{ ttl_literal(attribute.docstring) }}"
   {%- endif %} .
 
 {%- endfor %}
@@ -149,16 +167,16 @@
     {%- endfor %}
   )
 {%- if enum.docstring %}
-  ; rdfs:comment "{{ enum.docstring | replace('\n',' ') | replace('"','\\"') }}"
+  ; rdfs:comment "{{ ttl_literal(enum.docstring) }}"
 {%- endif %} .
 
 {%- for key, value in enum.mappings | dictsort %}
 
 {{ enum.name }}:{{ key }}
   a owl:NamedIndividual ;
-  rdfs:label "{{ value | replace('"','\\"') }}" ;
+  rdfs:label "{{ ttl_literal(value) }}" ;
   {{ prefix }}:enumKey "{{ key }}" ;
-  {{ prefix }}:enumValue "{{ value | replace('"','\\"') }}" .
+  {{ prefix }}:enumValue "{{ ttl_literal(value) }}" .
 
 {%- endfor %}
 {%- endfor %}

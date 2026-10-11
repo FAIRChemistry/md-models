@@ -30,8 +30,30 @@ use crate::exporters::Templates;
 use crate::markdown::frontmatter::FrontMatter;
 use crate::object::{Enumeration, Object};
 use crate::option::AttrOption;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+
+/// Turns a `Validator` into a catchable Python exception whose message is the
+/// validation report.
+fn validation_error(validator: crate::validation::Validator) -> PyErr {
+    let report = validator
+        .errors
+        .iter()
+        .map(|error| {
+            let lines: Vec<String> = error.positions.iter().map(|p| p.line.to_string()).collect();
+            let location = if lines.is_empty() {
+                String::new()
+            } else {
+                format!(" (line {})", lines.join(", "))
+            };
+            format!("  {}{}: {}", error.error_type, location, error.message)
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    PyValueError::new_err(format!("The model is not valid:\n{report}"))
+}
 
 /// A Python class that wraps the `datamodel::DataModel` struct.
 #[pyclass]
@@ -55,14 +77,19 @@ impl DataModel {
     /// A new instance of `DataModel`.
     #[classmethod]
     #[pyo3(signature = (path, git=None))]
-    fn from_markdown(_cls: &Bound<'_, PyType>, path: String, git: Option<String>) -> Self {
+    fn from_markdown(
+        _cls: &Bound<'_, PyType>,
+        path: String,
+        git: Option<String>,
+    ) -> PyResult<Self> {
         let model = if let Some(repo) = git {
-            datamodel::DataModel::from_github(&repo, &path).unwrap()
+            datamodel::DataModel::from_github(&repo, &path)
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
         } else {
-            datamodel::DataModel::from_markdown(Path::new(&path)).unwrap()
+            datamodel::DataModel::from_markdown(Path::new(&path)).map_err(validation_error)?
         };
 
-        Self { model }
+        Ok(Self { model })
     }
 
     /// Creates a new `DataModel` instance from a json schema file.
@@ -76,10 +103,11 @@ impl DataModel {
     /// A new instance of `DataModel`.
     #[classmethod]
     #[pyo3(signature = (path))]
-    fn from_json_schema(_cls: &Bound<'_, PyType>, path: String) -> Self {
-        Self {
-            model: datamodel::DataModel::from_json_schema(Path::new(&path)).unwrap(),
-        }
+    fn from_json_schema(_cls: &Bound<'_, PyType>, path: String) -> PyResult<Self> {
+        Ok(Self {
+            model: datamodel::DataModel::from_json_schema(Path::new(&path))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        })
     }
 
     /// Creates a new `DataModel` instance from a json schema string.
@@ -93,10 +121,11 @@ impl DataModel {
     /// A new instance of `DataModel`.
     #[classmethod]
     #[pyo3(signature = (content))]
-    fn from_json_schema_string(_cls: &Bound<'_, PyType>, content: String) -> Self {
-        Self {
-            model: datamodel::DataModel::from_json_schema_string(&content).unwrap(),
-        }
+    fn from_json_schema_string(_cls: &Bound<'_, PyType>, content: String) -> PyResult<Self> {
+        Ok(Self {
+            model: datamodel::DataModel::from_json_schema_string(&content)
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        })
     }
 
     /// Creates a new `DataModel` instance from a markdown string.
@@ -110,10 +139,11 @@ impl DataModel {
     /// A new instance of `DataModel`.
     #[classmethod]
     #[pyo3(signature = (content))]
-    fn from_markdown_string(_cls: &Bound<'_, PyType>, content: String) -> Self {
-        Self {
-            model: datamodel::DataModel::from_markdown_string(&content).unwrap(),
-        }
+    fn from_markdown_string(_cls: &Bound<'_, PyType>, content: String) -> PyResult<Self> {
+        Ok(Self {
+            model: datamodel::DataModel::from_markdown_string(&content)
+                .map_err(validation_error)?,
+        })
     }
 
     /// Returns a string representation of the `DataModel` instance.
@@ -140,11 +170,11 @@ impl DataModel {
         &mut self,
         template: Templates,
         config: Option<HashMap<String, String>>,
-    ) -> String {
+    ) -> PyResult<String> {
         let config = config.unwrap_or_default();
         self.model
             .convert_to(&template, Some(&config))
-            .expect("Failed to convert to template")
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 }
 

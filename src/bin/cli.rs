@@ -99,7 +99,14 @@ struct ConvertArgs {
     git: Option<String>,
 
     /// Path to the output file.
-    #[arg(short, long, help = "Path to the output file")]
+    ///
+    /// For the `json-schema-all` target this is a *directory*: one schema file
+    /// is written per object.
+    #[arg(
+        short,
+        long,
+        help = "Path to the output file (a directory for the 'json-schema-all' target)"
+    )]
     output: Option<PathBuf>,
 
     /// Template to use for rendering.
@@ -516,14 +523,26 @@ fn render_all_json_schemes(
     model: &DataModel,
     outdir: &Option<PathBuf>,
 ) -> Result<(), Box<dyn Error>> {
+    // This target writes one schema per object, so `--output` names a
+    // directory rather than a file.
     let outdir = match outdir {
         Some(outdir) => outdir,
-        None => return Err("Output directory (-o) is required for json-schema-all".into()),
+        None => {
+            return Err(
+                "The 'json-schema-all' target writes one schema per object and \
+                        therefore requires an output directory. Pass -o/--output <DIRECTORY>."
+                    .into(),
+            )
+        }
     };
 
-    // Check if the output is a directory
-    if !outdir.is_dir() && outdir.exists() {
-        return Err(format!("Output {} must be a directory", outdir.display()).into());
+    if outdir.exists() && !outdir.is_dir() {
+        return Err(format!(
+            "The 'json-schema-all' target writes one schema per object, so -o/--output must \
+             be a directory, but '{}' is an existing file.",
+            outdir.display()
+        )
+        .into());
     }
 
     // If the output directory does not exist, create it
@@ -662,5 +681,164 @@ mod tests {
             .arg("tests/test_pipeline_per_spec_invalid.toml")
             .assert();
         assert.failure();
+    }
+
+    //
+    // Recursive models
+    //
+    // A stack overflow cannot be caught in-process, so recursive models are
+    // driven as subprocesses where an abort is observable as an exit status.
+    //
+
+    #[test]
+    fn test_json_ld_recursive_model_does_not_abort() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("convert")
+            .arg("-i")
+            .arg("tests/data/model_recursive.md")
+            .arg("-t")
+            .arg("json-ld")
+            .arg("-r")
+            .arg("Experiment")
+            .assert();
+        assert.success();
+    }
+
+    /// The cycle here runs Experiment -> Condition -> Experiment.
+    #[test]
+    fn test_json_ld_mutual_recursion_does_not_abort() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("convert")
+            .arg("-i")
+            .arg("tests/data/model_recursive.md")
+            .arg("-t")
+            .arg("json-ld")
+            .arg("-r")
+            .arg("Condition")
+            .assert();
+        assert.success();
+    }
+
+    /// Every target must survive a recursive model, not just JSON-LD.
+    #[test]
+    fn test_all_targets_handle_recursive_model() {
+        for template in [
+            "json-schema",
+            "json-ld",
+            "shacl",
+            "owl",
+            "shex",
+            "xml-schema",
+            "linkml",
+            "protobuf",
+            "graphql",
+            "rust",
+            "python-pydantic",
+            "typescript",
+        ] {
+            let mut cmd = Command::cargo_bin("md-models").unwrap();
+            let assert = cmd
+                .arg("convert")
+                .arg("-i")
+                .arg("tests/data/model_recursive.md")
+                .arg("-t")
+                .arg(template)
+                .arg("-r")
+                .arg("Experiment")
+                .assert();
+            assert.success();
+        }
+    }
+
+    //
+    // json-schema-all writes one file per object, so --output names a
+    // directory.
+    //
+
+    #[test]
+    fn test_json_schema_all_missing_output_is_clean_error() {
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("convert")
+            .arg("-i")
+            .arg("tests/data/model.md")
+            .arg("-t")
+            .arg("json-schema-all")
+            .assert()
+            .failure();
+
+        let stderr = String::from_utf8_lossy(&assert.get_output().stderr).to_string();
+        assert!(
+            !stderr.contains("panicked at"),
+            "a missing output directory must be a diagnostic, not a panic: {stderr}"
+        );
+        assert!(
+            stderr.contains("directory"),
+            "the error must say an output directory is required: {stderr}"
+        );
+    }
+
+    #[test]
+    fn test_json_schema_all_output_is_existing_file_is_clean_error() {
+        let dir = std::path::Path::new("tests/intermediates/json_schema_all");
+        fs::create_dir_all(dir).unwrap();
+        let file = dir.join("not_a_directory.txt");
+        fs::write(&file, "placeholder").unwrap();
+
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        let assert = cmd
+            .arg("convert")
+            .arg("-i")
+            .arg("tests/data/model.md")
+            .arg("-t")
+            .arg("json-schema-all")
+            .arg("-o")
+            .arg(file.to_str().unwrap())
+            .assert()
+            .failure();
+
+        let stderr = String::from_utf8_lossy(&assert.get_output().stderr).to_string();
+        assert!(
+            !stderr.contains("panicked at"),
+            "an existing file as output must be a diagnostic, not a panic: {stderr}"
+        );
+        assert!(stderr.contains("directory"), "{stderr}");
+    }
+
+    /// Each generated schema must be non-empty and parse as JSON.
+    #[test]
+    fn test_json_schema_all_writes_valid_non_empty_schemas() {
+        let dir = std::path::Path::new("tests/intermediates/json_schema_all/generated");
+        fs::remove_dir_all(dir).ok();
+
+        let mut cmd = Command::cargo_bin("md-models").unwrap();
+        cmd.arg("convert")
+            .arg("-i")
+            .arg("tests/data/model.md")
+            .arg("-t")
+            .arg("json-schema-all")
+            .arg("-o")
+            .arg(dir.to_str().unwrap())
+            .assert()
+            .success();
+
+        assert!(dir.is_dir(), "the output directory must be created");
+
+        for name in ["Test.json", "Test2.json"] {
+            let path = dir.join(name);
+            assert!(path.exists(), "{name} was not written");
+
+            let content = fs::read_to_string(&path).unwrap();
+            assert!(!content.trim().is_empty(), "{name} is empty");
+
+            let parsed: serde_json::Value = serde_json::from_str(&content)
+                .unwrap_or_else(|e| panic!("{name} is not JSON: {e}"));
+            assert!(
+                parsed.get("properties").is_some(),
+                "{name} has no properties"
+            );
+        }
     }
 }

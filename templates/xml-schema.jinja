@@ -31,6 +31,19 @@
 {%- endmacro -%}
 
 {#
+    Full cardinality for an element. An xs:element defaults to minOccurs="1",
+    so an optional attribute becomes a *required* element unless minOccurs is
+    stated — the same instance would then be valid against the generated JSON
+    Schema and invalid against the generated XSD.
+#}
+{%- macro cardinality(attribute) -%}
+    {%- if attribute.multiple is true -%}
+        {{ is_multiple(attribute) }}
+    {%- elif attribute.required is not true %} minOccurs="0"
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
     Attribute/element base type: user-defined vs xs: built-in.
 #}
 {%- macro is_reference(attribute) -%}
@@ -41,8 +54,128 @@
     {%- endif -%}
 {%- endmacro -%}
 
+{#
+    Type name for a single member of a union.
+#}
+{%- macro member_type(dtype) -%}
+    {%- if dtype in object_names or dtype in enum_names -%}
+        {{ dtype }}Type
+    {%- else -%}
+        xs:{{ dtype }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
+    XSD facet corresponding to a validation option, empty if XSD cannot express it.
+    `minitems`/`maxitems` become minOccurs/maxOccurs on the element instead, and
+    `multipleof`, `unique` and the database/LinkML options have no XSD equivalent.
+#}
+{%- macro facet_name(key) -%}
+    {%- if key == "minimum" -%}minInclusive
+    {%- elif key == "maximum" -%}maxInclusive
+    {%- elif key == "exclusiveminimum" -%}minExclusive
+    {%- elif key == "exclusivemaximum" -%}maxExclusive
+    {%- elif key == "pattern" -%}pattern
+    {%- elif key == "minlength" -%}minLength
+    {%- elif key == "maxlength" -%}maxLength
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
+    Whether a facet is legal on a given base type. XSD rejects the schema
+    outright if it is not: `minInclusive` on a string, or `minLength` on a
+    number, makes the whole document fail to compile rather than being ignored.
+#}
+{%- macro facet_allowed(facet, base) -%}
+    {%- if facet == "pattern" -%}x
+    {%- elif facet == "minLength" or facet == "maxLength" -%}
+        {%- if base == "xs:string" or base == "xs:base64Binary" or base == "xs:hexBinary" or base == "xs:anyURI" -%}x{%- endif -%}
+    {%- else -%}
+        {%- if base == "xs:integer" or base == "xs:decimal" or base == "xs:float" or base == "xs:double" or base == "xs:date" or base == "xs:dateTime" -%}x{%- endif -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
+    Non-empty iff the attribute carries at least one facet XSD can express on
+    this attribute's base type. An object-typed attribute is a complexType and
+    admits no facets at all.
+#}
+{%- macro has_facets(attribute) -%}
+    {%- if attribute.dtypes[0] not in object_names -%}
+        {%- for option in attribute.options -%}
+            {%- set facet = facet_name(option.key) | trim -%}
+            {%- if facet and (facet_allowed(facet, is_reference(attribute)) | trim) -%}
+                {%- if facet != "pattern" or xsd_pattern(option.value) -%}x{%- endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
+    Non-empty iff a union member is an object, i.e. a complexType. xs:union
+    accepts simple types only, so such an attribute cannot be expressed as a
+    union and falls back to its first type.
+#}
+{%- macro has_complex_member(attribute) -%}
+    {%- for dtype in attribute.dtypes -%}
+        {%- if dtype in object_names -%}x{%- endif -%}
+    {%- endfor -%}
+{%- endmacro -%}
+
+{#
+    Non-empty iff the attribute needs an inline xs:simpleType rather than a
+    plain type= reference.
+#}
+{%- macro needs_inline_type(attribute) -%}
+    {%- if has_facets(attribute) | trim -%}x
+    {%- elif attribute.dtypes | length > 1 and not (has_complex_member(attribute) | trim) -%}x
+    {%- endif -%}
+{%- endmacro -%}
+
+{#
+    The inline simpleType carrying the union members or the restriction facets.
+#}
+{%- macro inline_simple_type(attribute, indent) -%}
+{{ indent }}<xs:simpleType>
+    {%- if attribute.dtypes | length > 1 and not (has_complex_member(attribute) | trim) %}
+{{ indent }}    <xs:union memberTypes="{% for dtype in attribute.dtypes %}{{ member_type(dtype) }}{% if not loop.last %} {% endif %}{% endfor %}"/>
+    {%- else %}
+{{ indent }}    <xs:restriction base="{{ is_reference(attribute) }}">
+        {%- for option in attribute.options %}
+        {%- set facet = facet_name(option.key) | trim %}
+        {%- if facet and not (facet_allowed(facet, is_reference(attribute)) | trim) %}
+        {#- Not legal on this base type; emitting it would fail to compile. -#}
+        {%- elif facet == "pattern" %}
+        {#- An empty translation means XSD cannot express this pattern. -#}
+        {%- set translated = xsd_pattern(option.value) %}
+        {%- if translated %}
+{{ indent }}        <xs:pattern value="{{ xml_escape(translated) }}"/>
+        {%- endif %}
+        {%- elif facet %}
+{{ indent }}        <xs:{{ facet }} value="{{ xml_escape(option.value) }}"/>
+        {%- endif %}
+        {%- endfor %}
+{{ indent }}    </xs:restriction>
+    {%- endif %}
+{{ indent }}</xs:simpleType>
+{%- endmacro -%}
+
 {%- macro create_attribute(attribute) -%}
+        {%- if needs_inline_type(attribute) | trim %}
+        <xs:attribute name="{{ attribute.name }}"
+        {%- if is_required(attribute) %} {{ is_required(attribute) }}{%- endif -%}
+        {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
+        >
         {%- if attribute.docstring | length > 0 %}
+            <xs:annotation>
+                <xs:documentation>
+                    {{ wrap(xml_escape(attribute.docstring), 70, "", "                    ", None) }}
+                </xs:documentation>
+            </xs:annotation>
+        {%- endif %}
+{{ inline_simple_type(attribute, "            ") }}
+        </xs:attribute>
+        {%- elif attribute.docstring | length > 0 %}
         <xs:attribute name="{{ attribute.name }}" type="{{ is_reference(attribute) }}"
             {%- if is_required(attribute) %} {{ is_required(attribute) }}{%- endif -%}
             {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
@@ -65,7 +198,8 @@
 {%- if attribute.dtypes[0] in object_names or attribute.dtypes[0] in enum_names -%}
 
     {%- if attribute.multiple is true -%}
-            <xs:element name="{{attribute.name}}">
+            <xs:element name="{{attribute.name}}"
+            {%- if attribute.required is not true %} minOccurs="0"{%- endif %}>
                 {%- if attribute.docstring | length > 0 %}
                 <xs:annotation>
                     <xs:documentation>
@@ -83,7 +217,8 @@
             </xs:element>
     {%- else -%}
             {%- if attribute.docstring | length > 0 -%}
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type">
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"
+            {%- if cardinality(attribute) %}{{ cardinality(attribute) }}{%- endif %}>
                 <xs:annotation>
                     <xs:documentation>
                         {{ wrap(xml_escape(attribute.docstring), 70, "", "                        ", None) }}
@@ -91,14 +226,29 @@
                 </xs:annotation>
             </xs:element>
             {%- else -%}
-            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"/>
+            <xs:element name="{{attribute.name}}" type="{{attribute.dtypes[0]}}Type"
+            {%- if cardinality(attribute) %}{{ cardinality(attribute) }}{%- endif %}/>
             {%- endif -%}
     {%- endif -%}
 
 {%- else -%}
-            {%- if attribute.docstring | length > 0 -%}
+            {%- if needs_inline_type(attribute) | trim -%}
+            <xs:element name="{{attribute.name}}"
+            {%- if cardinality(attribute) %}{{ cardinality(attribute) }}{% endif -%}
+            {%- if get_default(attribute) %} {{ get_default(attribute) }}{% endif -%}
+            >
+                {%- if attribute.docstring | length > 0 %}
+                <xs:annotation>
+                    <xs:documentation>
+                        {{ wrap(xml_escape(attribute.docstring), 70, "", "                        ", None) }}
+                    </xs:documentation>
+                </xs:annotation>
+                {%- endif %}
+{{ inline_simple_type(attribute, "                ") }}
+            </xs:element>
+            {%- elif attribute.docstring | length > 0 -%}
             <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"
-            {%- if is_multiple(attribute) %} {{ is_multiple(attribute) }}{% endif -%}
+            {%- if cardinality(attribute) %}{{ cardinality(attribute) }}{% endif -%}
             {%- if get_default(attribute) %} {{ get_default(attribute) }}{% endif -%}
             >
                 <xs:annotation>
@@ -109,7 +259,7 @@
             </xs:element>
             {%- else -%}
             <xs:element name="{{attribute.name}}" type="xs:{{attribute.dtypes[0]}}"
-            {%- if is_multiple(attribute) %} {{ is_multiple(attribute) }}{%- endif %}
+            {%- if cardinality(attribute) %}{{ cardinality(attribute) }}{%- endif %}
             {%- if get_default(attribute) %} {{ get_default(attribute) }}{%- endif -%}
             />
             {%- endif -%}

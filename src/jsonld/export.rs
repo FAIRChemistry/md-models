@@ -106,6 +106,7 @@ fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext
     }
 
     let mut context_cache: HashMap<String, SimpleContext> = HashMap::new();
+    let mut in_progress: HashSet<String> = HashSet::new();
 
     // Determine which root to use: explicit or first object
     let root_name = match root {
@@ -127,7 +128,13 @@ fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext
         .node_indices()
         .find(|&idx| graph[idx].name == root_name)
     {
-        let obj_context = build_object_context(&graph, root_idx, &model_id, &mut context_cache);
+        let obj_context = build_object_context(
+            &graph,
+            root_idx,
+            &model_id,
+            &mut context_cache,
+            &mut in_progress,
+        );
         for (term_name, term_def) in obj_context.terms {
             context.terms.insert(term_name, term_def);
         }
@@ -139,22 +146,35 @@ fn create_context(model: &DataModel, root: Option<&str>) -> Result<SimpleContext
 ///
 /// Caches contexts per-object to allow sharing/nesting without recomputation.
 ///
+/// Recursive models are supported: `in_progress` holds the objects being built
+/// further up the stack, and re-entering one returns an empty context. Omitting
+/// the nested `@context` is valid, since scoped contexts are inherited.
+///
 /// # Arguments
 /// - `graph`: The object type dependency graph.
 /// - `node_idx`: The current object's graph node index.
 /// - `model_id`: The base prefix/id for the model.
-/// - `cache`: Cache of previously-built contexts.
+/// - `cache`: Memo of contexts already built.
+/// - `in_progress`: Objects being built further up the stack, to break cycles.
 fn build_object_context(
     graph: &petgraph::graph::DiGraph<Object, ()>,
     node_idx: petgraph::graph::NodeIndex,
     model_id: &str,
     cache: &mut HashMap<String, SimpleContext>,
+    in_progress: &mut HashSet<String>,
 ) -> SimpleContext {
     let object = &graph[node_idx];
 
     if let Some(cached) = cache.get(&object.name) {
         return cached.clone();
     }
+
+    // Cycle detected: this object is already being built further up the stack.
+    if in_progress.contains(&object.name) {
+        return SimpleContext::default();
+    }
+
+    in_progress.insert(object.name.clone());
 
     let mut context = SimpleContext::default();
     let object_names: HashSet<String> = graph
@@ -165,7 +185,15 @@ fn build_object_context(
     for attr in &object.attributes {
         let has_nested = attr.dtypes.iter().any(|dt| object_names.contains(dt));
         let term_def = if has_nested || attr.is_array || attr.is_iri || is_date(attr) {
-            build_detailed_term_def(graph, node_idx, attr, model_id, has_nested, cache)
+            build_detailed_term_def(
+                graph,
+                node_idx,
+                attr,
+                model_id,
+                has_nested,
+                cache,
+                in_progress,
+            )
         } else {
             let term_id = get_attr_term_id(attr, object, model_id);
             TermDef::Simple(term_id)
@@ -174,6 +202,7 @@ fn build_object_context(
         context.terms.insert(attr.name.clone(), term_def);
     }
 
+    in_progress.remove(&object.name);
     cache.insert(object.name.clone(), context.clone());
     context
 }
@@ -221,6 +250,7 @@ fn build_detailed_term_def(
     model_id: &str,
     has_nested: bool,
     cache: &mut HashMap<String, SimpleContext>,
+    in_progress: &mut HashSet<String>,
 ) -> TermDef {
     // Determine type using the first dtype, falling back to parent_object if needed
     let object_type = attr
@@ -244,7 +274,7 @@ fn build_detailed_term_def(
     };
 
     if has_nested {
-        let nested = build_nested_for_attr(graph, node_idx, attr, model_id, cache);
+        let nested = build_nested_for_attr(graph, node_idx, attr, model_id, cache, in_progress);
         if !nested.terms.is_empty() {
             detail.context = Some(Box::new(JsonLdContext::Object(nested)));
         }
@@ -290,6 +320,7 @@ fn build_nested_for_attr(
     attr: &crate::attribute::Attribute,
     model_id: &str,
     cache: &mut HashMap<String, SimpleContext>,
+    in_progress: &mut HashSet<String>,
 ) -> SimpleContext {
     let mut context = SimpleContext::default();
 
@@ -299,7 +330,8 @@ fn build_nested_for_attr(
         if attr.dtypes.contains(&neighbor_obj.name) {
             // No `@type` here: JSON-LD 1.1 does not allow it inside a scoped context;
             // node types belong on the nodes themselves.
-            let nested_context = build_object_context(graph, neighbor_idx, model_id, cache);
+            let nested_context =
+                build_object_context(graph, neighbor_idx, model_id, cache, in_progress);
 
             for (key, value) in nested_context.terms {
                 context.terms.insert(key, value);
@@ -425,5 +457,101 @@ mod tests {
             ctx["created"],
             json!({"@id": "ex:Document/created", "@type": "http://www.w3.org/2001/XMLSchema#date"})
         );
+    }
+
+    use std::path::PathBuf;
+
+    /// Builds the JSON-LD header for a fixture and returns it as JSON.
+    fn build_context(path: &str, root: Option<&str>) -> serde_json::Value {
+        let model = DataModel::from_markdown(&PathBuf::from(path)).expect("Could not parse model");
+        serde_json::to_value(
+            model
+                .json_ld_header(root)
+                .expect("Could not build JSON-LD header"),
+        )
+        .expect("Could not serialise header")
+    }
+
+    /// Regression anchor for the acyclic case, which must not change.
+    //
+    // Recursion
+    //
+    // `cache` is populated only after the recursive descent, so it could never
+    // terminate a cycle; a self-referential object overflowed the stack. The
+    // cycle is now broken by omitting the nested `@context`, which JSON-LD
+    // resolves through the enclosing context.
+    //
+
+    #[test]
+    fn test_self_reference_terminates() {
+        let context = build_context("tests/data/model_recursive.md", Some("Experiment"));
+        let terms = &context["@context"];
+
+        assert_eq!(terms["parent"]["@type"], "@id");
+        assert!(
+            terms["parent"].get("@context").is_none(),
+            "the recursive branch must be cut: {terms:#?}"
+        );
+    }
+
+    /// Cutting the cycle must not drop the object's other terms.
+    #[test]
+    fn test_self_reference_keeps_sibling_terms() {
+        let context = build_context("tests/data/model_recursive.md", Some("Experiment"));
+        let terms = &context["@context"];
+
+        assert_eq!(terms["name"], "schema:name");
+        assert!(terms.get("conditions").is_some());
+    }
+
+    /// A recursive array keeps its `@container`, which is set before the
+    /// cycle check.
+    #[test]
+    fn test_self_referencing_array_keeps_container() {
+        let context = build_context("tests/data/model_recursive.md", Some("Experiment"));
+        let children = &context["@context"]["children"];
+
+        assert_eq!(children["@container"], "@list");
+        assert_eq!(children["@type"], "@id");
+        assert!(children.get("@context").is_none());
+    }
+
+    /// Experiment -> Condition -> Experiment must terminate as well.
+    #[test]
+    fn test_mutual_recursion_terminates() {
+        let context = build_context("tests/data/model_recursive.md", Some("Condition"));
+        let terms = &context["@context"];
+
+        assert_eq!(context["@type"], "tst:Condition");
+        assert!(terms.get("experiment").is_some());
+    }
+
+    /// The root may sit anywhere in the cycle.
+    #[test]
+    fn test_recursion_from_every_root_terminates() {
+        for root in ["Experiment", "Condition"] {
+            let context = build_context("tests/data/model_recursive.md", Some(root));
+            assert!(
+                context.get("@context").is_some(),
+                "root {root} produced no context"
+            );
+        }
+    }
+
+    /// A diamond is not a cycle: an object reachable by two paths must keep its
+    /// nested context on both. This is what an over-eager "already visited"
+    /// guard would break.
+    #[test]
+    fn test_diamond_is_not_treated_as_a_cycle() {
+        let context = build_context("tests/data/model_diamond.md", Some("A"));
+        let terms = &context["@context"];
+
+        for branch in ["b", "c"] {
+            let nested = &terms[branch]["@context"]["d"]["@context"];
+            assert!(
+                nested.get("name").is_some(),
+                "D's context must survive under branch {branch}: {terms:#?}"
+            );
+        }
     }
 }

@@ -107,6 +107,12 @@ impl From<LinkML> for DataModel {
             objects.push(obj);
         }
 
+        // `Any` only widens a union slot's range and is not part of the model.
+        let objects: Vec<Object> = objects
+            .into_iter()
+            .filter(|o: &Object| o.name != crate::linkml::export::ANY_CLASS)
+            .collect();
+
         // Convert enums
         let enums = linkml
             .enums
@@ -119,7 +125,9 @@ impl From<LinkML> for DataModel {
             .collect();
 
         DataModel {
-            name: Some(linkml.name),
+            // `name` is the sanitised NCName; `title` carries the text the
+            // author wrote, so that is what round-trips.
+            name: Some(linkml.title),
             config: Some(config),
             objects,
             enums,
@@ -197,16 +205,35 @@ impl From<AttributeDefinition> for Attribute {
     ///
     /// An Attribute representing the slot in the internal model format
     fn from(attr: AttributeDefinition) -> Self {
+        // A union is carried by `any_of`; `range` is the `Any` placeholder.
+        let dtypes = if attr.any_of.is_empty() {
+            vec![attr.range.unwrap_or_else(|| "string".to_string())]
+        } else {
+            attr.any_of.iter().map(|a| a.range.clone()).collect()
+        };
+
+        let mut options = Vec::new();
+        if let Some(minimum) = &attr.minimum_value {
+            if let Some(value) = minimum.as_f64() {
+                options.push(AttrOption::MinimumValue(value));
+            }
+        }
+        if let Some(maximum) = &attr.maximum_value {
+            if let Some(value) = maximum.as_f64() {
+                options.push(AttrOption::MaximumValue(value));
+            }
+        }
+
         Attribute {
             name: String::new(), // Set later when context is available
             docstring: attr.description.unwrap_or_default(),
-            dtypes: vec![attr.range.unwrap_or_else(|| "string".to_string())],
+            dtypes,
             term: attr.slot_uri,
             is_array: attr.multivalued.unwrap_or(false),
             is_id: attr.identifier.unwrap_or(false),
             is_iri: false,
             required: attr.required.unwrap_or(false),
-            options: Vec::new(), // Patterns added later from slot_usage
+            options, // Patterns added later from slot_usage
             default: None,
             is_enum: false,
             position: None,
@@ -317,4 +344,142 @@ mod tests {
     }
 
     // Add more specific tests for each conversion implementation
+
+    //
+    // Round-trip fidelity: Markdown -> LinkML -> DataModel must preserve the
+    // constructs LinkML can express.
+    //
+
+    /// Exports a markdown model to LinkML and reads it straight back.
+    fn roundtrip(path: &str) -> (DataModel, DataModel) {
+        let original = DataModel::from_markdown(&PathBuf::from(path)).expect("could not parse");
+        let yaml = crate::linkml::export::serialize_linkml(original.clone(), None)
+            .expect("could not serialise");
+        let linkml: LinkML = serde_yaml::from_str(&yaml).expect("could not read back");
+        (original, DataModel::from(linkml))
+    }
+
+    /// The human-readable title must survive, not the sanitised NCName.
+    #[test]
+    fn test_roundtrip_preserves_title() {
+        let (original, restored) = roundtrip("tests/data/model_roundtrip.md");
+
+        assert_eq!(original.name.as_deref(), Some("My Test Model"));
+        assert_eq!(
+            restored.name.as_deref(),
+            Some("My Test Model"),
+            "the title must round-trip, not the NCName"
+        );
+    }
+
+    /// A union must come back as a union, not collapsed to its first member.
+    #[test]
+    fn test_roundtrip_preserves_union_dtypes() {
+        let (_, restored) = roundtrip("tests/data/model_roundtrip.md");
+
+        let attribute = restored
+            .objects
+            .iter()
+            .find(|o| o.name == "Measurement")
+            .and_then(|o| o.attributes.iter().find(|a| a.name == "value"))
+            .expect("value attribute missing");
+
+        assert_eq!(
+            attribute.dtypes,
+            vec!["string", "float", "boolean"],
+            "the union collapsed on the way back"
+        );
+    }
+
+    /// The `Any` placeholder is an encoding artefact and must not surface as an
+    /// object in the restored model.
+    #[test]
+    fn test_roundtrip_does_not_leak_any_class() {
+        let (original, restored) = roundtrip("tests/data/model_roundtrip.md");
+
+        assert!(
+            !restored.objects.iter().any(|o| o.name == "Any"),
+            "the union placeholder leaked into the model"
+        );
+        assert_eq!(restored.objects.len(), original.objects.len());
+    }
+
+    #[test]
+    fn test_roundtrip_preserves_numeric_bounds() {
+        let (_, restored) = roundtrip("tests/data/model_roundtrip.md");
+
+        let attribute = restored
+            .objects
+            .iter()
+            .find(|o| o.name == "Measurement")
+            .and_then(|o| o.attributes.iter().find(|a| a.name == "score"))
+            .expect("score attribute missing");
+
+        let minimum = attribute.options.iter().find_map(|o| match o {
+            AttrOption::MinimumValue(v) => Some(*v),
+            _ => None,
+        });
+        let maximum = attribute.options.iter().find_map(|o| match o {
+            AttrOption::MaximumValue(v) => Some(*v),
+            _ => None,
+        });
+
+        assert_eq!(minimum, Some(0.5));
+        assert_eq!(maximum, Some(99.9));
+    }
+
+    #[test]
+    fn test_roundtrip_preserves_core_constructs() {
+        let (original, restored) = roundtrip("tests/data/model_roundtrip.md");
+
+        for name in ["Measurement", "Other"] {
+            let before = original.objects.iter().find(|o| o.name == name).unwrap();
+            let after = restored
+                .objects
+                .iter()
+                .find(|o| o.name == name)
+                .unwrap_or_else(|| unreachable!("object {name} lost"));
+
+            for attribute in &before.attributes {
+                let restored_attribute = after
+                    .attributes
+                    .iter()
+                    .find(|a| a.name == attribute.name)
+                    .unwrap_or_else(|| unreachable!("attribute {} lost", attribute.name));
+
+                assert_eq!(
+                    restored_attribute.is_array, attribute.is_array,
+                    "multivalued lost on {}",
+                    attribute.name
+                );
+                assert_eq!(
+                    restored_attribute.required, attribute.required,
+                    "required lost on {}",
+                    attribute.name
+                );
+                assert_eq!(
+                    restored_attribute.term, attribute.term,
+                    "term lost on {}",
+                    attribute.name
+                );
+            }
+        }
+    }
+
+    /// A schema that declares no prefixes must still be readable: export omits
+    /// the key entirely when the map is empty.
+    #[test]
+    fn test_roundtrip_without_prefixes() {
+        let content = "### Thing\n\n- name\n  - Type: string\n";
+        let model = DataModel::from_markdown_string(content).expect("could not parse");
+        let yaml =
+            crate::linkml::export::serialize_linkml(model, None).expect("could not serialise");
+
+        assert!(
+            !yaml.contains("prefixes:"),
+            "an empty prefix map should be omitted"
+        );
+        serde_yaml::from_str::<LinkML>(&yaml)
+            .expect("import must tolerate a schema with no prefixes");
+    }
 }

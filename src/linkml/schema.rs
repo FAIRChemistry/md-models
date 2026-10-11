@@ -52,7 +52,7 @@ pub struct LinkML {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub see_also: Vec<String>,
     /// Mapping of prefix strings to their expanded URI forms
-    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub prefixes: IndexMap<String, String>,
     /// Default prefix to use when none is specified
     pub default_prefix: String,
@@ -146,7 +146,7 @@ pub struct PermissibleValue {
 }
 
 /// Defines a class in the schema
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ClassDefinition {
     /// Optional description of the class
     #[serde(
@@ -216,18 +216,23 @@ pub struct AttributeDefinition {
     /// Optional type range for the slot
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<String>,
+    /// Alternative ranges for a slot that accepts more than one type. LinkML
+    /// has no union range, so it is expressed as `any_of: [{range: A}, ...]`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub any_of: Vec<AnyOfRange>,
     /// Whether this slot is read-only
     #[serde(default, skip_serializing_if = "is_false_option")]
     pub readonly: Option<bool>,
     /// Whether this slot can have multiple values
     #[serde(default, skip_serializing_if = "is_false_option")]
     pub multivalued: Option<bool>,
-    /// Optional minimum value for numeric slots
+    /// Optional minimum value for numeric slots, held as a JSON number so a
+    /// fractional bound such as `Minimum: 0.5` is representable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub minimum_value: Option<i64>,
+    pub minimum_value: Option<serde_json::Number>,
     /// Optional maximum value for numeric slots
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub maximum_value: Option<i64>,
+    pub maximum_value: Option<serde_json::Number>,
     /// Whether this slot is recommended
     #[serde(default, skip_serializing_if = "is_false_option")]
     pub recommended: Option<bool>,
@@ -237,6 +242,13 @@ pub struct AttributeDefinition {
     /// Optional map of annotations
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<IndexMap<String, Annotation>>,
+}
+
+/// One alternative range of a multi-typed slot, used inside `any_of`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AnyOfRange {
+    /// The type this alternative accepts
+    pub range: String,
 }
 
 /// Represents an example value for a slot

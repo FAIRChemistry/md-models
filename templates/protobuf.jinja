@@ -17,28 +17,39 @@
   {{ attr.dtypes[0] }}
   {%- elif attr.dtypes[0] == "string" -%}
   string
-  {%- elif attr.dtypes[0] == "float" -%}
+  {%- elif attr.dtypes[0] == "float" or attr.dtypes[0] == "number" -%}
   double
-  {%- elif attr.dtypes[0] == "int" -%}
+  {%- elif attr.dtypes[0] == "integer" or attr.dtypes[0] == "int" -%}
   int32
-  {%- elif attr.dtypes[0] == "bool" -%}
+  {%- elif attr.dtypes[0] == "boolean" or attr.dtypes[0] == "bool" -%}
   bool
+  {%- elif attr.dtypes[0] == "bytes" -%}
+  bytes
+  {%- elif attr.dtypes[0] == "date" -%}
+  string
   {%- else -%}
   {{ attr.dtypes[0] }}
   {%- endif -%}
 {% endmacro %}
 
+{#
+    proto3 field label. A required singular field carries no label at all, so
+    the caller supplies the separating space only when a label was produced --
+    a required repeated field previously rendered as `repeatedbool`.
+#}
 {% macro field_rule(attr) %}
   {%- if attr.multiple -%}
-  repeated 
+  repeated
   {%- elif attr.required is false -%}
-  optional  
+  optional
   {%- endif -%}
 {% endmacro %}
 
 syntax = "proto3";
 
-package {% if title %}{{ title | lower }}{% else %}model{% endif %};
+{# A proto package is a dotted identifier: the model title has to be sanitised,
+   as the Go and Julia templates already do for their own namespaces. #}
+package {% if title %}{{ title | snake_case }}{% else %}model{% endif %};
 
 {%- if enums | length > 0 %}
 //
@@ -74,7 +85,7 @@ message {{ object.name }} {
   {%- if attr.docstring %}
   // {{ wrap(attr.docstring, 70, "", "  // ", None) }}
   {%- endif %}
-  {{ field_rule(attr) }}{%- if not attr.required %} {% endif -%}{{ get_type(attr) }} {{ attr.name | snake_case }} = {{ loop.index }}{% if (attr.name | to_identifier) != attr.name %} [json_name = "{{ attr.name }}"]{% endif %};
+  {% set label = field_rule(attr) | trim %}{% if label %}{{ label }} {% endif %}{{ get_type(attr) }} {{ attr.name | snake_case }} = {{ loop.index }}{% if (attr.name | to_identifier) != attr.name %} [json_name = "{{ attr.name }}"]{% endif %};
   {%- endfor %}
 }
 {% endfor %}

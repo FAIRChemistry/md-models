@@ -304,16 +304,28 @@ impl DataModel {
             }
             Templates::JsonSchema => Ok(self.json_schema(None, false).unwrap()),
             Templates::Linkml => Ok(serialize_linkml(self.clone(), None).unwrap()),
+            // These have dedicated exporters rather than Jinja templates.
+            // Falling through made `render_jinja_template` panic, so a public
+            // method aborted the process for a perfectly valid enum variant.
+            Templates::Internal => Ok(self.internal_schema()),
+            Templates::JsonSchemaAll => Err(minijinja::Error::new(
+                minijinja::ErrorKind::InvalidOperation,
+                "The 'json-schema-all' target writes one schema per object into a directory. \
+                 Use DataModel::json_schema_all instead.",
+            )),
             _ => render_jinja_template(template, self, config),
         }
     }
 
-    // Merge two data models
-    //
-    // * `other` - The other data model to merge
-    pub fn merge(&mut self, other: &Self) {
-        // Initialize a variable to check if the merge is valid
-        let mut valid = true;
+    /// Merge two data models.
+    ///
+    /// Returns the names that clash when both models define an object or
+    /// enumeration of the same name with a different shape.
+    ///
+    /// * `other` - The other data model to merge
+    pub fn merge(&mut self, other: &Self) -> Result<(), Vec<String>> {
+        // Collect the names that clash so the caller can report all of them
+        let mut conflicts: Vec<String> = Vec::new();
         let ignore_types = self.get_ignore_types();
 
         // Check if there are any duplicate objects or enums
@@ -330,7 +342,7 @@ impl DataModel {
                         "DuplicateError".bold(),
                         other_obj.name.red().bold(),
                     );
-                    valid = false;
+                    conflicts.push(other_obj.name.clone());
                 }
             }
         }
@@ -347,14 +359,13 @@ impl DataModel {
                         "DuplicateError".bold(),
                         other_enm.name.red().bold(),
                     );
-                    valid = false;
+                    conflicts.push(other_enm.name.clone());
                 }
             }
         }
 
-        // If the merge is not valid, panic
-        if !valid {
-            panic!("Merge is not valid");
+        if !conflicts.is_empty() {
+            return Err(conflicts);
         }
 
         // Merge prefixes: only add new ones, preserve existing
@@ -379,6 +390,8 @@ impl DataModel {
                 .cloned()
                 .collect::<Vec<Enumeration>>(),
         );
+
+        Ok(())
     }
 
     /// Merge prefixes from another data model into this one.
@@ -443,7 +456,23 @@ impl DataModel {
     /// A data model
     #[allow(clippy::result_large_err)]
     pub fn from_markdown(path: &Path) -> Result<Self, Validator> {
-        let content = fs::read_to_string(path).expect("Could not read file");
+        // An unreadable path is a caller error, not a reason to abort the
+        // process: library and Python callers get the same `Err(Validator)`
+        // contract as a malformed model.
+        let content = fs::read_to_string(path).map_err(|error| {
+            let mut validator = Validator::new();
+            validator.add_error(crate::validation::ValidationError {
+                message: format!("Could not read '{}': {error}", path.display()),
+                object: None,
+                attribute: None,
+                location: "Global".into(),
+                error_type: crate::validation::ErrorType::GlobalError,
+                solution: Some("Check that the path exists and is readable.".to_string()),
+                positions: Vec::new(),
+            });
+            validator
+        })?;
+
         parse_markdown(&content, Some(path))
     }
 
@@ -502,7 +531,7 @@ impl DataModel {
             .expect("Could not convert schema to data model");
 
         // Validate the data model
-        validate_model(&model).map_err(DataModelError::ValidationError)?;
+        validate_model(&model, Vec::new()).map_err(DataModelError::ValidationError)?;
 
         Ok(model)
     }
@@ -521,7 +550,7 @@ impl DataModel {
             .expect("Could not convert schema to data model");
 
         // Validate the data model
-        validate_model(&model).map_err(DataModelError::ValidationError)?;
+        validate_model(&model, Vec::new()).map_err(DataModelError::ValidationError)?;
 
         Ok(model)
     }
@@ -539,7 +568,7 @@ impl DataModel {
             .expect("Could not convert schema to data model");
 
         // Validate the data model
-        validate_model(&model).map_err(DataModelError::ValidationError)?;
+        validate_model(&model, Vec::new()).map_err(DataModelError::ValidationError)?;
 
         Ok(model)
     }
@@ -616,7 +645,7 @@ mod tests {
         model2.enums.push(enm2);
 
         // Act
-        model1.merge(&model2);
+        model1.merge(&model2).expect("merge should succeed");
 
         // Assert
         assert_eq!(model1.objects.len(), 2);

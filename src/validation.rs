@@ -97,6 +97,7 @@ pub enum ErrorType {
     GlobalError,
     XMLError,
     ObjectError,
+    PrefixError,
 }
 
 impl Display for ErrorType {
@@ -109,6 +110,7 @@ impl Display for ErrorType {
             ErrorType::GlobalError => write!(f, "GlobalError"),
             ErrorType::XMLError => write!(f, "XMLError"),
             ErrorType::ObjectError => write!(f, "ObjectError"),
+            ErrorType::PrefixError => write!(f, "PrefixError"),
         }
     }
 }
@@ -206,7 +208,179 @@ impl Validator {
             self.validate_object(object, &types, &model.clone().config.unwrap_or_default());
         }
 
+        self.check_term_prefixes(model);
+        self.check_object_enum_collisions(model);
+        self.check_option_consistency(model);
+
         self.sort_errors();
+    }
+
+    /// Checks that every CURIE used by a `Term:` resolves to a namespace.
+    ///
+    /// A prefix that is neither declared nor well known cannot be turned into
+    /// an IRI, and guessing one would give the term the wrong meaning.
+    fn check_term_prefixes(&mut self, model: &DataModel) {
+        let declared: Vec<String> = model
+            .config
+            .as_ref()
+            .and_then(|config| config.prefixes())
+            .map(|prefixes| prefixes.into_iter().map(|(name, _)| name).collect())
+            .unwrap_or_default();
+
+        let report = |validator: &mut Self,
+                      term: &str,
+                      object: &str,
+                      attribute: Option<&str>,
+                      positions: Vec<Position>| {
+            let Some(prefix) = crate::exporters::curie_prefix(term) else {
+                return;
+            };
+            if declared.contains(&prefix) || crate::exporters::is_well_known_prefix(&prefix) {
+                return;
+            }
+
+            validator.add_error(ValidationError {
+                message: format!(
+                    "Term '{term}' uses the prefix '{prefix}', which is not declared and is not a \
+                     well-known vocabulary."
+                ),
+                object: Some(object.to_string()),
+                attribute: attribute.map(str::to_string),
+                location: "Global".into(),
+                error_type: ErrorType::PrefixError,
+                solution: Some(format!(
+                    "Declare it in the frontmatter, e.g. 'prefixes:\n  {prefix}: https://example.org/{prefix}/'."
+                )),
+                positions,
+            });
+        };
+
+        for object in &model.objects {
+            let positions = self
+                .object_positions
+                .get(&object.name)
+                .cloned()
+                .unwrap_or_default();
+
+            if let Some(term) = &object.term {
+                report(self, term, &object.name, None, positions.clone());
+            }
+
+            for attribute in &object.attributes {
+                if let Some(term) = &attribute.term {
+                    let attribute_positions =
+                        attribute.position.map(|p| vec![p]).unwrap_or_default();
+                    report(
+                        self,
+                        term,
+                        &object.name,
+                        Some(&attribute.name),
+                        attribute_positions,
+                    );
+                }
+            }
+        }
+    }
+
+    /// Checks that no object and enumeration share a name. Several targets,
+    /// among them Protocol Buffers and GraphQL, put both in one namespace.
+    fn check_object_enum_collisions(&mut self, model: &DataModel) {
+        for object in &model.objects {
+            if !model.enums.iter().any(|e| e.name == object.name) {
+                continue;
+            }
+
+            self.add_error(ValidationError {
+                message: format!(
+                    "'{}' is defined both as an object and as an enumeration.",
+                    object.name
+                ),
+                object: Some(object.name.clone()),
+                attribute: None,
+                location: "Global".into(),
+                error_type: ErrorType::DuplicateError,
+                solution: Some(format!(
+                    "Rename one of them. Targets such as Protocol Buffers and GraphQL put \
+                     objects and enumerations in a single namespace, so '{}' cannot be both.",
+                    object.name
+                )),
+                positions: self
+                    .object_positions
+                    .get(&object.name)
+                    .cloned()
+                    .unwrap_or_default(),
+            });
+        }
+    }
+
+    /// Checks that validation options are internally consistent. An
+    /// unsatisfiable bound or a zero `multipleOf` yields a schema no tool
+    /// will load.
+    fn check_option_consistency(&mut self, model: &DataModel) {
+        for object in &model.objects {
+            for attribute in &object.attributes {
+                let positions = attribute.position.map(|p| vec![p]).unwrap_or_default();
+
+                let mut report = |message: String, solution: String| {
+                    self.add_error(ValidationError {
+                        message,
+                        object: Some(object.name.clone()),
+                        attribute: Some(attribute.name.clone()),
+                        location: "Global".into(),
+                        error_type: ErrorType::TypeError,
+                        solution: Some(solution),
+                        positions: positions.clone(),
+                    });
+                };
+
+                let numeric = |key: &str| -> Option<f64> {
+                    attribute
+                        .options
+                        .iter()
+                        .find(|o| o.key() == key)
+                        .and_then(|o| o.value().parse::<f64>().ok())
+                };
+
+                let bounds: [(&str, &str); 3] = [
+                    ("minimum", "maximum"),
+                    ("exclusiveminimum", "exclusivemaximum"),
+                    ("minlength", "maxlength"),
+                ];
+                for (low_key, high_key) in bounds {
+                    if let (Some(low), Some(high)) = (numeric(low_key), numeric(high_key)) {
+                        if low > high {
+                            report(
+                                format!(
+                                    "'{low_key}' ({low}) is greater than '{high_key}' ({high}), \
+                                     so no value can satisfy this property."
+                                ),
+                                format!("Set '{low_key}' to at most {high}."),
+                            );
+                        }
+                    }
+                }
+
+                if let (Some(low), Some(high)) = (numeric("minitems"), numeric("maxitems")) {
+                    if low > high {
+                        report(
+                            format!("'minitems' ({low}) is greater than 'maxitems' ({high})."),
+                            format!("Set 'minitems' to at most {high}."),
+                        );
+                    }
+                }
+
+                if let Some(multiple_of) = numeric("multipleof") {
+                    if multiple_of <= 0.0 {
+                        report(
+                            format!(
+                                "'multipleof' must be greater than zero, but is {multiple_of}."
+                            ),
+                            "Use a positive value, or remove the option.".to_string(),
+                        );
+                    }
+                }
+            }
+        }
     }
 
     /// Checks for duplicate object names within the model.
@@ -816,10 +990,12 @@ fn get_duplicates<'a>(collection: &'a [&'a str]) -> Vec<&'a str> {
 fn starts_with_character(name: &str) -> Result<(), (String, String)> {
     match name.chars().next() {
         Some(c) if c.is_alphabetic() => Ok(()),
-        _ => Err((
+        // Split on a character boundary, and handle the empty name.
+        Some(c) => Err((
             format!("Name '{name}' must start with a letter."),
-            name[1..].to_string(),
+            name[c.len_utf8()..].to_string(),
         )),
+        None => Err(("Name must not be empty.".to_string(), String::new())),
     }
 }
 

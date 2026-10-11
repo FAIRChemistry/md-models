@@ -557,6 +557,25 @@ impl TryFrom<&Enumeration> for schema::EnumObject {
     }
 }
 
+/// Maps an attribute option key to its JSON Schema keyword. Option keys are
+/// lower-cased when parsed, while JSON Schema keywords are camelCase, and a
+/// keyword a validator does not recognise is ignored rather than rejected.
+fn json_schema_keyword(key: &str) -> String {
+    match key {
+        "minlength" => "minLength",
+        "maxlength" => "maxLength",
+        "minitems" => "minItems",
+        "maxitems" => "maxItems",
+        "exclusiveminimum" => "exclusiveMinimum",
+        "exclusivemaximum" => "exclusiveMaximum",
+        "multipleof" => "multipleOf",
+        "unique" => "uniqueItems",
+        "readonly" => "readOnly",
+        other => other,
+    }
+    .to_string()
+}
+
 impl TryFrom<&Attribute> for schema::Property {
     type Error = String;
 
@@ -569,6 +588,7 @@ impl TryFrom<&Attribute> for schema::Property {
     /// # Returns
     ///
     /// A `Result` containing the `Property` or an error message.
+    #[allow(clippy::wrong_self_convention)]
     fn try_from(attr: &Attribute) -> Result<Self, Self::Error> {
         let mut dtype = (!attr.is_enum)
             .then(|| schema::DataType::try_from(attr))
@@ -578,7 +598,7 @@ impl TryFrom<&Attribute> for schema::Property {
             .options
             .iter()
             .map(|o| -> Result<(String, PrimitiveType), String> {
-                Ok((o.key().to_string(), o.try_into()?))
+                Ok((json_schema_keyword(&o.key()), o.try_into()?))
             })
             .collect::<Result<HashMap<String, PrimitiveType>, String>>()?;
         if attr.is_iri && !attr.is_array {

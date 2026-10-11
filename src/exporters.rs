@@ -125,6 +125,136 @@ lazy_static! {
             "yield".to_string(),
         ]
     };
+
+    /// Namespace IRIs for widely used vocabularies, injected when a `Term:` uses
+    /// one of these prefixes without declaring it. Already delimited, so they
+    /// do not pass through `FrontMatter::prefixes`.
+    static ref WELL_KNOWN_PREFIXES: Vec<(&'static str, &'static str)> = vec![
+        ("dc", "http://purl.org/dc/elements/1.1/"),
+        ("dcat", "http://www.w3.org/ns/dcat#"),
+        ("dcterms", "http://purl.org/dc/terms/"),
+        ("foaf", "http://xmlns.com/foaf/0.1/"),
+        ("obo", "http://purl.obolibrary.org/obo/"),
+        ("owl", "http://www.w3.org/2002/07/owl#"),
+        ("prov", "http://www.w3.org/ns/prov#"),
+        ("qudt", "http://qudt.org/schema/qudt#"),
+        ("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#"),
+        ("rdfs", "http://www.w3.org/2000/01/rdf-schema#"),
+        ("schema", "http://schema.org/"),
+        ("sh", "http://www.w3.org/ns/shacl#"),
+        ("sio", "http://semanticscience.org/resource/"),
+        ("skos", "http://www.w3.org/2004/02/skos/core#"),
+        ("unit", "http://qudt.org/vocab/unit/"),
+        ("xsd", "http://www.w3.org/2001/XMLSchema#"),
+    ];
+}
+
+/// Extracts the prefix of a CURIE. Returns `None` for absolute IRIs, bare
+/// terms and empty terms, so a URI scheme is never read as a prefix.
+pub(crate) fn curie_prefix(term: &str) -> Option<String> {
+    let term = term.trim();
+    if term.starts_with('<') || term.is_empty() {
+        return None;
+    }
+
+    let (prefix, rest) = term.split_once(':')?;
+
+    // An absolute IRI: the "prefix" is really a URI scheme.
+    if rest.starts_with("//") || prefix.eq_ignore_ascii_case("urn") {
+        return None;
+    }
+
+    if prefix.is_empty()
+        || !prefix
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return None;
+    }
+
+    Some(prefix.to_string())
+}
+
+/// Distinct non-object types used in any union. GraphQL unions combine object
+/// types only, so each scalar needs one wrapper type, declared once.
+fn union_wrapper_types(model: &DataModel) -> Vec<String> {
+    let object_names: std::collections::HashSet<&str> =
+        model.objects.iter().map(|o| o.name.as_str()).collect();
+
+    let mut wrappers: Vec<String> = Vec::new();
+    for object in &model.objects {
+        for attribute in &object.attributes {
+            if attribute.dtypes.len() < 2 {
+                continue;
+            }
+            for dtype in &attribute.dtypes {
+                if !object_names.contains(dtype.as_str()) && !wrappers.contains(dtype) {
+                    wrappers.push(dtype.clone());
+                }
+            }
+        }
+    }
+
+    wrappers
+}
+
+/// Whether a prefix names a vocabulary the exporters can resolve on their own.
+pub(crate) fn is_well_known_prefix(prefix: &str) -> bool {
+    WELL_KNOWN_PREFIXES.iter().any(|(name, _)| *name == prefix)
+}
+
+/// Collects every CURIE prefix used by an object or attribute term. Enum
+/// values are emitted as string literals, so they are excluded.
+pub(crate) fn collect_term_prefixes(model: &DataModel) -> std::collections::BTreeSet<String> {
+    let mut prefixes = std::collections::BTreeSet::new();
+
+    for object in &model.objects {
+        if let Some(term) = &object.term {
+            if let Some(prefix) = curie_prefix(term) {
+                prefixes.insert(prefix);
+            }
+        }
+
+        for attribute in &object.attributes {
+            if let Some(term) = &attribute.term {
+                if let Some(prefix) = curie_prefix(term) {
+                    prefixes.insert(prefix);
+                }
+            }
+        }
+    }
+
+    prefixes
+}
+
+/// Resolves the prefix declarations an RDF export needs, returning them
+/// alongside any prefix that is neither declared nor well known. Those cannot
+/// be resolved without inventing a namespace, so the caller reports them.
+pub(crate) fn resolve_prefixes(model: &DataModel) -> (Vec<(String, String)>, Vec<String>) {
+    let mut declared: Vec<(String, String)> = match &model.config {
+        Some(config) => config.prefixes().unwrap_or_default(),
+        None => vec![],
+    };
+
+    let declared_names: std::collections::HashSet<String> =
+        declared.iter().map(|(k, _)| k.clone()).collect();
+
+    let mut unresolved = Vec::new();
+    for prefix in collect_term_prefixes(model) {
+        if declared_names.contains(&prefix) {
+            continue;
+        }
+
+        match WELL_KNOWN_PREFIXES.iter().find(|(name, _)| *name == prefix) {
+            Some((name, iri)) => declared.push((name.to_string(), iri.to_string())),
+            None => unresolved.push(prefix),
+        }
+    }
+
+    declared.sort_by(|a, b| a.0.cmp(&b.0));
+    declared.dedup_by(|a, b| a.0 == b.0);
+
+    (declared, unresolved)
 }
 
 /// Enumeration of available templates.
@@ -297,9 +427,29 @@ pub fn render_jinja_template(
     // This is necessary to avoid errors when rendering the template
     let config = config.cloned().unwrap_or_default();
 
+    // Captured before any filtering below, because templates use these lists to
+    // decide whether an attribute's type is an object, an enum or a primitive.
+    // SHACL and ShEx drop objects that carry no ontology term; classifying
+    // against the filtered list would then mistake a reference to a dropped
+    // object for a datatype and emit `sh:datatype Condition`, which is not a
+    // valid IRI and makes the whole document unparseable.
+    let all_object_names = model
+        .objects
+        .iter()
+        .map(|o| o.name.clone())
+        .collect::<Vec<String>>();
+    let all_enum_names = model
+        .enums
+        .iter()
+        .map(|e| e.name.clone())
+        .collect::<Vec<String>>();
+
     // Perform type conversions and filtering based on the template
     match template {
-        Templates::XmlSchema => convert_model_types(model, &XSD_TYPE_MAPS),
+        Templates::XmlSchema => {
+            convert_model_types(model, &XSD_TYPE_MAPS);
+            warn_about_untranslatable_patterns(model);
+        }
         Templates::Typescript => convert_model_types(model, &TYPESCRIPT_TYPE_MAPS),
         Templates::Graphql => convert_model_types(model, &GRAPHQL_TYPE_MAPS),
         // Every field is in the JSON-LD graph (unmapped ones as Object:attr), so SHACL keeps all objects
@@ -316,7 +466,6 @@ pub fn render_jinja_template(
         }
         Templates::Owl => {
             convert_model_types(model, &OWL_TYPE_MAPS);
-            remove_default_prefixes(model);
         }
         Templates::PythonDataclass | Templates::PythonPydanticXML | Templates::PythonPydantic => {
             convert_astropy_types(model, &config);
@@ -344,6 +493,9 @@ pub fn render_jinja_template(
     env.add_function("default_value", default_value);
     env.add_function("json_string", json_string);
     env.add_function("xml_escape", xml_escape);
+    env.add_function("xsd_pattern", xsd_pattern);
+    env.add_function("ttl_literal", ttl_literal);
+    env.add_function("ttl_term", ttl_term);
     env.add_test("gen_delim_iri", |iri: String| {
         crate::jsonld::export::ends_with_gen_delim(&iri)
     });
@@ -368,6 +520,10 @@ pub fn render_jinja_template(
     ) || (matches!(template, Templates::Rust) && config.contains_key("jsonld"));
 
     // Get the appropriate template
+    // Resolve prefixes before `template` is shadowed by the Jinja template below,
+    // since the declaration set depends on which prefixes that template hardcodes.
+    let prefixes = get_prefixes(model, template);
+
     let template = match template {
         Templates::PythonDataclass => env.get_template("python-dataclass.jinja")?,
         Templates::PythonPydantic => env.get_template("python-pydantic.jinja")?,
@@ -406,12 +562,11 @@ pub fn render_jinja_template(
     }
 
     // Render the template
-    let prefixes = get_prefixes(model);
     let rendered = template.render(context! {
         objects => model.objects,
-        object_names => model.objects.iter().map(|o| o.name.clone()).collect::<Vec<String>>(),
+        object_names => all_object_names,
         enums => model.enums,
-        enum_names => model.enums.iter().map(|e| e.name.clone()).collect::<Vec<String>>(),
+        enum_names => all_enum_names,
         title => model.name,
         prefixes => prefixes,
         repo => model.config.as_ref().unwrap().repo.clone(),
@@ -423,6 +578,7 @@ pub fn render_jinja_template(
         pk_objects => pk_objects(model),
         artificial_fields => artificial_fields,
         has_union_types => has_union_types(model),
+        union_wrapper_types => union_wrapper_types(model),
     });
 
     match rendered {
@@ -613,6 +769,129 @@ fn trim(input: &str, prefix: &str) -> String {
         .to_string()
 }
 
+/// Escapes a string for a Turtle quoted literal. The backslash is escaped
+/// first, and control characters are escaped because a raw newline would
+/// terminate the literal.
+fn ttl_literal(input: &str) -> String {
+    let mut escaped = String::with_capacity(input.len());
+    for character in input.chars() {
+        match character {
+            '\\' => escaped.push_str(r"\\"),
+            '"' => escaped.push_str("\\\""),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            _ => escaped.push(character),
+        }
+    }
+    escaped
+}
+
+/// Renders an ontology term as a Turtle predicate or object, wrapping an
+/// absolute IRI in angle brackets.
+fn ttl_term(input: &str) -> String {
+    let term = input.trim();
+    if term.starts_with('<') && term.ends_with('>') {
+        return term.to_string();
+    }
+
+    match curie_prefix(term) {
+        Some(_) => term.to_string(),
+        None => format!("<{term}>"),
+    }
+}
+
+/// Reports patterns XML Schema cannot express. The facet is omitted rather
+/// than approximated, so the author is told.
+fn warn_about_untranslatable_patterns(model: &DataModel) {
+    for object in &model.objects {
+        for attribute in &object.attributes {
+            for option in &attribute.options {
+                if option.key() != "pattern" {
+                    continue;
+                }
+                if translate_xsd_pattern(&option.value()).is_none() {
+                    println!(
+                        " [{}] {}: the pattern '{}' on {}.{} uses a construct XML Schema \
+                         regular expressions do not support, so the facet was omitted.",
+                        "xml-schema".yellow().bold(),
+                        "Warning".bold(),
+                        option.value().bold(),
+                        object.name.bold(),
+                        attribute.name.bold(),
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Constructs XML Schema's regular expression dialect does not support.
+const PCRE_ONLY_CONSTRUCTS: [&str; 8] = ["(?", r"\b", r"\B", r"\A", r"\Z", r"\z", r"\G", r"\K"];
+
+/// Translates a pattern into XML Schema's dialect.
+///
+/// An `xs:pattern` is implicitly anchored to the whole value and treats `^` and
+/// `$` as ordinary characters, while a JSON Schema `pattern` is an unanchored
+/// search. Anchored patterns drop their anchors, unanchored ones are widened
+/// with `.*`. Returns `None` for an internal anchor or a PCRE-only construct,
+/// which XSD cannot express.
+fn translate_xsd_pattern(input: &str) -> Option<String> {
+    if PCRE_ONLY_CONSTRUCTS
+        .iter()
+        .any(|construct| input.contains(construct))
+    {
+        return None;
+    }
+
+    // Locate anchors, skipping any that are escaped.
+    let characters: Vec<char> = input.chars().collect();
+    let mut anchor_positions = Vec::new();
+    let mut index = 0;
+    while index < characters.len() {
+        match characters[index] {
+            '\\' => index += 1,
+            '^' | '$' => anchor_positions.push(index),
+            _ => {}
+        }
+        index += 1;
+    }
+
+    let starts_anchored = anchor_positions.first() == Some(&0) && characters[0] == '^';
+    let ends_anchored =
+        characters.last() == Some(&'$') && anchor_positions.last() == Some(&(characters.len() - 1));
+
+    let body_start = if starts_anchored { 1 } else { 0 };
+    let body_end = if ends_anchored {
+        characters.len() - 1
+    } else {
+        characters.len()
+    };
+
+    // Any anchor left inside the body cannot be expressed.
+    if anchor_positions
+        .iter()
+        .any(|position| *position >= body_start && *position < body_end)
+    {
+        return None;
+    }
+
+    let body: String = characters[body_start..body_end].iter().collect();
+
+    Some(match (starts_anchored, ends_anchored) {
+        (true, true) => body,
+        (true, false) => format!("({body}).*"),
+        (false, true) => format!(".*({body})"),
+        (false, false) => format!(".*({body}).*"),
+    })
+}
+
+/// Template-facing wrapper: the translated pattern, or an empty string when the
+/// pattern cannot be expressed in XSD.
+fn xsd_pattern(input: &str) -> String {
+    translate_xsd_pattern(input).unwrap_or_default()
+}
+
 /// Checks if an object has a primary key.
 fn pk_objects(model: &mut DataModel) -> HashMap<String, (String, String, bool)> {
     let mut pk_objects = HashMap::new();
@@ -767,13 +1046,23 @@ fn convert_astropy_types(model: &mut DataModel, config: &HashMap<String, String>
 /// # Returns
 ///
 /// A vector of prefix tuples (prefix, URI).
-fn get_prefixes(model: &mut DataModel) -> Vec<(String, String)> {
-    let mut prefixes = match &model.config {
-        Some(config) => config.prefixes().unwrap_or(vec![]),
-        None => vec![],
-    };
+fn get_prefixes(model: &mut DataModel, template: &Templates) -> Vec<(String, String)> {
+    let (mut prefixes, unresolved) = resolve_prefixes(model);
 
-    prefixes.sort_by(|a, b| a.0.cmp(&b.0));
+    let builtin = template_builtin_prefixes(template);
+    prefixes.retain(|(name, _)| !builtin.contains(&name.as_str()));
+
+    for prefix in &unresolved {
+        println!(
+            " [{}] {}: prefix '{}' is used by a Term but is neither declared under the frontmatter \
+             'prefixes' key nor a well-known vocabulary. The generated output will reference an \
+             undeclared prefix.",
+            "prefix".yellow().bold(),
+            "Warning".bold(),
+            prefix.bold(),
+        );
+    }
+
     prefixes
 }
 
@@ -980,16 +1269,14 @@ fn has_union_types(model: &mut DataModel) -> bool {
         .any(|o| o.attributes.iter().any(|a| a.dtypes.len() > 1))
 }
 
-/// Removes the default prefixes from the model.
-///
-/// # Arguments
-///
-/// * `model` - The data model whose prefixes are to be removed.
-fn remove_default_prefixes(model: &mut DataModel) {
-    if let Some(prefixes) = &mut model.config.as_mut().unwrap().prefixes {
-        prefixes.remove("xsd");
-        prefixes.remove("rdfs");
-        prefixes.remove("owl");
+/// Prefixes each RDF template declares inline. They must not be emitted again
+/// from the model's prefix map, since the later `@prefix` wins.
+fn template_builtin_prefixes(template: &Templates) -> &'static [&'static str] {
+    match template {
+        Templates::Owl => &["owl", "rdfs", "xsd"],
+        Templates::Shacl => &["sh", "xsd"],
+        Templates::Shex => &["rdfs", "shex", "xsd"],
+        _ => &[],
     }
 }
 
@@ -1611,6 +1898,694 @@ mod tests {
         assert_eq!(rendered, expected);
     }
 
+    //
+    // RDF prefix declarations
+    //
+    // Every CURIE an RDF export emits must resolve against a declared prefix,
+    // otherwise the artefact is not valid Turtle and no RDF tool will load it.
+    //
+
+    /// Parses a model without running it through the exporter pipeline.
+    fn build_model(path: &str) -> DataModel {
+        let content = fs::read_to_string(path).expect("Could not read model file");
+        parse_markdown(&content, None).expect("Could not parse markdown")
+    }
+
+    /// Collects the prefix names declared by `@prefix x: <...>` / `PREFIX x: <...>`.
+    fn declared_prefixes(rendered: &str) -> Vec<String> {
+        rendered
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim();
+                let rest = line
+                    .strip_prefix("@prefix ")
+                    .or_else(|| line.strip_prefix("PREFIX "))?;
+                rest.split(':').next().map(|s| s.trim().to_string())
+            })
+            .collect()
+    }
+
+    /// Collects the prefixes referenced by CURIEs in the rendered document,
+    /// ignoring prefix declarations themselves and comment lines.
+    fn used_prefixes(rendered: &str) -> std::collections::BTreeSet<String> {
+        let mut used = std::collections::BTreeSet::new();
+        for line in rendered.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("@prefix")
+                || trimmed.starts_with("PREFIX")
+                || trimmed.starts_with('#')
+            {
+                continue;
+            }
+
+            // Strip string literals so that URIs inside quotes are not read as CURIEs.
+            let mut outside = String::new();
+            let mut in_string = false;
+            for ch in trimmed.chars() {
+                if ch == '"' {
+                    in_string = !in_string;
+                    outside.push(' ');
+                } else if !in_string {
+                    outside.push(ch);
+                }
+            }
+
+            for token in outside.split_whitespace() {
+                let token = token.trim_matches(|c: char| {
+                    !c.is_alphanumeric() && c != ':' && c != '_' && c != '-'
+                });
+                if token.starts_with('<') || token.contains("://") {
+                    continue;
+                }
+                if let Some(prefix) = token.split(':').next() {
+                    if !prefix.is_empty()
+                        && token.contains(':')
+                        && prefix
+                            .chars()
+                            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+                    {
+                        used.insert(prefix.to_string());
+                    }
+                }
+            }
+        }
+        used
+    }
+
+    /// SHACL emits class-scoped property paths such as `Test:name`, so the
+    /// template must declare a prefix for each class.
+    #[test]
+    fn test_shacl_declares_class_scoped_prefixes() {
+        let rendered = build_and_convert("tests/data/model.md", Templates::Shacl, None);
+
+        assert!(
+            rendered.contains("@prefix Test: <https://www.github.com/my/repo/Test/> ."),
+            "SHACL must declare a prefix for every class it scopes a path to:\n{rendered}"
+        );
+        assert!(rendered.contains("@prefix Test2: <https://www.github.com/my/repo/Test2/> ."));
+        assert!(rendered.contains("@prefix Ontology: <https://www.github.com/my/repo/Ontology/> ."));
+    }
+
+    /// Generic guard: no RDF target may reference a prefix it has not declared.
+    #[test]
+    fn test_rdf_targets_declare_every_used_prefix() {
+        for template in [Templates::Shacl, Templates::Owl, Templates::Shex] {
+            for model in [
+                "tests/data/model.md",
+                "tests/data/model_no_frontmatter.md",
+                "tests/data/model_terms_wellknown.md",
+                "tests/data/model_terms_iri.md",
+            ] {
+                let rendered = build_and_convert(model, template.clone(), None);
+                let declared: std::collections::BTreeSet<String> =
+                    declared_prefixes(&rendered).into_iter().collect();
+
+                for prefix in used_prefixes(&rendered) {
+                    assert!(
+                        declared.contains(&prefix),
+                        "{template} export of {model} uses undeclared prefix '{prefix}'.\n\
+                         declared: {declared:?}\n{rendered}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// A prefix must never be declared twice: in Turtle the last declaration
+    /// wins and rebinds the namespace.
+    #[test]
+    fn test_rdf_targets_have_no_duplicate_prefix_declarations() {
+        for template in [Templates::Shacl, Templates::Owl, Templates::Shex] {
+            for model in [
+                "tests/data/model.md",
+                "tests/data/model_prefix_hash.md",
+                "tests/data/model_terms_wellknown.md",
+            ] {
+                let rendered = build_and_convert(model, template.clone(), None);
+                let declared = declared_prefixes(&rendered);
+                let unique: std::collections::BTreeSet<&String> = declared.iter().collect();
+
+                assert_eq!(
+                    declared.len(),
+                    unique.len(),
+                    "{template} export of {model} declares a prefix twice: {declared:?}"
+                );
+            }
+        }
+    }
+
+    /// A term may use a well-known vocabulary without declaring it. The
+    /// namespace is unambiguous, so the declaration is injected.
+    #[test]
+    fn test_wellknown_term_prefixes_are_injected() {
+        let rendered =
+            build_and_convert("tests/data/model_terms_wellknown.md", Templates::Owl, None);
+
+        for prefix in [
+            "schema", "dcterms", "skos", "prov", "qudt", "sio", "obo", "foaf",
+        ] {
+            assert!(
+                rendered.contains(&format!("@prefix {prefix}: <")),
+                "well-known prefix '{prefix}' used by a Term was not declared:\n{rendered}"
+            );
+        }
+    }
+
+    /// The object-level term `### Agent (foaf:Agent)` is the case that made
+    /// rdflib throw, because object terms were not considered at all.
+    #[test]
+    fn test_object_level_term_prefix_is_declared() {
+        let rendered =
+            build_and_convert("tests/data/model_terms_wellknown.md", Templates::Owl, None);
+
+        assert!(
+            rendered.contains("foaf:Agent"),
+            "object term missing:\n{rendered}"
+        );
+        assert!(rendered.contains("@prefix foaf: <http://xmlns.com/foaf/0.1/> ."));
+    }
+
+    /// An unknown prefix is reported rather than resolved to an invented
+    /// namespace.
+    /// An unknown prefix must never be assigned a made-up namespace: that would
+    /// silently give the term the wrong meaning.
+    #[test]
+    fn test_unknown_term_prefix_is_reported_not_fabricated() {
+        let mut model = DataModel::new(None, None);
+        let mut object = Object::new("Test".to_string(), None);
+        let mut attribute = Attribute::new("name".to_string(), false);
+        attribute.term = Some("bogusprefix:thing".to_string());
+        object.add_attribute(attribute);
+        model.objects.push(object);
+
+        let (declared, unresolved) = resolve_prefixes(&model);
+
+        assert_eq!(unresolved, vec!["bogusprefix".to_string()]);
+        assert!(
+            !declared.iter().any(|(name, _)| name == "bogusprefix"),
+            "an unknown prefix must not be assigned a fabricated namespace: {declared:?}"
+        );
+    }
+
+    /// The same model must not validate, since the RDF would reference an
+    /// unbound prefix.
+    #[test]
+    fn test_unknown_term_prefix_fails_validation() {
+        let content =
+            fs::read_to_string("tests/data/model_terms_unknown_prefix.md").expect("read fixture");
+        let result = parse_markdown(&content, None);
+
+        let validator = result.expect_err("a model with an unresolvable prefix must not validate");
+        assert!(
+            validator
+                .errors
+                .iter()
+                .any(|e| e.error_type == crate::validation::ErrorType::PrefixError),
+            "expected a PrefixError: {:#?}",
+            validator.errors
+        );
+    }
+
+    /// `https://example.org/bare` is an absolute IRI, not a CURIE. A naive
+    /// `split_once(':')` would report `https` as a prefix and declare it.
+    #[test]
+    fn test_absolute_iri_terms_are_not_treated_as_curies() {
+        let model = build_model("tests/data/model_terms_iri.md");
+        let prefixes = collect_term_prefixes(&model);
+
+        assert!(
+            !prefixes.contains("https"),
+            "the scheme of an absolute IRI must not be read as a CURIE prefix: {prefixes:?}"
+        );
+        assert!(
+            prefixes.contains("schema"),
+            "a real CURIE in the same model must still be collected: {prefixes:?}"
+        );
+    }
+
+    /// Hash namespaces are already delimited. Appending `/` yields
+    /// `…XMLSchema#/`, which resolves every term in that vocabulary wrongly.
+    #[test]
+    fn test_hash_namespaces_are_not_slash_mangled() {
+        let model = build_model("tests/data/model_prefix_hash.md");
+        let (declared, _) = resolve_prefixes(&model);
+        let by_name: HashMap<&str, &str> = declared
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+
+        assert_eq!(by_name.get("qudt"), Some(&"http://qudt.org/schema/qudt#"));
+        assert_eq!(
+            by_name.get("xsd"),
+            Some(&"http://www.w3.org/2001/XMLSchema#")
+        );
+
+        // A namespace with no delimiter is left as written.
+        assert_eq!(by_name.get("slashed"), Some(&"http://example.org/slashed"));
+    }
+
+    /// Each RDF template declares some prefixes inline. Emitting them again from
+    /// the model's prefix map shadows the template's own binding.
+    #[test]
+    fn test_template_builtin_prefixes_are_not_redeclared() {
+        let cases = [
+            (Templates::Owl, vec!["owl", "rdfs", "xsd"]),
+            (Templates::Shacl, vec!["sh", "xsd"]),
+            (Templates::Shex, vec!["xsd"]),
+        ];
+
+        for (template, builtins) in cases {
+            let rendered =
+                build_and_convert("tests/data/model_prefix_hash.md", template.clone(), None);
+            let declared = declared_prefixes(&rendered);
+
+            for builtin in builtins {
+                let count = declared.iter().filter(|name| *name == builtin).count();
+                assert_eq!(
+                    count, 1,
+                    "{template} declares builtin prefix '{builtin}' {count} times \
+                     (frontmatter declares it too): {declared:?}"
+                );
+            }
+        }
+    }
+
+    /// A model that declares its prefixes must not gain a second, injected copy.
+    #[test]
+    fn test_declared_term_prefix_is_not_duplicated() {
+        let rendered = build_and_convert("tests/data/model.md", Templates::Owl, None);
+
+        assert_eq!(
+            rendered.matches("@prefix schema:").count(),
+            1,
+            "schema: is declared in the frontmatter and must not be injected again:\n{rendered}"
+        );
+        assert!(rendered.contains("@prefix schema: <http://schema.org/> ."));
+    }
+
+    /// Enum mappings are emitted as string literals, never as CURIEs, so their
+    /// URI values must not be mined for prefixes.
+    #[test]
+    fn test_enum_uri_values_do_not_create_prefixes() {
+        let rendered = build_and_convert("tests/data/model.md", Templates::Owl, None);
+
+        assert!(!rendered.contains("@prefix https:"));
+        assert!(!rendered.contains("@prefix http:"));
+    }
+
+    //
+    // XML Schema: validation facets and unions
+    //
+    // Facets declared on an attribute were dropped entirely from the XSD while
+    // reaching the JSON Schema, and a multi-typed attribute collapsed onto its
+    // first type. The same instance was therefore accepted by one generated
+    // schema and rejected by the other.
+    //
+
+    #[test]
+    fn test_xsd_emits_inclusive_bounds() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:minInclusive value="0"/>"#),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:maxInclusive value="100"/>"#),
+            "{rendered}"
+        );
+    }
+
+    #[test]
+    fn test_xsd_emits_exclusive_bounds() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:minExclusive value="0"/>"#),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:maxExclusive value="100"/>"#),
+            "{rendered}"
+        );
+    }
+
+    #[test]
+    fn test_xsd_emits_length_and_pattern_facets() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:minLength value="1"/>"#),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:maxLength value="100"/>"#),
+            "{rendered}"
+        );
+        assert!(rendered.contains("<xs:pattern value="), "{rendered}");
+    }
+
+    /// An `xs:pattern` is implicitly anchored and treats `^`/`$` as literal
+    /// characters, so the anchors must be stripped rather than copied across.
+    #[test]
+    fn test_xsd_pattern_anchors_are_stripped() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:pattern value="[a-zA-Z0-9 ]+"/>"#),
+            "XSD patterns are implicitly anchored:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("value=\"^["),
+            "a literal ^ anchor would never match:\n{rendered}"
+        );
+    }
+
+    /// An `xs:pattern` is a full match; a JSON Schema `pattern` is a search.
+    /// Anchors are ordinary characters in XSD, so they cannot be trimmed
+    /// positionally.
+    #[test]
+    fn test_xsd_pattern_translation() {
+        // Fully anchored: the anchors are redundant under full-match semantics.
+        assert_eq!(translate_xsd_pattern("^[a-z]+$").as_deref(), Some("[a-z]+"));
+        // Unanchored is a search, so it has to be widened on both sides.
+        assert_eq!(
+            translate_xsd_pattern("[a-z]+").as_deref(),
+            Some(".*([a-z]+).*")
+        );
+        assert_eq!(
+            translate_xsd_pattern("^[a-z]+").as_deref(),
+            Some("([a-z]+).*")
+        );
+        assert_eq!(
+            translate_xsd_pattern("[a-z]+$").as_deref(),
+            Some(".*([a-z]+)")
+        );
+        assert_eq!(translate_xsd_pattern("^$").as_deref(), Some(""));
+    }
+
+    /// An escaped dollar is a literal, not an anchor.
+    #[test]
+    fn test_xsd_pattern_respects_escaped_anchors() {
+        assert_eq!(
+            translate_xsd_pattern(r"^\d+\$").as_deref(),
+            Some(r"(\d+\$).*"),
+            "an escaped $ must not be treated as an end anchor"
+        );
+    }
+
+    /// Trimming positionally turned `^a$|^b$` into `a$|^b`, which matches
+    /// neither `a` nor `b` and does match the literal `a$`.
+    #[test]
+    fn test_xsd_pattern_rejects_internal_anchors() {
+        assert_eq!(translate_xsd_pattern("^a$|^b$"), None);
+        assert_eq!(translate_xsd_pattern("^(a$|b)$"), None);
+    }
+
+    #[test]
+    fn test_xsd_pattern_rejects_pcre_only_constructs() {
+        for pattern in [
+            "(?i)^abc$",
+            "^(?=.*[0-9]).+$",
+            r"^\bword\b$",
+            "^(?!x).*$",
+            r"^\Aabc\z$",
+        ] {
+            assert_eq!(
+                translate_xsd_pattern(pattern),
+                None,
+                "{pattern} is not expressible in XSD"
+            );
+        }
+    }
+
+    /// Facets that are illegal on the base type make the whole schema fail to
+    /// compile, so they must be dropped rather than emitted.
+    #[test]
+    fn test_xsd_drops_facets_illegal_for_the_base_type() {
+        let rendered = build_and_convert(
+            "tests/data/model_xsd_basetypes.md",
+            Templates::XmlSchema,
+            None,
+        );
+
+        assert!(
+            rendered.contains(r#"<xs:element name="stringy" type="xs:string" minOccurs="0"/>"#),
+            "a numeric bound on a string must be dropped:\n{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:element name="numeric" type="xs:integer" minOccurs="0"/>"#),
+            "a length facet on a number must be dropped:\n{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:element name="reference" type="ChildType" minOccurs="0"/>"#),
+            "an object reference is a complexType and admits no facets:\n{rendered}"
+        );
+    }
+
+    /// An element carrying an inline simpleType must not also carry `type=`;
+    /// XSD 1.0 forbids the combination.
+    #[test]
+    fn test_xsd_inline_simple_type_has_no_type_attribute() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        for line in rendered.lines() {
+            if line.contains("<xs:element name=\"bounded\"")
+                || line.contains("<xs:element name=\"union\"")
+            {
+                assert!(
+                    !line.contains("type="),
+                    "element with an inline simpleType must not declare type=: {line}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_xsd_emits_union_member_types() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:union memberTypes="xs:string xs:integer xs:boolean"/>"#),
+            "{rendered}"
+        );
+    }
+
+    /// A union that is also an array keeps both the union and the cardinality.
+    #[test]
+    fn test_xsd_union_array_keeps_cardinality() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered
+                .contains(r#"<xs:element name="unionarray" minOccurs="0" maxOccurs="unbounded">"#),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:union memberTypes="xs:string xs:float"/>"#),
+            "{rendered}"
+        );
+    }
+
+    /// Facets on an array attribute belong on the item type, and the
+    /// cardinality stays on the element.
+    #[test]
+    fn test_xsd_facets_on_array_attribute() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:element name="tagged" minOccurs="0" maxOccurs="unbounded">"#),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:minLength value="2"/>"#),
+            "{rendered}"
+        );
+    }
+
+    /// An optional attribute must not become a required element: an xs:element
+    /// defaults to minOccurs="1".
+    #[test]
+    fn test_xsd_optional_attributes_get_min_occurs_zero() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered.contains(r#"<xs:element name="exclusive" minOccurs="0">"#),
+            "optional attributes must be optional in the XSD too:\n{rendered}"
+        );
+        assert!(
+            rendered.contains(r#"<xs:element name="bounded">"#),
+            "a required attribute must stay required:\n{rendered}"
+        );
+    }
+
+    /// Options XSD cannot express must leave a plain typed element rather than
+    /// an empty restriction.
+    #[test]
+    fn test_xsd_unsupported_options_fall_back_to_plain_type() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+
+        assert!(
+            rendered
+                .contains(r#"<xs:element name="unsupported" type="xs:integer" minOccurs="0"/>"#),
+            "{rendered}"
+        );
+    }
+
+    /// The generated schema must compile. Skipped when xmllint is unavailable.
+    #[test]
+    fn test_xsd_schema_compiles() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::XmlSchema, None);
+        let dir = std::path::Path::new("tests/intermediates/xsd");
+        fs::create_dir_all(dir).expect("could not create intermediates directory");
+        let schema = dir.join("facets.xsd");
+        fs::write(&schema, &rendered).expect("could not write schema");
+
+        let instance = dir.join("facets.xml");
+        fs::write(
+            &instance,
+            r#"<?xml version="1.0"?><Facets><bounded>50</bounded></Facets>"#,
+        )
+        .expect("could not write instance");
+
+        let output = match std::process::Command::new("xmllint")
+            .arg("--noout")
+            .arg("--schema")
+            .arg(&schema)
+            .arg(&instance)
+            .output()
+        {
+            Ok(output) => output,
+            // xmllint is not installed on this machine; the assertions above
+            // still cover the structure of the emitted schema.
+            Err(_) => return,
+        };
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            !stderr.contains("failed to compile"),
+            "generated XSD does not compile:\n{stderr}\n{rendered}"
+        );
+        assert!(
+            output.status.success(),
+            "valid instance rejected by generated XSD:\n{stderr}"
+        );
+    }
+
+    //
+    // Protobuf scalar types
+    //
+    // The type macro tested for `int` and `bool`, but the canonical MD-Models
+    // primitives are `integer` and `boolean`; `number` and `date` were not
+    // handled at all. Four of the seven primitives fell through to a
+    // passthrough arm and emitted type names protoc does not define, so the
+    // generated file did not compile.
+    //
+
+    #[test]
+    fn test_protobuf_maps_every_primitive_to_a_valid_scalar() {
+        let rendered =
+            build_and_convert("tests/data/model_primitives.md", Templates::Protobuf, None);
+
+        let expected = [
+            ("s", "string"),
+            ("i", "int32"),
+            ("f", "double"),
+            ("n", "double"),
+            ("b", "bool"),
+            ("by", "bytes"),
+            ("d", "string"),
+        ];
+
+        for (field, scalar) in expected {
+            assert!(
+                rendered.contains(&format!("{scalar} {field} = ")),
+                "field '{field}' should have proto type '{scalar}':\n{rendered}"
+            );
+        }
+    }
+
+    /// The invalid spellings must not appear anywhere as a field type.
+    #[test]
+    fn test_protobuf_emits_no_invalid_scalars() {
+        let rendered =
+            build_and_convert("tests/data/model_primitives.md", Templates::Protobuf, None);
+
+        for invalid in ["integer ", "boolean ", "number ", "date "] {
+            assert!(
+                !rendered.contains(&format!("optional {invalid}")),
+                "'{invalid}' is not a protobuf scalar:\n{rendered}"
+            );
+        }
+    }
+
+    /// A multi-typed attribute becomes a wrapped `oneof`, whose members must
+    /// also be valid scalars.
+    #[test]
+    fn test_protobuf_oneof_members_are_valid_scalars() {
+        let rendered =
+            build_and_convert("tests/data/model_xsd_facets.md", Templates::Protobuf, None);
+
+        assert!(rendered.contains("message OneOfUnion {"), "{rendered}");
+        assert!(rendered.contains("string string_value = "), "{rendered}");
+        assert!(rendered.contains("int32 integer_value = "), "{rendered}");
+        assert!(rendered.contains("bool boolean_value = "), "{rendered}");
+        assert!(
+            !rendered.contains("boolean boolean_value"),
+            "the oneof must use the proto scalar name:\n{rendered}"
+        );
+    }
+
+    /// The generated file must compile. Skipped when protoc is unavailable.
+    #[test]
+    fn test_protobuf_compiles() {
+        for fixture in [
+            "tests/data/model_primitives.md",
+            "tests/data/model_recursive.md",
+            "tests/data/model_xsd_facets.md",
+        ] {
+            let rendered = build_and_convert(fixture, Templates::Protobuf, None);
+            let dir = std::path::Path::new("tests/intermediates/protobuf");
+            fs::create_dir_all(dir).expect("could not create intermediates directory");
+
+            let name = std::path::Path::new(fixture)
+                .file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap();
+            let proto = dir.join(format!("{name}.proto"));
+            fs::write(&proto, &rendered).expect("could not write proto");
+
+            let output = match std::process::Command::new("protoc")
+                .arg(format!("--proto_path={}", dir.display()))
+                .arg("--descriptor_set_out=/dev/null")
+                .arg(&proto)
+                .output()
+            {
+                Ok(output) => output,
+                // protoc is not installed; the assertions above still pin the
+                // emitted scalar names.
+                Err(_) => return,
+            };
+
+            assert!(
+                output.status.success(),
+                "protoc rejected the output for {fixture}:\n{}\n{rendered}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+    }
     #[test]
     fn test_string_defaults_keep_their_text() {
         let pydantic = build_and_convert(

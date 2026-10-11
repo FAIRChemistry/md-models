@@ -56,8 +56,8 @@ use crate::{
 };
 
 use super::schema::{
-    AttributeDefinition, ClassDefinition, EnumDefinition, Example, LinkML, PermissibleValue,
-    SlotUsage,
+    AnyOfRange, AttributeDefinition, ClassDefinition, EnumDefinition, Example, LinkML,
+    PermissibleValue, SlotUsage,
 };
 
 /// Serializes a DataModel to LinkML YAML format and writes it to a file.
@@ -106,10 +106,11 @@ impl From<DataModel> for LinkML {
         let id = &config.prefix;
         let prefixes: IndexMap<String, String> =
             config.prefixes.unwrap_or_default().into_iter().collect();
-        let name = model
+        let title = model
             .name
             .clone()
             .unwrap_or("Unnamed Data Model".to_string());
+        let name = to_ncname(&title);
 
         // Classes - ensure sorting by collecting into a BTreeMap
         let mut classes: IndexMap<String, ClassDefinition> = IndexMap::from_iter(
@@ -118,6 +119,21 @@ impl From<DataModel> for LinkML {
                 .iter()
                 .map(|c| (c.name.clone(), c.clone().into())),
         );
+
+        // The `Any` escape hatch is only declared when something uses it, so a
+        // model without unions is unchanged.
+        if has_union_attribute(&model) && !classes.contains_key(ANY_CLASS) {
+            classes.insert(
+                ANY_CLASS.to_string(),
+                ClassDefinition {
+                    description: Some(
+                        "Placeholder range for slots that accept more than one type.".to_string(),
+                    ),
+                    class_uri: Some("linkml:Any".to_string()),
+                    ..Default::default()
+                },
+            );
+        }
 
         // Extract slots and update classes
         let slots = extract_slots(&model);
@@ -146,8 +162,8 @@ impl From<DataModel> for LinkML {
 
         Self {
             id: id.clone(),
-            name: name.clone(),
-            title: name,
+            name,
+            title,
             description: None,
             license: None,
             see_also: Vec::new(),
@@ -316,25 +332,118 @@ impl From<Attribute> for AttributeDefinition {
             })
             .collect::<Vec<_>>();
 
+        // A multi-typed attribute has no single range. LinkML conjoins
+        // `any_of` with the schema's `default_range`, so the union also needs
+        // `range: Any` to widen the base and let the alternatives decide.
+        let is_union = attribute.dtypes.len() > 1;
+        let any_of = if is_union {
+            attribute
+                .dtypes
+                .iter()
+                .map(|dtype| AnyOfRange {
+                    range: dtype.clone(),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
         AttributeDefinition {
             slot_uri: attribute.term,
             multivalued: Some(attribute.is_array),
-            range: if attribute.dtypes[0] == "string" {
+            range: if is_union {
+                Some(ANY_CLASS.to_string())
+            } else if attribute.dtypes[0] == "string" {
                 None
             } else {
                 Some(attribute.dtypes[0].clone())
             },
+            any_of,
             description: Some(attribute.docstring),
             identifier: Some(attribute.is_id),
             required: Some(attribute.required),
             readonly: None,
-            minimum_value: minimum_value.map(|v| v.value().parse::<i64>().unwrap()),
-            maximum_value: maximum_value.map(|v| v.value().parse::<i64>().unwrap()),
+            minimum_value: minimum_value.and_then(|v| to_json_number(&v.value())),
+            maximum_value: maximum_value.and_then(|v| to_json_number(&v.value())),
             recommended: None,
             examples: example,
             annotations: None,
         }
     }
+}
+
+/// Whether a value can be used where LinkML expects a URI or a CURIE.
+fn is_uri_or_curie(value: &str) -> bool {
+    let value = value.trim();
+    if value.is_empty() || value.contains(char::is_whitespace) {
+        return false;
+    }
+
+    match value.split_once(':') {
+        Some((prefix, rest)) => {
+            !rest.is_empty()
+                && !prefix.is_empty()
+                && prefix
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+        }
+        None => false,
+    }
+}
+
+/// Name of the LinkML class used as the range of a union-typed slot.
+///
+/// LinkML has no union range. The idiom is a class whose `class_uri` is
+/// `linkml:Any`, which imposes no constraint of its own and lets the `any_of`
+/// alternatives decide.
+pub(crate) const ANY_CLASS: &str = "Any";
+
+/// Whether any attribute in the model is multi-typed.
+fn has_union_attribute(model: &DataModel) -> bool {
+    model
+        .objects
+        .iter()
+        .any(|object| object.attributes.iter().any(|a| a.dtypes.len() > 1))
+}
+
+/// Converts a model title into a valid XML NCName. LinkML constrains a
+/// schema's `name` to an NCName, while `title` is free text.
+fn to_ncname(name: &str) -> String {
+    let mut ncname = String::new();
+    let mut previous_was_separator = false;
+
+    for character in name.chars() {
+        if character.is_alphanumeric() || character == '_' || character == '-' || character == '.' {
+            ncname.push(character);
+            previous_was_separator = false;
+        } else if !ncname.is_empty() && !previous_was_separator {
+            ncname.push('_');
+            previous_was_separator = true;
+        }
+    }
+
+    while ncname.ends_with('_') {
+        ncname.pop();
+    }
+
+    // An NCName may not start with a digit, a dot or a hyphen.
+    match ncname.chars().next() {
+        Some(first) if first.is_alphabetic() || first == '_' => ncname,
+        Some(_) => format!("_{ncname}"),
+        None => "unnamed_data_model".to_string(),
+    }
+}
+
+/// Parses an option value into a JSON number, preserving integers as integers.
+fn to_json_number(value: &str) -> Option<serde_json::Number> {
+    if let Ok(integer) = value.parse::<i64>() {
+        return Some(serde_json::Number::from(integer));
+    }
+
+    value
+        .parse::<f64>()
+        .ok()
+        .and_then(serde_json::Number::from_f64)
 }
 
 /// Implements conversion from Enumeration to LinkML EnumDefinition.
@@ -354,7 +463,11 @@ impl From<Enumeration> for EnumDefinition {
                 PermissibleValue {
                     text: None,
                     description: Some(value.clone()),
-                    meaning: Some(value.clone()),
+                    // `meaning` must be a URI or a CURIE. An enumeration whose
+                    // values are plain labels — the common case — otherwise
+                    // yields a schema reference tooling rejects with
+                    // "… is not a valid URI or CURIE".
+                    meaning: is_uri_or_curie(value).then(|| value.clone()),
                 },
             );
         }
@@ -444,8 +557,267 @@ mod tests {
         assert_eq!(enum_def.permissible_values.len(), 2);
         assert!(enum_def.permissible_values.contains_key("KEY1"));
         assert_eq!(
-            enum_def.permissible_values["KEY1"].meaning,
+            enum_def.permissible_values["KEY1"].description,
             Some("value1".to_string())
+        );
+        // `meaning` must be a URI or CURIE; a plain label is not one, and
+        // emitting it produces a schema LinkML refuses to load.
+        assert_eq!(enum_def.permissible_values["KEY1"].meaning, None);
+    }
+
+    /// A URI or CURIE value *is* a meaning and must be carried across.
+    #[test]
+    fn test_enum_uri_values_become_meanings() {
+        let enum_ = Enumeration {
+            mappings: BTreeMap::from([
+                (
+                    "GO".to_string(),
+                    "https://amigo.geneontology.org/amigo/term/".to_string(),
+                ),
+                ("SCHEMA".to_string(), "schema:Thing".to_string()),
+                ("PLAIN".to_string(), "Something other".to_string()),
+            ]),
+            ..Default::default()
+        };
+
+        let enum_def: EnumDefinition = enum_.into();
+
+        assert_eq!(
+            enum_def.permissible_values["GO"].meaning,
+            Some("https://amigo.geneontology.org/amigo/term/".to_string())
+        );
+        assert_eq!(
+            enum_def.permissible_values["SCHEMA"].meaning,
+            Some("schema:Thing".to_string())
+        );
+        assert_eq!(
+            enum_def.permissible_values["PLAIN"].meaning, None,
+            "a label containing whitespace is not a CURIE"
+        );
+    }
+
+    #[test]
+    fn test_is_uri_or_curie() {
+        assert!(is_uri_or_curie("https://example.org/x"));
+        assert!(is_uri_or_curie("schema:Thing"));
+        assert!(is_uri_or_curie("urn:uuid:1234"));
+        assert!(!is_uri_or_curie("Something other"));
+        assert!(!is_uri_or_curie("plain"));
+        assert!(!is_uri_or_curie(""));
+        assert!(!is_uri_or_curie("no colon here"));
+        assert!(!is_uri_or_curie(":missingprefix"));
+        assert!(!is_uri_or_curie("trailing:"));
+    }
+
+    //
+    // A LinkML schema `name` must be an NCName; `title` is free text. Emitting
+    // the title as the name produced schemas that reference tooling rejects.
+    //
+
+    #[test]
+    fn test_to_ncname_sanitises_titles() {
+        let cases = [
+            ("My Test Model", "My_Test_Model"),
+            ("Unnamed Data Model", "Unnamed_Data_Model"),
+            ("AlreadyValid_Name-1.2", "AlreadyValid_Name-1.2"),
+            ("Model (v1.0): draft!", "Model_v1.0_draft"),
+            ("2024 Model", "_2024_Model"),
+            ("-leading-hyphen", "_-leading-hyphen"),
+            ("   ", "unnamed_data_model"),
+            ("", "unnamed_data_model"),
+            ("!!!", "unnamed_data_model"),
+            ("Modele d'essai", "Modele_d_essai"),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(to_ncname(input), expected, "sanitising {input:?}");
+        }
+    }
+
+    /// Every sanitised name must satisfy the NCName production.
+    #[test]
+    fn test_ncname_output_is_always_valid() {
+        let inputs = [
+            "My Test Model",
+            "2024 Model",
+            "Model (v1.0): draft!",
+            "",
+            "   ",
+            "!!!",
+            "a b  c",
+        ];
+
+        for input in inputs {
+            let ncname = to_ncname(input);
+            let mut chars = ncname.chars();
+            let first = chars.next().expect("NCName must not be empty");
+
+            assert!(
+                first.is_alphabetic() || first == '_',
+                "NCName {ncname:?} must start with a letter or underscore"
+            );
+            assert!(
+                chars.all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.'),
+                "NCName {ncname:?} contains an illegal character"
+            );
+            assert!(
+                !ncname.contains(char::is_whitespace),
+                "NCName {ncname:?} must not contain whitespace"
+            );
+        }
+    }
+
+    #[test]
+    fn test_schema_name_is_ncname_and_title_is_preserved() {
+        let mut model = DataModel::new(None, None);
+        model.name = Some("My Test Model".to_string());
+
+        let linkml: LinkML = model.into();
+
+        assert_eq!(linkml.name, "My_Test_Model");
+        assert_eq!(linkml.title, "My Test Model");
+    }
+
+    /// A model with no title heading falls back to a sanitised default.
+    #[test]
+    fn test_default_schema_name_is_ncname() {
+        let model = DataModel::new(None, None);
+        let linkml: LinkML = model.into();
+
+        assert_eq!(linkml.name, "Unnamed_Data_Model");
+        assert_eq!(linkml.title, "Unnamed Data Model");
+    }
+
+    //
+    // Multi-typed attributes must keep their alternatives. Emitting no range at
+    //
+
+    /// Builds an attribute with the given data types.
+    fn attribute_with_dtypes(dtypes: &[&str], is_array: bool) -> Attribute {
+        let mut attribute = Attribute::new("value".to_string(), false);
+        attribute.dtypes = dtypes.iter().map(|d| d.to_string()).collect();
+        attribute.is_array = is_array;
+        attribute
+    }
+
+    #[test]
+    fn test_multityped_attribute_emits_any_of() {
+        let definition: AttributeDefinition =
+            attribute_with_dtypes(&["string", "float", "boolean"], false).into();
+
+        assert_eq!(
+            definition.range,
+            Some(ANY_CLASS.to_string()),
+            "a union widens its range so any_of decides"
+        );
+        assert_eq!(
+            definition.any_of,
+            vec![
+                AnyOfRange {
+                    range: "string".to_string()
+                },
+                AnyOfRange {
+                    range: "float".to_string()
+                },
+                AnyOfRange {
+                    range: "boolean".to_string()
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn test_multityped_array_keeps_multivalued() {
+        let definition: AttributeDefinition =
+            attribute_with_dtypes(&["string", "float"], true).into();
+
+        assert_eq!(definition.multivalued, Some(true));
+        assert_eq!(definition.any_of.len(), 2);
+        assert_eq!(definition.range, Some(ANY_CLASS.to_string()));
+    }
+
+    #[test]
+    fn test_multityped_with_object_reference() {
+        let definition: AttributeDefinition =
+            attribute_with_dtypes(&["string", "Other"], false).into();
+
+        assert_eq!(
+            definition.any_of,
+            vec![
+                AnyOfRange {
+                    range: "string".to_string()
+                },
+                AnyOfRange {
+                    range: "Other".to_string()
+                },
+            ]
+        );
+    }
+
+    /// Single-typed attributes must not gain an `any_of`.
+    #[test]
+    fn test_single_typed_attribute_has_no_any_of() {
+        let string_attr: AttributeDefinition = attribute_with_dtypes(&["string"], false).into();
+        assert!(string_attr.any_of.is_empty());
+        assert_eq!(string_attr.range, None, "string relies on default_range");
+
+        let float_attr: AttributeDefinition = attribute_with_dtypes(&["float"], false).into();
+        assert!(float_attr.any_of.is_empty());
+        assert_eq!(float_attr.range, Some("float".to_string()));
+    }
+
+    //
+    // Numeric bounds
+    //
+
+    /// A fractional bound on a float attribute must be representable.
+    #[test]
+    fn test_fractional_bounds_do_not_panic() {
+        let mut attribute = attribute_with_dtypes(&["float"], false);
+        attribute.options.push(AttrOption::MinimumValue(0.5));
+        attribute.options.push(AttrOption::MaximumValue(99.9));
+
+        let definition: AttributeDefinition = attribute.into();
+
+        assert_eq!(
+            definition.minimum_value.map(|n| n.to_string()),
+            Some("0.5".to_string())
+        );
+        assert_eq!(
+            definition.maximum_value.map(|n| n.to_string()),
+            Some("99.9".to_string())
+        );
+    }
+
+    /// Whole numbers must stay integers rather than becoming `0.0`.
+    #[test]
+    fn test_integral_bounds_stay_integral() {
+        let mut attribute = attribute_with_dtypes(&["integer"], false);
+        attribute.options.push(AttrOption::MinimumValue(0.0));
+        attribute.options.push(AttrOption::MaximumValue(100.0));
+
+        let definition: AttributeDefinition = attribute.into();
+
+        assert_eq!(
+            definition.minimum_value.map(|n| n.to_string()),
+            Some("0".to_string())
+        );
+        assert_eq!(
+            definition.maximum_value.map(|n| n.to_string()),
+            Some("100".to_string())
+        );
+    }
+
+    #[test]
+    fn test_negative_bounds_are_preserved() {
+        let mut attribute = attribute_with_dtypes(&["float"], false);
+        attribute.options.push(AttrOption::MinimumValue(-273.15));
+
+        let definition: AttributeDefinition = attribute.into();
+
+        assert_eq!(
+            definition.minimum_value.map(|n| n.to_string()),
+            Some("-273.15".to_string())
         );
     }
 }

@@ -22,7 +22,6 @@
  */
 
 use colored::Colorize;
-use core::panic;
 use lazy_static::lazy_static;
 use log::error;
 use std::collections::{BTreeMap, HashMap};
@@ -36,7 +35,7 @@ use crate::attribute;
 use crate::datamodel::DataModel;
 use crate::object::{self, type_name, Enumeration, Object};
 use crate::option::RawOption;
-use crate::validation::Validator;
+use crate::validation::{ErrorType, ValidationError, Validator};
 
 use super::frontmatter::{parse_frontmatter, FrontMatter, ImportType};
 use super::position::{Position, PositionRange};
@@ -78,6 +77,24 @@ const H3: Tag = Tag::Heading {
 
 const H3_END: TagEnd = TagEnd::Heading(HeadingLevel::H3);
 
+/// Mutable state carried through the object-parsing pass. `pending_heading`
+/// holds the most recent heading that cannot open an object.
+struct ParserContext {
+    state: ParserState,
+    errors: Vec<ValidationError>,
+    pending_heading: Option<(usize, String, Position)>,
+}
+
+impl Default for ParserContext {
+    fn default() -> Self {
+        Self {
+            state: ParserState::OutsideDefinition,
+            errors: Vec::new(),
+            pending_heading: None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 enum ParserState {
     InDefinition,
@@ -100,12 +117,14 @@ pub fn parse_markdown(content: &str, path: Option<&Path>) -> Result<DataModel, V
     let line_offsets = create_line_offsets(&content);
 
     let mut model = DataModel::new(None, Some(config.clone()));
-    let (objects, enums) = parse_model_components(&content, &line_offsets, &mut model);
+    let mut context = ParserContext::default();
+    let (objects, enums) =
+        parse_model_components(&content, &line_offsets, &mut model, &mut context);
 
-    process_model_components(&mut model, objects, enums, &config);
-    merge_imports(&mut model, config.imports, path);
+    process_model_components(&mut model, objects, enums, &config, &mut context.errors);
+    merge_imports(&mut model, config.imports, path, &mut context.errors);
 
-    validate_model(&model)?;
+    validate_model(&model, context.errors)?;
     Ok(model)
 }
 
@@ -137,6 +156,7 @@ fn parse_model_components(
     content: &str,
     line_offsets: &[usize],
     model: &mut DataModel,
+    context: &mut ParserContext,
 ) -> (Vec<Object>, Vec<Enumeration>) {
     let mut objects = Vec::new();
     let mut enums = Vec::new();
@@ -145,7 +165,6 @@ fn parse_model_components(
     let mut options = Options::empty();
     options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
     let mut iterator = Parser::new_ext(content, options).into_offset_iter();
-    let mut state = ParserState::OutsideDefinition;
 
     while let Some(event) = iterator.next() {
         process_object_event(
@@ -154,8 +173,8 @@ fn parse_model_components(
             &mut objects,
             event,
             model,
-            &mut state,
             line_offsets,
+            context,
         );
     }
 
@@ -186,6 +205,7 @@ fn process_model_components(
     objects: Vec<Object>,
     enums: Vec<Enumeration>,
     config: &FrontMatter,
+    errors: &mut Vec<ValidationError>,
 ) {
     let allow_empty = &config.allow_empty;
 
@@ -203,8 +223,17 @@ fn process_model_components(
         .collect();
 
     set_enum_attributes(model);
-    add_internal_types(model);
-    add_mixin_types(model).expect("Failed to add mixin types");
+    add_internal_types(model, errors);
+    if let Err(error) = add_mixin_types(model) {
+        errors.push(syntax_error(
+            &format!("Could not apply inheritance: {error}"),
+            "Check that every name in a '[Mixin]' heading refers to an object in this model.",
+            ErrorType::ObjectError,
+            None,
+            None,
+            Vec::new(),
+        ));
+    }
 }
 
 /// Merges imported models into the main model.
@@ -213,10 +242,38 @@ fn process_model_components(
 /// * `model` - Mutable reference to the data model
 /// * `imports` - The imports configuration
 /// * `path` - Optional path to the markdown file
-fn merge_imports(model: &mut DataModel, imports: HashMap<String, ImportType>, path: Option<&Path>) {
-    for (_prefix, import) in imports {
-        let model_to_merge = import.fetch(path).unwrap();
-        model.merge(&model_to_merge);
+fn merge_imports(
+    model: &mut DataModel,
+    imports: HashMap<String, ImportType>,
+    path: Option<&Path>,
+    errors: &mut Vec<ValidationError>,
+) {
+    for (prefix, import) in imports {
+        match import.fetch(path) {
+            Ok(model_to_merge) => {
+                if let Err(conflicts) = model.merge(&model_to_merge) {
+                    errors.push(syntax_error(
+                        &format!(
+                            "The import '{prefix}' redefines {} with a different shape.",
+                            conflicts.join(", ")
+                        ),
+                        "Rename the conflicting definitions, or remove the import.",
+                        ErrorType::DuplicateError,
+                        None,
+                        None,
+                        Vec::new(),
+                    ));
+                }
+            }
+            Err(error) => errors.push(syntax_error(
+                &format!("Could not read the import '{prefix}': {error}"),
+                "Check the path or URL given under the frontmatter 'imports' key.",
+                ErrorType::GlobalError,
+                None,
+                None,
+                Vec::new(),
+            )),
+        }
     }
 }
 
@@ -228,9 +285,18 @@ fn merge_imports(model: &mut DataModel, imports: HashMap<String, ImportType>, pa
 /// # Returns
 /// * `Result<(), Validator>` - Ok if valid, Err with validator if invalid
 #[allow(clippy::result_large_err)]
-pub(crate) fn validate_model(model: &DataModel) -> Result<(), Validator> {
+pub(crate) fn validate_model(
+    model: &DataModel,
+    parse_errors: Vec<ValidationError>,
+) -> Result<(), Validator> {
     let mut validator = Validator::new();
     validator.validate(model);
+
+    // `Validator::validate` clears its error list, so diagnostics collected
+    // during parsing have to be added after it has run.
+    for error in parse_errors {
+        validator.add_error(error);
+    }
 
     if !validator.is_valid {
         return Err(validator);
@@ -312,53 +378,248 @@ fn process_object_event(
     objects: &mut Vec<Object>,
     event: (Event, std::ops::Range<usize>),
     model: &mut DataModel,
-    state: &mut ParserState,
     line_offsets: &[usize],
+    context: &mut ParserContext,
 ) {
     let (event, range) = event;
 
     match event {
+        // A level-1 heading names the model, so the prose and lists that follow
+        // it are the model's preamble rather than a misplaced object.
         Event::Start(tag) if tag == H1 => {
             handle_h1_event(iterator, model);
+            context.state = ParserState::OutsideDefinition;
+            context.pending_heading = None;
         }
         Event::Start(tag) if tag == H2 => {
-            *state = ParserState::OutsideDefinition;
+            context.state = ParserState::OutsideDefinition;
+            context.pending_heading = Some((
+                2,
+                heading_text(content, &range),
+                get_position(content, line_offsets, range.start, range.end),
+            ));
         }
         Event::Start(tag) if tag == H3 => {
-            handle_h3_start(content, iterator, objects, state, line_offsets, range);
+            context.pending_heading = None;
+            handle_h3_start(content, iterator, objects, line_offsets, range, context);
         }
         Event::End(tag) if tag == H3_END => {
-            *state = ParserState::InDefinition;
+            context.state = ParserState::InDefinition;
+        }
+        // Only a level-3 heading opens an object. Headings below that level were
+        // not handled at all, so their attribute lists were appended to whatever
+        // object was open, while a list under a level-1 or level-2 heading was
+        // dropped. Both are recorded so the model reports the problem.
+        Event::Start(Tag::Heading { level, .. })
+            if matches!(
+                level,
+                HeadingLevel::H4 | HeadingLevel::H5 | HeadingLevel::H6
+            ) =>
+        {
+            context.state = ParserState::OutsideDefinition;
+            context.pending_heading = Some((
+                heading_level_number(level),
+                heading_text(content, &range),
+                get_position(content, line_offsets, range.start, range.end),
+            ));
         }
         Event::Text(CowStr::Borrowed(text)) if text.starts_with(":") => {
             handle_type_annotation(objects, text);
         }
         Event::Text(CowStr::Borrowed("[")) => {
-            if *state == ParserState::InHeading {
-                handle_mixin(objects, iterator);
+            if context.state == ParserState::InHeading {
+                handle_mixin(objects, iterator, context);
             }
         }
         Event::Start(Tag::List(None)) => {
-            if *state == ParserState::OutsideDefinition {
+            if context.state == ParserState::OutsideDefinition {
+                // The heading stays pending until a heading that can open an
+                // object replaces it, so a narrative list before the real
+                // attribute list does not consume the check.
+                if looks_like_attribute_list(content, &range) {
+                    if let Some((level, name, position)) = context.pending_heading.take() {
+                        context
+                            .errors
+                            .push(misplaced_object_error(level, &name, position));
+                    }
+                }
                 return;
             }
 
-            handle_list_start(content, iterator, objects, line_offsets, range);
+            handle_list_start(content, iterator, objects, line_offsets, range, context);
         }
         Event::Start(Tag::Item) => {
-            if *state == ParserState::OutsideDefinition {
+            if context.state == ParserState::OutsideDefinition {
                 return;
             }
 
-            handle_list_item(content, iterator, objects, line_offsets, range);
+            handle_list_item(content, iterator, objects, line_offsets, range, context);
         }
         Event::Text(text) if text.to_string() == "]" => {
             handle_array_marker(objects);
         }
-        Event::Text(text) if *state == ParserState::InDefinition => {
+        Event::Text(text) if context.state == ParserState::InDefinition => {
             handle_docstring(objects, text);
         }
         _ => {}
+    }
+}
+
+/// Builds a parse-time diagnostic naming the construct and its line.
+fn syntax_error(
+    message: &str,
+    solution: &str,
+    error_type: ErrorType,
+    object: Option<String>,
+    attribute: Option<String>,
+    positions: Vec<Position>,
+) -> ValidationError {
+    ValidationError {
+        message: message.to_string(),
+        object,
+        attribute,
+        location: "Global".into(),
+        error_type,
+        solution: Some(solution.to_string()),
+        positions,
+    }
+}
+
+/// Numeric level of a heading, for diagnostics.
+fn heading_level_number(level: HeadingLevel) -> usize {
+    match level {
+        HeadingLevel::H1 => 1,
+        HeadingLevel::H2 => 2,
+        HeadingLevel::H3 => 3,
+        HeadingLevel::H4 => 4,
+        HeadingLevel::H5 => 5,
+        HeadingLevel::H6 => 6,
+    }
+}
+
+/// Reads a heading's text straight from the source.
+fn heading_text(content: &str, range: &std::ops::Range<usize>) -> String {
+    content
+        .get(range.clone())
+        .unwrap_or_default()
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .trim_start_matches('#')
+        .trim()
+        .to_string()
+}
+
+lazy_static! {
+    /// Matches a sub-item that declares one of the attribute option keys, which
+    /// is what distinguishes an object definition from a narrative bullet list.
+    static ref ATTRIBUTE_OPTION_KEY: Regex = Regex::new(
+        r"(?im)^\s*[-*+]\s*(type|term|description|xml|default|multiple|pattern|regex|minimum|maximum)\s*:"
+    )
+    .unwrap();
+}
+
+/// Decides whether a bullet list is an attempted object definition.
+///
+/// The test is structural rather than keyword-based, so narrative prose does
+/// not match: either an item whose text is a plausible attribute name carrying
+/// an indented option, or a shorthand `name: Type` with single-token sides.
+fn looks_like_attribute_list(content: &str, range: &std::ops::Range<usize>) -> bool {
+    let raw = content.get(range.clone()).unwrap_or_default();
+
+    // Fenced code inside a list item is an example, not a declaration.
+    let mut in_fence = false;
+    let lines: Vec<&str> = raw
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim_start();
+            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+                in_fence = !in_fence;
+                return false;
+            }
+            !in_fence
+        })
+        .collect();
+
+    let base_indent = lines
+        .iter()
+        .find(|line| !line.trim().is_empty())
+        .map(|line| line.len() - line.trim_start().len());
+    let Some(base_indent) = base_indent else {
+        return false;
+    };
+
+    let mut item_is_candidate_name = false;
+    for line in lines {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let indent = line.len() - line.trim_start().len();
+        let Some(text) = strip_list_marker(line.trim_start()) else {
+            continue;
+        };
+
+        if indent <= base_indent {
+            // A new top-level item: either a shorthand declaration on its own,
+            // or a name whose options follow underneath.
+            if is_shorthand_attribute(text) {
+                return true;
+            }
+            item_is_candidate_name = is_attribute_name(text);
+        } else if item_is_candidate_name && ATTRIBUTE_OPTION_KEY.is_match(line) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Whether the text could be an attribute name: one token, optionally emboldened.
+fn is_attribute_name(text: &str) -> bool {
+    let name = text
+        .trim()
+        .trim_matches('*')
+        .trim_matches('_')
+        .trim_end_matches(':');
+    !name.is_empty()
+        && !name.contains(char::is_whitespace)
+        && name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+}
+
+/// Whether the text is a shorthand declaration, `name: Type`.
+fn is_shorthand_attribute(text: &str) -> bool {
+    let Some((name, dtype)) = text.split_once(':') else {
+        return false;
+    };
+    let dtype = dtype.trim().trim_end_matches("[]");
+    is_attribute_name(name)
+        && !dtype.is_empty()
+        && !dtype.contains(char::is_whitespace)
+        && dtype
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+}
+
+/// Builds the diagnostic for an object defined at the wrong heading level.
+fn misplaced_object_error(level: usize, name: &str, position: Position) -> ValidationError {
+    ValidationError {
+        message: format!(
+            "'{name}' looks like an object definition but is written as a level-{level} heading, \
+             so it is not part of the model."
+        ),
+        object: Some(name.to_string()),
+        attribute: None,
+        location: "Global".into(),
+        error_type: ErrorType::ObjectError,
+        solution: Some(format!(
+            "Objects are declared with a level-3 heading. Write '### {name}' instead of \
+             '{} {name}'.",
+            "#".repeat(level)
+        )),
+        positions: vec![position],
     }
 }
 
@@ -369,7 +630,7 @@ fn process_object_event(
 /// * `iterator` - A mutable reference to the markdown parser iterator
 /// * `model` - A mutable reference to the data model to update
 fn handle_h1_event(iterator: &mut pulldown_cmark::OffsetIter, model: &mut DataModel) {
-    model.name = Some(extract_name(iterator));
+    model.name = extract_name(iterator);
 }
 
 /// Handles H3 heading start events by creating and adding a new object.
@@ -386,13 +647,26 @@ fn handle_h3_start(
     content: &str,
     iterator: &mut pulldown_cmark::OffsetIter,
     objects: &mut Vec<Object>,
-    state: &mut ParserState,
     line_offsets: &[usize],
     range: std::ops::Range<usize>,
+    context: &mut ParserContext,
 ) {
-    *state = ParserState::InHeading;
-    let mut object = process_object_heading(iterator);
-    object.set_position(get_position(content, line_offsets, range.start, range.end));
+    context.state = ParserState::InHeading;
+    let position = get_position(content, line_offsets, range.start, range.end);
+
+    let Some(mut object) = process_object_heading(iterator) else {
+        context.errors.push(syntax_error(
+            "This heading declares an object but has no readable name.",
+            "Give the object a plain-text name, for example '### Experiment'.",
+            ErrorType::NameError,
+            None,
+            None,
+            vec![position],
+        ));
+        return;
+    };
+
+    object.set_position(position);
     objects.push(object);
 }
 
@@ -403,7 +677,10 @@ fn handle_h3_start(
 /// * `objects` - A mutable slice of objects
 /// * `text` - The text containing the type annotation
 fn handle_type_annotation(objects: &mut [Object], text: &str) {
-    let attribute = objects.last_mut().unwrap().get_last_attribute();
+    let Some(object) = objects.last_mut() else {
+        return;
+    };
+    let attribute = object.get_last_attribute();
     if let Some(attribute) = attribute {
         attribute
             .add_option(RawOption::new(
@@ -420,8 +697,16 @@ fn handle_type_annotation(objects: &mut [Object], text: &str) {
 ///
 /// * `objects` - A mutable slice of objects
 /// * `iterator` - A mutable reference to the parser iterator
-fn handle_mixin(objects: &mut [Object], iterator: &mut pulldown_cmark::OffsetIter) {
-    let last_object = objects.last_mut().unwrap();
+fn handle_mixin(
+    objects: &mut [Object],
+    iterator: &mut pulldown_cmark::OffsetIter,
+    context: &mut ParserContext,
+) {
+    let Some(last_object) = objects.last_mut() else {
+        return;
+    };
+    let object_name = last_object.name.clone();
+    let positions = last_object.position.map(|p| vec![p]).unwrap_or_default();
     let mixin = iterator.next();
 
     match mixin {
@@ -429,12 +714,16 @@ fn handle_mixin(objects: &mut [Object], iterator: &mut pulldown_cmark::OffsetIte
             last_object.mixins = text.split(',').map(|s| s.trim().to_string()).collect();
         }
         _ => {
-            error!(
-                "[{}] {}: Opening bracket but no mixin name. Mixin wont be applied",
-                last_object.name.bold(),
-                "SyntaxError".bold(),
-            );
-            panic!("Mixin syntax error. Expected mixin name after opening bracket.");
+            // A hard error: skipping the mixin would leave a model that
+            // validates while missing inherited properties.
+            context.errors.push(syntax_error(
+                "Opening bracket in the heading but no mixin name follows it.",
+                "Name the object to inherit from, e.g. '### Child [Parent]', or remove the bracket.",
+                ErrorType::ObjectError,
+                Some(object_name),
+                None,
+                positions,
+            ));
         }
     }
 }
@@ -454,24 +743,65 @@ fn handle_list_start(
     objects: &mut [Object],
     line_offsets: &[usize],
     range: std::ops::Range<usize>,
+    context: &mut ParserContext,
 ) {
-    let last_object = objects.last_mut().unwrap();
+    let Some(last_object) = objects.last_mut() else {
+        return;
+    };
+
     if !last_object.has_attributes() {
         iterator.next();
-        let (required, attr_name, dtypes) = extract_attr_name_required(iterator);
-        let mut attribute = attribute::Attribute::new(attr_name, required);
-
-        if let Some((key, dtypes)) = dtypes {
-            attribute.add_option(RawOption::new(key, dtypes)).unwrap();
-        }
-
-        attribute.set_position(get_position(content, line_offsets, range.start, range.end));
-        objects.last_mut().unwrap().add_attribute(attribute);
+        let position = get_position(content, line_offsets, range.start, range.end);
+        add_attribute_from_iterator(objects, iterator, position, context);
     } else {
-        let attr_strings = extract_attribute_options(iterator);
+        let attr_strings = extract_attribute_options(content, iterator);
         for attr_string in attr_strings {
-            distribute_attribute_options(objects, attr_string);
+            distribute_attribute_options(objects, attr_string, context);
         }
+    }
+}
+
+/// Builds an attribute from the upcoming events and appends it to the last
+/// object, reporting a diagnostic when the item carries no usable name.
+fn add_attribute_from_iterator(
+    objects: &mut [Object],
+    iterator: &mut pulldown_cmark::OffsetIter,
+    position: Position,
+    context: &mut ParserContext,
+) {
+    let object_name = objects.last().map(|o| o.name.clone());
+
+    let Some((required, attr_name, dtypes)) = extract_attr_name_required(iterator) else {
+        context.errors.push(syntax_error(
+            "This list item declares a property but has no readable name.",
+            "Write the name as plain text, or in bold to mark it required, e.g. '- **name**'.",
+            ErrorType::NameError,
+            object_name,
+            None,
+            vec![position],
+        ));
+        return;
+    };
+
+    let mut attribute = attribute::Attribute::new(attr_name.clone(), required);
+
+    if let Some((key, dtypes)) = dtypes {
+        if let Err(error) = attribute.add_option(RawOption::new(key, dtypes)) {
+            context.errors.push(syntax_error(
+                &format!("Could not read the type of '{attr_name}': {error}"),
+                "Check the 'Type:' declaration for this property.",
+                ErrorType::TypeError,
+                object_name,
+                Some(attr_name),
+                vec![position],
+            ));
+            return;
+        }
+    }
+
+    attribute.set_position(position);
+    if let Some(object) = objects.last_mut() {
+        object.add_attribute(attribute);
     }
 }
 
@@ -490,16 +820,10 @@ fn handle_list_item(
     objects: &mut [Object],
     line_offsets: &[usize],
     range: std::ops::Range<usize>,
+    context: &mut ParserContext,
 ) {
-    let (required, attr_string, dtypes) = extract_attr_name_required(iterator);
-    let mut attribute = attribute::Attribute::new(attr_string, required);
-
-    if let Some((key, dtypes)) = dtypes {
-        attribute.add_option(RawOption::new(key, dtypes)).unwrap();
-    }
-
-    attribute.set_position(get_position(content, line_offsets, range.start, range.end));
-    objects.last_mut().unwrap().add_attribute(attribute);
+    let position = get_position(content, line_offsets, range.start, range.end);
+    add_attribute_from_iterator(objects, iterator, position, context);
 }
 
 /// Handles array markers by setting the is_array flag on the last attribute.
@@ -508,7 +832,9 @@ fn handle_list_item(
 ///
 /// * `objects` - A mutable slice of objects
 fn handle_array_marker(objects: &mut [Object]) {
-    let last_object = objects.last_mut().unwrap();
+    let Some(last_object) = objects.last_mut() else {
+        return;
+    };
     let last_attribute = last_object.get_last_attribute();
     if let Some(attribute) = last_attribute {
         attribute.is_array = true;
@@ -522,7 +848,9 @@ fn handle_array_marker(objects: &mut [Object]) {
 /// * `objects` - A mutable slice of objects
 /// * `text` - The text to append to the docstring
 fn handle_docstring(objects: &mut [Object], text: CowStr) {
-    let last_object = objects.last_mut().unwrap();
+    let Some(last_object) = objects.last_mut() else {
+        return;
+    };
     if !last_object.docstring.is_empty() {
         last_object
             .docstring
@@ -549,11 +877,11 @@ fn handle_docstring(objects: &mut [Object], text: CowStr) {
 /// # Returns
 ///
 /// An `Object` created from the heading.
-fn process_object_heading(iterator: &mut OffsetIter) -> object::Object {
-    let heading = extract_name(iterator);
+fn process_object_heading(iterator: &mut OffsetIter) -> Option<object::Object> {
+    let heading = extract_name(iterator)?;
     let (cleaned_name, term) = extract_object_term(&heading);
     // Use the cleaned name (Object::new will convert it to PascalCase)
-    object::Object::new(cleaned_name, term)
+    Some(object::Object::new(cleaned_name, term))
 }
 
 /// Extracts the name from the next text event in the iterator.
@@ -564,20 +892,21 @@ fn process_object_heading(iterator: &mut OffsetIter) -> object::Object {
 ///
 /// # Returns
 ///
-/// A string containing the extracted name.
-fn extract_name(iterator: &mut OffsetIter) -> String {
+/// `Some(name)`, or `None` when the heading carries no plain text — an empty
+/// heading, or one written entirely as a code span or link.
+fn extract_name(iterator: &mut OffsetIter) -> Option<String> {
     if let Some((Event::Text(text), _)) = iterator.next() {
-        return text.to_string();
+        return Some(text.to_string());
     }
 
     // Try for two text events
     for _ in 0..2 {
         if let Some((Event::Text(text), _)) = iterator.next() {
-            return text.to_string();
+            return Some(text.to_string());
         }
     }
 
-    panic!("Could not extract name: Got {:?}", iterator.next().unwrap());
+    None
 }
 
 /// Extracts the attribute name and its required status from the iterator.
@@ -589,9 +918,10 @@ fn extract_name(iterator: &mut OffsetIter) -> String {
 /// # Returns
 ///
 /// A tuple containing a boolean indicating if the attribute is required and the attribute name.
+#[allow(clippy::type_complexity)]
 fn extract_attr_name_required(
     iterator: &mut OffsetIter,
-) -> (bool, String, Option<(String, String)>) {
+) -> Option<(bool, String, Option<(String, String)>)> {
     let mut next = iterator.next();
 
     // If there are newlines between the attributes, the likely a paragraph
@@ -604,9 +934,9 @@ fn extract_attr_name_required(
     match next {
         Some((Event::Text(text), _)) => {
             if let Some((key, dtypes)) = shorthand_type(&text) {
-                return (false, key, Some(dtypes));
+                return Some((false, key, Some(dtypes)));
             } else {
-                return (false, text.to_string(), None);
+                return Some((false, text.to_string(), None));
             }
         }
         Some((Event::Start(Tag::Strong), _)) => {
@@ -619,12 +949,18 @@ fn extract_attr_name_required(
             // Consume the Strong end tag
             iterator.next();
 
-            return (true, name, None);
+            if name.is_empty() {
+                return None;
+            }
+
+            return Some((true, name, None));
         }
         _ => {}
     }
 
-    panic!("Could not extract attribute name. Please check the markdown file.");
+    // Anything else — an empty item, or a name written as italics or a code
+    // span rather than the bold-means-required convention.
+    None
 }
 
 /// Extracts a type definition from shorthand notation in the form "key: type".
@@ -682,46 +1018,93 @@ fn extract_object_term(heading: &str) -> (String, Option<String>) {
 /// # Returns
 ///
 /// A vector of strings containing the extracted attribute options.
-fn extract_attribute_options(iterator: &mut OffsetIter) -> Vec<String> {
+fn extract_attribute_options(content: &str, iterator: &mut OffsetIter) -> Vec<String> {
     let mut options = Vec::new();
-    while let Some((next, _)) = iterator.next() {
+    for (next, range) in iterator.by_ref() {
         match next {
             Event::Start(Tag::Item) => {
-                let name = extract_name(iterator);
-                options.push(name);
+                options.push(raw_list_item_value(content, range));
             }
             Event::End(TagEnd::List(false)) => {
                 break;
-            }
-            Event::Text(text) if text.to_string() == "[" => {
-                let last_option = options.last_mut().unwrap();
-                let lower = last_option.to_lowercase();
-                if lower.contains("pattern:") || lower.contains("regex:") {
-                    *last_option = format!("{last_option}[");
-                } else {
-                    *last_option = format!("{}[]", last_option.trim());
-                }
-            }
-            Event::Text(text) if text.to_string() == "]" => {
-                let last_option = options.last_mut().unwrap();
-                let lower = last_option.to_lowercase();
-                if lower.contains("pattern:") || lower.contains("regex:") {
-                    *last_option = format!("{last_option}]");
-                }
-            }
-            Event::Text(text) if text.to_string() != "]" => {
-                let last_option = options.last_mut().unwrap();
-                let lower = last_option.to_lowercase();
-                if lower.contains("description:") {
-                    *last_option = format!("{} {}", last_option.trim(), text);
-                } else if lower.contains("pattern:") || lower.contains("regex:") {
-                    *last_option = format!("{}{}", last_option.trim(), text);
-                }
             }
             _ => {}
         }
     }
     options
+}
+
+/// Reads a list item's value from the source text.
+///
+/// Option values are literals, so they are not rebuilt from the inline event
+/// stream, which consumes `_` and `*` as emphasis. Continuation lines are
+/// joined with a single space; spacing within a line is kept verbatim.
+fn raw_list_item_value(content: &str, range: std::ops::Range<usize>) -> String {
+    let raw = content.get(range).unwrap_or_default();
+
+    // The reported range for a nested item starts at the newline that precedes
+    // it, so the first line of the slice can be empty. Skip forward to the line
+    // that actually carries the list marker.
+    let mut lines = raw.lines().skip_while(|line| line.trim().is_empty());
+
+    let head = lines.next().unwrap_or_default().trim_start();
+    // Strip the bullet marker if there is one. An item reported without a
+    // marker (an ordered sub-list, for instance) must keep its text: dropping
+    // it yields an empty attribute name, which downstream code indexes into.
+    let first = match strip_list_marker(head) {
+        Some(rest) => rest,
+        None => head,
+    };
+
+    let mut value = String::from(first.trim_end());
+    for line in lines {
+        let line = line.trim();
+        // A nested list is a separate construct. CommonMark only opens a list
+        // when the marker is followed by whitespace, so `-10` stays as text.
+        if line.is_empty() || strip_list_marker(line).is_some() {
+            continue;
+        }
+        if !value.is_empty() {
+            value.push(' ');
+        }
+        value.push_str(line);
+    }
+
+    unescape_markdown(&value)
+}
+
+/// Resolves CommonMark backslash escapes in a literal read from the source.
+fn unescape_markdown(value: &str) -> String {
+    const ESCAPABLE: &str = r##"!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"##;
+
+    let mut out = String::with_capacity(value.len());
+    let mut chars = value.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            if let Some(&next) = chars.peek() {
+                if ESCAPABLE.contains(next) {
+                    out.push(next);
+                    chars.next();
+                    continue;
+                }
+            }
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// Strips a CommonMark bullet marker. Returns `None` when the marker is not
+/// followed by whitespace, so `-10` and `*emphasised*` stay as text.
+fn strip_list_marker(line: &str) -> Option<&str> {
+    let rest = line.strip_prefix(['-', '*', '+'])?;
+    if rest.is_empty() {
+        return Some(rest);
+    }
+    if rest.starts_with([' ', '\t']) {
+        return Some(rest.trim_start());
+    }
+    None
 }
 
 /// Adds an option to the last attribute of the last object in the list.
@@ -736,7 +1119,10 @@ fn add_option_to_last_attribute(
     key: String,
     value: String,
 ) -> Result<(), Box<dyn Error>> {
-    let last_attr = objects.last_mut().unwrap().get_last_attribute();
+    let Some(object) = objects.last_mut() else {
+        return Ok(());
+    };
+    let last_attr = object.get_last_attribute();
     if let Some(attribute) = last_attr {
         let option = RawOption::new(key, value);
         attribute.add_option(option)?;
@@ -755,10 +1141,35 @@ fn add_option_to_last_attribute(
 /// # Returns
 ///
 /// An optional unit type.
-fn distribute_attribute_options(objects: &mut [object::Object], attr_string: String) -> Option<()> {
+fn distribute_attribute_options(
+    objects: &mut [object::Object],
+    attr_string: String,
+    context: &mut ParserContext,
+) -> Option<()> {
     if attr_string.contains(':') {
         let (key, value) = process_option(&attr_string);
-        add_option_to_last_attribute(objects, key, value).expect("Failed to add option");
+        let object_name = objects.last().map(|o| o.name.clone());
+        let attribute_name = objects
+            .last()
+            .and_then(|o| o.attributes.last())
+            .map(|a| a.name.clone());
+        let positions = objects
+            .last()
+            .and_then(|o| o.attributes.last())
+            .and_then(|a| a.position)
+            .map(|p| vec![p])
+            .unwrap_or_default();
+
+        if let Err(error) = add_option_to_last_attribute(objects, key.clone(), value) {
+            context.errors.push(syntax_error(
+                &format!("Could not read the option '{key}': {error}"),
+                "Check the value given for this option.",
+                ErrorType::TypeError,
+                object_name,
+                attribute_name,
+                positions,
+            ));
+        }
         return None;
     }
 
@@ -813,7 +1224,11 @@ pub fn process_enum_event(
 
     match event {
         Event::Start(tag) if tag == H3 => {
-            let enum_name = extract_name(iterator);
+            let Some(enum_name) = extract_name(iterator) else {
+                // An enumeration heading with no readable name; the object pass
+                // reports it, so it is simply skipped here.
+                return;
+            };
             let mut enum_obj = Enumeration {
                 name: type_name(&enum_name),
                 mappings: BTreeMap::new(),
@@ -828,8 +1243,7 @@ pub fn process_enum_event(
             if let (Event::Text(text), _) = event {
                 let mappings = text.to_string();
 
-                if enums.last_mut().is_some() {
-                    let enum_obj = enums.last_mut().unwrap();
+                if let Some(enum_obj) = enums.last_mut() {
                     process_enum_mappings(enum_obj, mappings);
                 }
             }
@@ -1039,7 +1453,7 @@ fn report_missing_mixin(object: &Object, mixin_name: &str) -> Result<(), Box<dyn
 /// * `to_merge` - A vector of data models to be merged into the main model.
 fn merge_internal_types(model: &mut DataModel, to_merge: Vec<DataModel>) {
     for internal in to_merge {
-        model.merge(&internal);
+        let _ = model.merge(&internal);
     }
 }
 
@@ -1051,7 +1465,7 @@ fn merge_internal_types(model: &mut DataModel, to_merge: Vec<DataModel>) {
 /// # Arguments
 ///
 /// * `model` - A mutable reference to the data model.
-fn add_internal_types(model: &mut DataModel) {
+fn add_internal_types(model: &mut DataModel, errors: &mut Vec<ValidationError>) {
     // Get all datatypes within the model
     let mut all_types = vec![];
     for object in &model.objects {
@@ -1072,10 +1486,40 @@ fn add_internal_types(model: &mut DataModel) {
         }
 
         if all_types.contains(&name.to_string()) {
-            model.merge(
-                &serde_json::from_str::<DataModel>(content)
-                    .expect("Failed to parse internal data type"),
-            )
+            let internal = match serde_json::from_str::<DataModel>(content) {
+                Ok(internal) => internal,
+                Err(error) => {
+                    errors.push(syntax_error(
+                        &format!("The built-in type '{name}' could not be loaded: {error}"),
+                        "This is an internal error; please report it.",
+                        ErrorType::GlobalError,
+                        None,
+                        None,
+                        Vec::new(),
+                    ));
+                    continue;
+                }
+            };
+
+            // A user object whose name collides with one inside a built-in type
+            // is an authoring mistake, not a reason to abort.
+            if let Err(conflicts) = model.merge(&internal) {
+                errors.push(syntax_error(
+                    &format!(
+                        "Using the built-in type '{name}' requires {}, which this model already \
+                         defines differently.",
+                        conflicts.join(", ")
+                    ),
+                    &format!(
+                        "Rename {} , or stop referencing '{name}'.",
+                        conflicts.join(", ")
+                    ),
+                    ErrorType::DuplicateError,
+                    None,
+                    None,
+                    Vec::new(),
+                ));
+            }
         }
     }
 }
@@ -1149,6 +1593,617 @@ impl OptionKey {
             "default" => OptionKey::Default,
             "multiple" => OptionKey::Multiple,
             _ => OptionKey::Other,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::option::AttrOption;
+    use pretty_assertions::assert_eq;
+
+    /// Wraps an option line in a minimal model and returns the parsed model.
+    fn parse_with_option(option_line: &str) -> DataModel {
+        let content = format!(
+            "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string\n  {option_line}\n"
+        );
+        parse_markdown(&content, None).expect("model should parse")
+    }
+
+    /// Returns the `Pattern` option value of the first attribute, if any.
+    fn pattern_of(option_line: &str) -> Option<String> {
+        parse_with_option(option_line).objects[0].attributes[0]
+            .options
+            .iter()
+            .find_map(|o| match o {
+                AttrOption::Pattern(p) => Some(p.clone()),
+                _ => None,
+            })
+    }
+
+    //
+    // Option values are literals and must survive the parser byte for byte.
+    //
+    // The inline event stream consumes `_` and `*` as emphasis and drops the
+    // whitespace next to them, which would rewrite a regular expression.
+    //
+
+    #[test]
+    fn test_pattern_preserves_space_in_character_class() {
+        assert_eq!(
+            pattern_of("- Pattern: ^[A-Za-z0-9 _-]+$").as_deref(),
+            Some("^[A-Za-z0-9 _-]+$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_space_before_underscore() {
+        assert_eq!(
+            pattern_of("- Pattern: ^[a-z _]+$").as_deref(),
+            Some("^[a-z _]+$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_single_underscores() {
+        assert_eq!(
+            pattern_of("- Pattern: ^a _b_ c$").as_deref(),
+            Some("^a _b_ c$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_single_asterisks() {
+        assert_eq!(
+            pattern_of("- Pattern: ^a *b* c$").as_deref(),
+            Some("^a *b* c$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_literal_double_asterisk() {
+        assert_eq!(
+            pattern_of("- Pattern: ^a**b**c$").as_deref(),
+            Some("^a**b**c$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_double_underscore() {
+        assert_eq!(
+            pattern_of("- Pattern: ^a__b__c$").as_deref(),
+            Some("^a__b__c$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_square_brackets() {
+        assert_eq!(pattern_of("- Pattern: ^a [b]$").as_deref(), Some("^a [b]$"));
+        assert_eq!(
+            pattern_of("- Pattern: ^[A-Z] [a-z]$").as_deref(),
+            Some("^[A-Z] [a-z]$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_backslashes() {
+        assert_eq!(
+            pattern_of(r"- Pattern: ^a\d+ b$").as_deref(),
+            Some(r"^a\d+ b$")
+        );
+        assert_eq!(
+            pattern_of(r"- Pattern: ^\d{2} \d{2}$").as_deref(),
+            Some(r"^\d{2} \d{2}$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_alternation_pipe() {
+        assert_eq!(
+            pattern_of("- Pattern: ^(a|b) c$").as_deref(),
+            Some("^(a|b) c$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_unicode() {
+        assert_eq!(
+            pattern_of("- Pattern: ^[äöü ß]+$").as_deref(),
+            Some("^[äöü ß]+$")
+        );
+    }
+
+    #[test]
+    fn test_pattern_preserves_consecutive_spaces() {
+        assert_eq!(
+            pattern_of("- Pattern: ^a  b$").as_deref(),
+            Some("^a  b$"),
+            "spacing within a line must be preserved verbatim"
+        );
+    }
+
+    #[test]
+    fn test_regex_key_behaves_like_pattern() {
+        assert_eq!(
+            pattern_of("- Regex: ^[A-Z] [a-z]$").as_deref(),
+            Some("^[A-Z] [a-z]$")
+        );
+    }
+
+    //
+    // Descriptions are prose and are joined across continuation lines. This
+    // behaviour is locked by a large number of golden files and must not change.
+    //
+
+    #[test]
+    fn test_description_soft_line_break_is_joined_with_single_space() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string\n  - Description: The name of the test. This is a unique identifier\n    that helps track individual test cases across the system.\n    It should be descriptive.\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+
+        assert_eq!(
+            model.objects[0].attributes[0].docstring,
+            "The name of the test. This is a unique identifier that helps track \
+             individual test cases across the system. It should be descriptive."
+        );
+    }
+
+    #[test]
+    fn test_description_preserves_inline_markup() {
+        let model = parse_with_option("- Description: a *b* and _c_ here");
+        assert_eq!(
+            model.objects[0].attributes[0].docstring,
+            "a *b* and _c_ here"
+        );
+    }
+
+    //
+    // Array markers and types must keep working now that the `[`/`]` inline
+    // special-cases have been removed in favour of reading the source directly.
+    //
+
+    #[test]
+    fn test_array_type_is_still_detected() {
+        let model = parse_with_option("- Term: schema:x");
+        assert!(!model.objects[0].attributes[0].is_array);
+
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string[]\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+        assert!(
+            model.objects[0].attributes[0].is_array,
+            "`string[]` must still be recognised as an array"
+        );
+        assert_eq!(model.objects[0].attributes[0].dtypes, vec!["string"]);
+    }
+
+    #[test]
+    fn test_object_reference_link_is_stripped_to_type_name() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: [Other](#other)[]\n\n### Other\n\n- b\n  - Type: string\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+
+        assert_eq!(model.objects[0].attributes[0].dtypes, vec!["Other"]);
+        assert!(model.objects[0].attributes[0].is_array);
+    }
+
+    #[test]
+    fn test_tab_indented_options_still_parse() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n\t- Type: string\n\t- Pattern: ^[a-z ]+$\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+
+        assert_eq!(model.objects[0].attributes[0].dtypes, vec!["string"]);
+        assert!(model.objects[0].attributes[0]
+            .options
+            .iter()
+            .any(|o| matches!(o, AttrOption::Pattern(p) if p == "^[a-z ]+$")));
+    }
+
+    //
+    // `__name__` and `**name**` both mean "required". This is load-bearing for
+    // most fixtures in the corpus.
+    //
+
+    #[test]
+    fn test_bold_attribute_names_are_required() {
+        for marker in ["**name**", "__name__"] {
+            let content = format!(
+                "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- {marker}\n  - Type: string\n"
+            );
+            let model = parse_markdown(&content, None).expect("model should parse");
+
+            assert_eq!(model.objects[0].attributes[0].name, "name");
+            assert!(
+                model.objects[0].attributes[0].required,
+                "{marker} must mark the attribute as required"
+            );
+        }
+    }
+
+    //
+    // Only a level-3 heading declares an object. Objects written at any other
+    // level is reported: a level-2 heading drops its list, and a level-4
+    // heading would otherwise append its attributes to the previous object.
+    //
+
+    /// Parses a fixture and returns the validation errors it produces.
+    fn errors_for(path: &str) -> Vec<crate::validation::ValidationError> {
+        let content = std::fs::read_to_string(path).expect("Could not read fixture");
+        match parse_markdown(&content, None) {
+            Ok(_) => Vec::new(),
+            Err(validator) => validator.errors,
+        }
+    }
+
+    #[test]
+    fn test_object_at_h4_is_reported() {
+        let errors = errors_for("tests/data/model_wrong_heading_level.md");
+        let error = errors
+            .iter()
+            .find(|e| e.object.as_deref() == Some("Dropped"))
+            .unwrap_or_else(|| unreachable!("no diagnostic for the level-4 object: {errors:#?}"));
+
+        assert_eq!(error.error_type, ErrorType::ObjectError);
+        assert!(error.message.contains("level-4"), "{}", error.message);
+        assert_eq!(error.positions[0].line, 11);
+    }
+
+    #[test]
+    fn test_object_at_h2_is_reported() {
+        let errors = errors_for("tests/data/model_wrong_heading_level.md");
+        let error = errors
+            .iter()
+            .find(|e| e.object.as_deref() == Some("AlsoDropped"))
+            .unwrap_or_else(|| unreachable!("no diagnostic for the level-2 object: {errors:#?}"));
+
+        assert_eq!(error.error_type, ErrorType::ObjectError);
+        assert!(error.message.contains("level-2"), "{}", error.message);
+        assert_eq!(error.positions[0].line, 16);
+    }
+
+    /// The diagnostic must name the fix.
+    #[test]
+    fn test_misplaced_object_diagnostic_suggests_h3() {
+        let errors = errors_for("tests/data/model_wrong_heading_level.md");
+        let error = errors
+            .iter()
+            .find(|e| e.object.as_deref() == Some("Dropped"))
+            .expect("no diagnostic");
+
+        let solution = error.solution.clone().expect("no solution offered");
+        assert!(solution.contains("### Dropped"), "{solution}");
+    }
+
+    /// Attributes under a level-4 heading must not join the previous object.
+    #[test]
+    fn test_h4_attributes_do_not_leak_into_previous_object() {
+        let content =
+            std::fs::read_to_string("tests/data/model_wrong_heading_level.md").expect("read");
+        // The model is invalid, so inspect the objects the parser built.
+        let mut model = DataModel::new(None, None);
+        let line_offsets = create_line_offsets(&content);
+        let mut context = ParserContext::default();
+        let (objects, _) =
+            parse_model_components(&content, &line_offsets, &mut model, &mut context);
+
+        let good = objects
+            .iter()
+            .find(|o| o.name == "Good")
+            .expect("Good object missing");
+        let names: Vec<&str> = good.attributes.iter().map(|a| a.name.as_str()).collect();
+
+        assert_eq!(
+            names,
+            vec!["a"],
+            "attributes from the level-4 heading leaked into the previous object"
+        );
+    }
+
+    //
+    // The diagnostic must not fire on legitimate documents.
+    //
+
+    #[test]
+    fn test_narrative_headings_are_not_reported() {
+        let errors = errors_for("tests/data/model_narrative_headings.md");
+        assert!(
+            errors.is_empty(),
+            "narrative headings and enumerations must not be flagged: {errors:#?}"
+        );
+    }
+
+    #[test]
+    fn test_enumeration_section_is_not_reported() {
+        let errors = errors_for("tests/data/model.md");
+        assert!(
+            errors.is_empty(),
+            "the '## Enumerations' section must not be flagged: {errors:#?}"
+        );
+    }
+
+    /// A level-1 heading names the model, so its preamble is not an object.
+    #[test]
+    fn test_h1_title_preamble_is_not_reported() {
+        // This fixture declares a relative import, so it must be parsed with
+        // its path rather than from a bare string.
+        let result = DataModel::from_markdown(std::path::Path::new("tests/data/model_meta.md"));
+        assert!(
+            result.is_ok(),
+            "a level-1 title must not be reported as a misplaced object: {:#?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_full_documentation_model_is_not_reported() {
+        let errors = errors_for("tests/data/model_full_documentation.md");
+        assert!(
+            errors.is_empty(),
+            "documentation headings must not be flagged: {errors:#?}"
+        );
+    }
+
+    //
+    // Continuation lines. CommonMark only opens a list when the marker is
+    // followed by whitespace, so `-10`, `+1` and `*emphasis*` are lazy
+    // paragraph continuations and belong to the value.
+    //
+
+    #[test]
+    fn test_continuation_line_starting_with_hyphen_is_kept() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string\n  - Description: values from\n    -10 upward\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+
+        assert_eq!(
+            model.objects[0].attributes[0].docstring,
+            "values from -10 upward"
+        );
+    }
+
+    #[test]
+    fn test_continuation_line_starting_with_plus_is_kept() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string\n  - Description: charge of\n    +1 for a cation\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+
+        assert_eq!(
+            model.objects[0].attributes[0].docstring,
+            "charge of +1 for a cation"
+        );
+    }
+
+    #[test]
+    fn test_wrapped_pattern_is_not_truncated() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string\n  - Pattern: ^(abc|\n    -def)$\n";
+        let model = parse_markdown(content, None).expect("model should parse");
+
+        let pattern = model.objects[0].attributes[0]
+            .options
+            .iter()
+            .find_map(|o| match o {
+                AttrOption::Pattern(p) => Some(p.clone()),
+                _ => None,
+            })
+            .expect("pattern option missing");
+
+        assert!(
+            pattern.contains("-def"),
+            "the wrapped half of the regex was dropped: {pattern:?}"
+        );
+    }
+
+    /// An item reported without a bullet marker must keep its text. Dropping it
+    /// produced an empty attribute name, which the validator then indexed into.
+    #[test]
+    fn test_ordered_sublist_does_not_panic() {
+        let content = "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### P\n\n- a\n  - Type: string\n  - Description: steps\n    1. one\n";
+        let result = parse_markdown(content, None);
+
+        // Whatever the verdict, it must be a diagnostic rather than a panic.
+        if let Err(validator) = result {
+            assert!(!validator.errors.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_strip_list_marker_requires_whitespace() {
+        assert_eq!(strip_list_marker("- item"), Some("item"));
+        assert_eq!(strip_list_marker("*  item"), Some("item"));
+        assert_eq!(strip_list_marker("+\titem"), Some("item"));
+        assert_eq!(strip_list_marker("-10 upward"), None);
+        assert_eq!(strip_list_marker("+1 charge"), None);
+        assert_eq!(strip_list_marker("*emphasis*"), None);
+        assert_eq!(strip_list_marker("plain"), None);
+    }
+
+    //
+    // The misplaced-object diagnostic must not fire on prose. Turning a valid
+    // document invalid is worse than missing a misplaced object, and a page
+    // documenting the dialect's own option keys is a realistic document.
+    //
+
+    /// Builds a model with one valid object followed by `trailer`.
+    #[allow(clippy::result_large_err)]
+    fn parse_with_trailer(trailer: &str) -> Result<DataModel, Validator> {
+        let content = format!(
+            "---\nprefix: \"t\"\nrepo: \"https://e.org/\"\n---\n\n### Good\n\n- a\n  - Type: string\n\n{trailer}\n"
+        );
+        parse_markdown(&content, None)
+    }
+
+    #[test]
+    fn test_narrative_lists_do_not_trigger_diagnostic() {
+        let cases = [
+            "## Glossary\n\n- Term: a word used in this document\n- Type: a category of thing",
+            "## Attribute options\n\n- Type: the data type\n- Description: free text",
+            "## Design notes\n\n- Description: fields should be short.",
+            "## Notes\n\n- outer bullet\n  - Type: mentioned in a nested narrative bullet",
+            "## Overview\n\n- Description: this model covers experiments.",
+        ];
+
+        for case in cases {
+            assert!(
+                parse_with_trailer(case).is_ok(),
+                "narrative prose must not be reported as a misplaced object:\n{case}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_fenced_example_does_not_trigger_diagnostic() {
+        let trailer = "## How to write a model\n\n- Example:\n  ```markdown\n  - name\n    - Type: string\n  ```";
+        assert!(
+            parse_with_trailer(trailer).is_ok(),
+            "a fenced example is documentation, not a declaration"
+        );
+    }
+
+    #[test]
+    fn test_shorthand_object_at_wrong_level_is_reported() {
+        let result = parse_with_trailer("#### Dropped\n\n- b: string\n- c: integer");
+        assert!(
+            result.is_err(),
+            "shorthand attributes under a level-4 heading must be reported"
+        );
+    }
+
+    /// A narrative list before the real attribute list must not consume the check.
+    #[test]
+    fn test_diagnostic_survives_a_leading_narrative_list() {
+        let result =
+            parse_with_trailer("#### Dropped\n\n- narrative\n\nProse.\n\n- b\n  - Type: string");
+        assert!(
+            result.is_err(),
+            "the attribute list further down must still be reported"
+        );
+    }
+
+    //
+    // Malformed input must produce a diagnostic, never a panic, since
+    // `parse_markdown` returns `Result<DataModel, Validator>`.
+    //
+
+    /// Every one of these aborted the process before. The assertion is simply
+    /// that the call *returns* — a panic fails the test by unwinding.
+    #[test]
+    fn test_malformed_input_never_panics() {
+        let cases = [
+            (
+                "single asterisk name",
+                "### O\n\n- *name*\n  - Type: string\n",
+            ),
+            (
+                "triple asterisk name",
+                "### O\n\n- ***name***\n  - Type: string\n",
+            ),
+            ("empty bold name", "### O\n\n- ****\n  - Type: string\n"),
+            ("bare list item", "### O\n\n- \n  - Type: string\n"),
+            ("code span name", "### O\n\n- `name`\n  - Type: string\n"),
+            (
+                "code span heading",
+                "### `Weird`\n\n- a\n  - Type: string\n",
+            ),
+            ("unclosed mixin", "### A [\n\n- name\n  - Type: string\n"),
+            ("empty mixin", "### A []\n\n- name\n  - Type: string\n"),
+            (
+                "unknown mixin",
+                "### A [NoSuchMixin]\n\n- name\n  - Type: string\n",
+            ),
+            (
+                "unparseable option",
+                "### O\n\n- a\n  - Type: string\n  - Minimum: abc\n",
+            ),
+            (
+                "array plus union",
+                "### O\n\n- a\n  - Type: Other, Another[]\n",
+            ),
+            ("orphan type annotation", ": orphan\n\ntext\n"),
+            ("empty heading", "###\n\n- a\n  - Type: string\n"),
+            (
+                "ordered sub-list",
+                "### O\n\n- a\n  - Type: string\n  - Description: s\n    1. one\n",
+            ),
+            ("nothing at all", ""),
+            ("only frontmatter", "---\nprefix: t\n---\n"),
+            ("attributes before any object", "- a\n  - Type: string\n"),
+        ];
+
+        for (label, content) in cases {
+            // Either verdict is acceptable; a panic fails the test.
+            let _ = parse_markdown(content, None);
+            let _ = label;
+        }
+    }
+
+    /// The diagnostics must be usable: named error type, and a line number
+    /// pointing into the model rather than into the parser.
+    #[test]
+    fn test_malformed_input_reports_a_located_diagnostic() {
+        let cases: [(&str, ErrorType, usize); 3] = [
+            (
+                "### O\n\n- *name*\n  - Type: string\n",
+                ErrorType::NameError,
+                3,
+            ),
+            (
+                "### A [\n\n- name\n  - Type: string\n",
+                ErrorType::ObjectError,
+                1,
+            ),
+            (
+                "### O\n\n- a\n  - Type: string\n  - Minimum: abc\n",
+                ErrorType::TypeError,
+                3,
+            ),
+        ];
+
+        for (content, expected_type, expected_line) in cases {
+            let validator =
+                parse_markdown(content, None).expect_err("malformed input must not validate");
+
+            let error = validator
+                .errors
+                .iter()
+                .find(|e| e.error_type == expected_type)
+                .unwrap_or_else(|| {
+                    unreachable!(
+                        "expected {expected_type} for {content:?}: {:#?}",
+                        validator.errors
+                    )
+                });
+
+            assert!(error.solution.is_some(), "a diagnostic must suggest a fix");
+            assert_eq!(
+                error.positions.first().map(|p| p.line),
+                Some(expected_line),
+                "wrong line for {content:?}"
+            );
+        }
+    }
+
+    /// An unreadable import is a model error, not a reason to abort.
+    #[test]
+    fn test_unreadable_import_is_a_diagnostic() {
+        let content = "---\nimports:\n  other: ./definitely-not-here.md\n---\n\n### O\n\n- a\n  - Type: string\n";
+        let validator =
+            parse_markdown(content, None).expect_err("a missing import must be reported");
+
+        assert!(
+            validator
+                .errors
+                .iter()
+                .any(|e| e.message.contains("import")),
+            "expected an import diagnostic: {:#?}",
+            validator.errors
+        );
+    }
+
+    /// An empty or multi-byte name must not be indexed into.
+    #[test]
+    fn test_empty_and_unicode_names_do_not_panic() {
+        for content in [
+            "### O\n\n- \u{00e4}bc\n  - Type: string\n",
+            "### \u{00e4}O\n\n- a\n  - Type: string\n",
+            "### 1O\n\n- a\n  - Type: string\n",
+        ] {
+            let _ = parse_markdown(content, None);
         }
     }
 }

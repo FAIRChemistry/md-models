@@ -392,7 +392,12 @@ fn build_models(paths: &[PathBuf]) -> Result<DataModel, Box<dyn Error>> {
     for path in paths.iter().skip(1) {
         path_exists(path)?;
         let new_model = DataModel::from_markdown(path)?;
-        model.merge(&new_model);
+        model.merge(&new_model).map_err(|conflicts| {
+            format!(
+                "Models cannot be merged: {} defined more than once with a different shape.",
+                conflicts.join(", ")
+            )
+        })?;
     }
 
     Ok(model)

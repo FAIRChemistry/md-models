@@ -13,18 +13,27 @@
 {%- endmacro -%}
 
 {#
-    This macro generates an annotation for an attribute.
+    ShExC writes annotations as `// <predicate> <object>` after a triple
+    constraint.
 #}
 {%- macro annotation(attr) -%}
-{
-        shex:annotation [
-            shex:label "{{ attr.name }}"
-            {%- if attr.description -%}shex:description "{{ attr.description }}"{%- endif %}
-        ]
-    }
+ // rdfs:label "{{ ttl_literal(attr.name) }}"
+    {%- if attr.docstring %} // rdfs:comment "{{ ttl_literal(attr.docstring) }}"{%- endif -%}
+{%- endmacro %}
+
+{#
+    Shape reference for an object or enumeration, otherwise the datatype.
+#}
+{%- macro value_constraint(attr) -%}
+    {%- if attr.dtypes[0] in object_names or attr.dtypes[0] in enum_names -%}
+        @{{ prefix }}:{{ attr.dtypes[0] }}
+    {%- else -%}
+        {{ attr.dtypes[0] }}
+    {%- endif -%}
 {%- endmacro %}
 
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX {{ prefix }}: <{{ repo_ns }}>
 {%- for pre, address in prefixes %}
 PREFIX {{pre}}: <{{address}}>
@@ -47,22 +56,9 @@ PREFIX {{ enum.name }}: <{{ repo_ns }}{{ enum.name }}/>
 {% for object in objects%}
 {{ prefix }}:{{object.name}} {
     {%- for attr in object.attributes %}
+    {{ object.name }}:{{ attr.name }} {{ value_constraint(attr) }}{{ is_required(attr) }}{{ annotation(attr) }};
     {%- if attr.term %}
-    {# External term exists - use both class-scoped and external term #}
-    {%- if attr.dtypes[0] in object_names %}
-    {{ object.name }}:{{ attr.name }} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
-    {{attr.term}} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
-    {%- else %}
-    {{ object.name }}:{{ attr.name }} {{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
-    {{attr.term}} {{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
-    {%- endif %}
-    {%- else %}
-    {# No external term - use class-scoped property only #}
-    {%- if attr.dtypes[0] in object_names %}
-    {{ object.name }}:{{ attr.name }} @{{ prefix }}:{{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
-    {%- else %}
-    {{ object.name }}:{{ attr.name }} {{attr.dtypes[0]}}{{ is_required(attr) }} {{ annotation(attr) }};
-    {%- endif %}
+    {{ ttl_term(attr.term) }} {{ value_constraint(attr) }}{{ is_required(attr) }}{{ annotation(attr) }};
     {%- endif %}
     {%- endfor %}
 }

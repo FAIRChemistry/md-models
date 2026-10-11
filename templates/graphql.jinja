@@ -31,19 +31,13 @@
   {%- if attr.required -%}!{%- endif -%}
 {% endmacro %}
 
+{# One wrapper per distinct scalar, not one per union: a duplicated type
+   definition makes the whole schema invalid. #}
 # Scalar wrapper types
-{%- for object in objects -%}
-  {%- for attr in object.attributes -%}
-    {%- if attr.dtypes | length > 1 -%}
-      {%- for dtype in attr.dtypes -%}
-        {%- if dtype not in object_names %}
+{%- for dtype in union_wrapper_types %}
 type {{ dtype }}Value {
   value: {{ dtype }}!
 }
-        {%- endif -%}
-      {%- endfor -%}
-    {%- endif -%}
-  {%- endfor -%}
 {%- endfor %}
 
 # Union type definitions
