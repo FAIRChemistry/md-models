@@ -234,6 +234,22 @@ impl FromStr for Templates {
     }
 }
 
+/// Warns on stderr when `config` still uses the placeholder `repo`, because
+/// IRIs generated for `target` would point into a namespace the user does not own.
+pub(crate) fn warn_placeholder_repo(config: &FrontMatter, target: &str) {
+    if config.has_placeholder_repo() {
+        eprintln!(
+            " [{}] {}",
+            target.yellow().bold(),
+            format!(
+                "No `repo` set in the front matter; using placeholder {} for IRIs. Set `repo` to a namespace you control.",
+                config.repo
+            )
+            .bold(),
+        );
+    }
+}
+
 /// Renders a Jinja template based on the provided template type and data model.
 ///
 /// # Arguments
@@ -320,6 +336,17 @@ pub fn render_jinja_template(
     env.add_filter("to_identifier", to_identifier);
     env.add_filter("replace_lower", replace_lower);
 
+    // Semantic formats mint IRIs from `repo`, so warn when it is the placeholder
+    let template_name = template.to_string();
+    let semantic = matches!(
+        template,
+        Templates::Owl
+            | Templates::Shacl
+            | Templates::Shex
+            | Templates::PythonPydantic
+            | Templates::PythonDataclass
+    ) || (matches!(template, Templates::Rust) && config.contains_key("jsonld"));
+
     // Get the appropriate template
     let template = match template {
         Templates::PythonDataclass => env.get_template("python-dataclass.jinja")?,
@@ -352,6 +379,10 @@ pub fn render_jinja_template(
     // This is necessary to avoid errors when rendering the template
     if model.config.is_none() {
         model.config = Some(FrontMatter::default());
+    }
+
+    if semantic {
+        warn_placeholder_repo(model.config.as_ref().unwrap(), &template_name);
     }
 
     // Render the template

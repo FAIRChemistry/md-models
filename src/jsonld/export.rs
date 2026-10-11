@@ -39,6 +39,7 @@ use std::{
 pub fn to_json_ld(model: &DataModel, root: Option<&str>) -> Result<JsonLdHeader, Box<dyn Error>> {
     let context = create_context(model, root)?;
     let config = model.config.clone().unwrap_or_default();
+    crate::exporters::warn_placeholder_repo(&config, "json-ld");
     let object = match root {
         Some(name) => model
             .objects

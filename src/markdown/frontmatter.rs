@@ -72,11 +72,17 @@ impl FrontMatter {
             id_field: default_id_field(),
             prefixes: None,
             nsmap: None,
-            repo: default_repo(),
+            repo: placeholder_repo(&default_prefix()),
             prefix: default_prefix(),
             imports: HashMap::new(),
             allow_empty: false,
         }
+    }
+
+    /// Whether `repo` is still the `https://example.org/<prefix>/` placeholder,
+    /// i.e. the model did not set a `repo` of its own.
+    pub fn has_placeholder_repo(&self) -> bool {
+        self.repo == placeholder_repo(&self.prefix)
     }
 
     /// Returns the value of the `id_field`.
@@ -216,12 +222,17 @@ fn default_prefix() -> String {
     "md".to_string()
 }
 
-/// Provides the default value for the `repo`.
-///
-/// # Returns
-/// A string with the default value `"http://mdmodel.net/"`.
+/// Provides the serde default for a missing `repo`: the bare reserved
+/// `https://example.org/`, which `parse_frontmatter` then scopes by prefix
+/// (see [`placeholder_repo`]).
 fn default_repo() -> String {
-    "http://mdmodel.net/".to_string()
+    "https://example.org/".to_string()
+}
+
+/// Placeholder `repo` for models that do not set one, in the RFC 2606 reserved
+/// `example.org` domain and scoped by the model `prefix`.
+pub fn placeholder_repo(prefix: &str) -> String {
+    format!("https://example.org/{prefix}/")
 }
 
 /// Provides the default value for the `allow_empty`.
@@ -241,7 +252,11 @@ fn default_allow_empty() -> bool {
 /// An optional `FrontMatter` if parsing is successful, otherwise `None`.
 pub fn parse_frontmatter(content: &str) -> Option<FrontMatter> {
     let matter = Matter::<YAML>::new();
-    matter.parse(content).ok()?.data
+    let mut fm: FrontMatter = matter.parse(content).ok()?.data?;
+    if fm.repo == default_repo() {
+        fm.repo = placeholder_repo(&fm.prefix);
+    }
+    Some(fm)
 }
 
 #[cfg(test)]
@@ -272,6 +287,29 @@ mod tests {
             frontmatter.nsmap.unwrap().get("tst").unwrap(),
             "http://example.com/test/"
         );
+    }
+
+    #[test]
+    fn test_missing_repo_gets_prefix_scoped_placeholder() {
+        let fm = parse_frontmatter("---\nprefix: \"ex\"\n---\n").unwrap();
+        assert_eq!(fm.repo, "https://example.org/ex/");
+        assert!(fm.has_placeholder_repo());
+    }
+
+    #[test]
+    fn test_explicit_repo_is_kept() {
+        let fm =
+            parse_frontmatter("---\nprefix: \"ex\"\nrepo: \"https://example.org/jsonld/\"\n---\n")
+                .unwrap();
+        assert_eq!(fm.repo, "https://example.org/jsonld/");
+        assert!(!fm.has_placeholder_repo());
+    }
+
+    #[test]
+    fn test_default_frontmatter_uses_placeholder_repo() {
+        let fm = FrontMatter::default();
+        assert_eq!(fm.repo, "https://example.org/md/");
+        assert!(fm.has_placeholder_repo());
     }
 
     #[test]

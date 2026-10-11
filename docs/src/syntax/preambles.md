@@ -6,7 +6,7 @@ The preamble is the first section of your data model. It is used to provide meta
 ---
 id: my-data-model
 prefix: md
-repo: http://mdmodel.net/
+repo: https://github.com/myorg/myrepo/
 prefixes:
   schema: http://schema.org/
 nsmap:
@@ -56,7 +56,7 @@ The frontmatter section of your MD-Models document supports several configuratio
 ### `repo`
 
 - **Type**: String
-- **Default**: `http://mdmodel.net/`
+- **Default**: `https://example.org/<prefix>/` (a reserved placeholder domain; set your own namespace, a warning is printed when a semantic format is generated from the placeholder)
 - **Description**: Specifies the base repository URL for your model. This can be used to generate absolute URIs for your model elements.
 - **Example**: `repo: https://github.com/myorg/myrepo/`
 
