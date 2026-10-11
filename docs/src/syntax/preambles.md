@@ -38,8 +38,8 @@ The frontmatter section of your MD-Models document supports several configuratio
   ```
 - **Note**: IRIs are used exactly as written. End each IRI with the character that should
   precede the local name, e.g. `schema: https://schema.org/`, `rdfs: http://www.w3.org/2000/01/rdf-schema#`
-  or `CHEBI: http://purl.obolibrary.org/obo/CHEBI_` (so `CHEBI:15377` expands to
-  `http://purl.obolibrary.org/obo/CHEBI_15377`). Prefixes whose IRI does not end in
+  or `item: https://example.org/item_` (so `item:42` expands to
+  `https://example.org/item_42`, a style some ontologies use). Prefixes whose IRI does not end in
   `: / ? # [ ] @` are emitted with `"@prefix": true` in JSON-LD contexts. When a prefix
   IRI ends in a letter or digit (e.g. `schema: https://schema.org`), md-models prints a
   warning while generating JSON-LD, SHACL, OWL, ShEx and the Python/Rust models, because
