@@ -1579,6 +1579,29 @@ mod tests {
     }
 
     #[test]
+    fn test_python_pydantic_xml_required_without_default() {
+        // A required attribute without a default once rendered as a bare
+        // `default,`, which fails with a NameError when the module is imported.
+        let rendered = build_and_convert(
+            "tests/data/model_required.md",
+            Templates::PythonPydanticXML,
+            None,
+        );
+
+        assert!(
+            !rendered.lines().any(|line| line.trim() == "default,"),
+            "bare `default,` in generated code:\n{rendered}"
+        );
+
+        // sample_id, name, code (Sample) and label (Part) are required without a default.
+        assert_eq!(rendered.matches("default=...,").count(), 4, "{rendered}");
+
+        // A required attribute with a default and an optional attribute keep their defaults.
+        assert!(rendered.contains("count: int = element(\n        default= "));
+        assert!(rendered.contains("note: Optional[str] = element(\n        default= None,"));
+    }
+
+    #[test]
     fn test_convert_to_xsd() {
         // Arrange
         let rendered = build_and_convert("tests/data/model.md", Templates::XmlSchema, None);

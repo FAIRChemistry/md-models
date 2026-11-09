@@ -140,6 +140,11 @@ jobs:
             -t python-pydantic-xml
 
           cargo run convert \
+            -i tests/data/model_required.md \
+            -o tests/envs/python/gen_pydantic_xml_required.py \
+            -t python-pydantic-xml
+
+          cargo run convert \
             -i tests/data/model_jsonld.md \
             -o tests/envs/python/gen_pydantic_jsonld.py \
             -t python-pydantic

@@ -11,7 +11,14 @@
 {%- macro create_inner_type(attr) -%}
     {{ utils.xml_type(attr.xml) }}(
         {%- if attr.multiple is false %}
+        {#- A required attribute without a default has nothing for get_default
+            to return, which used to leave a bare `default,` (a NameError on
+            import). Pydantic marks such a field as required with `...`. #}
+        {%- if attr.required is true and 'default' not in attr %}
+        default=...,
+        {%- else %}
         default {{- utils.get_default(attr) -}},
+        {%- endif %}
         {%- endif %}
         {%- if attr.multiple is true %}
         default_factory=list,{%- endif %}
