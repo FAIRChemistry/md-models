@@ -194,10 +194,13 @@ jobs:
             -o tests/envs/julia/generated.jl \
             -t julia
 
+      # Julia 1.9 is end-of-life and its bundled libopenlibm requests an
+      # executable stack, which the glibc on current ubuntu-latest refuses to
+      # load. The LTS line is built without it.
       - name: Setup Julia
-        uses: julia-actions/setup-julia@v1
+        uses: julia-actions/setup-julia@v2
         with:
-          version: '1.9'
+          version: 'lts'
 
       - name: Install dependencies
         run: |
