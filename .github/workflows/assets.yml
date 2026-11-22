@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - "v?[0-9]+.[0-9]+.[0-9]+"
+  # Rebuilds the binaries of an existing release, e.g. after a failed run.
+  # The workflow steps come from the branch it is started on; the source is
+  # checked out at the given tag, and the binaries go to that tag's release.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build and upload binaries for (e.g. v0.3.1)"
+        required: true
 
 permissions:
   contents: write
@@ -34,15 +42,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Get the release version from the tag
         shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: echo "VERSION=${{ inputs.tag || github.ref_name }}" >> $GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      # rust-toolchain.toml pins the compiler, which overrides the stable
+      # toolchain installed above. Add the build target to the pinned one, or
+      # cross-compiling (x86_64 on the arm64 macOS runner) finds no `core`.
+      - name: Add target to the pinned toolchain
+        run: rustup target add ${{ matrix.target }}
 
       - name: Build
         run: cargo build --features openai --verbose --release --target ${{ matrix.target }}
@@ -63,5 +79,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ env.VERSION }}
           files: |
             ${{ env.ASSET }}

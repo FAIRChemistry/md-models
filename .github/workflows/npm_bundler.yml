@@ -3,7 +3,13 @@ name: Publish to NPM (Bundler)
 on:
   release:
     types: [published]
+  # A manual run builds the given tag, so a failed release can be republished
+  # without a new version.
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag to build and publish (e.g. v0.3.1)"
+        required: true
 
 permissions:
   contents: write
@@ -17,13 +23,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # Pinned: with "latest" the action looks the version up through the
+      # GitHub API and silently falls back to v0.9.1 when that call fails,
+      # which does not accept --features.
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: "latest"
+          version: "v0.15.1"
 
       - name: Build WASM for npm (bundle)
         run: wasm-pack build --out-name mdmodels-core --release --features wasm --no-default-features
