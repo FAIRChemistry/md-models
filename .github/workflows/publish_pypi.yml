@@ -25,14 +25,13 @@ jobs:
     strategy:
       matrix:
         platform:
+          # No 32-bit (i686) wheel: maturin-action always installs libatomic
+          # for i686 with yum, and the manylinux package mirrors
+          # (vault.centos.org, vault.almalinux.org) do not resolve on the
+          # runners. 32-bit Windows wheels are still built.
           - runner: ubuntu-latest
             target: x86_64
             manylinux: auto
-          # manylinux2014 (CentOS 7) fetches packages from vault.centos.org,
-          # which does not resolve on the runners; AlmaLinux 8 mirrors do.
-          - runner: ubuntu-latest
-            target: x86
-            manylinux: manylinux_2_28
           - runner: ubuntu-latest
             target: aarch64
             manylinux: manylinux_2_28
@@ -52,21 +51,9 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter --features python
           sccache: "true"
+          # No system packages are installed: the python feature does not
+          # depend on OpenSSL, and the package mirrors are not reachable.
           manylinux: ${{ matrix.platform.manylinux }}
-          before-script-linux: |
-            # If we're running on rhel centos, install needed packages.
-            if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
-
-                # If we're running on i686 we need to symlink libatomic
-                # in order to build openssl with -latomic flag.
-                if [[ ! -d "/usr/lib64" ]]; then
-                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-                fi
-            else
-                # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config
-            fi
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
